@@ -3,7 +3,8 @@ import { ArrowDown, ChevronDown, Database, FileCode2, Layers, Lock, ShieldCheck,
 import { AuditExamples } from "@/components/audit-examples";
 import { SiteHeader } from "@/components/site-header";
 import { AUDIT_PROMPT_VERSION, CHAIN_STAGES, CHANGE_SURFACES } from "@/lib/audit-content";
-import { computeRunStats } from "@/lib/run-stats";
+import { computeRunStats, type RunStats } from "@/lib/run-stats";
+import runStatsSnapshot from "@/lib/run-stats-snapshot.json";
 import { listRuns } from "@/lib/store";
 
 export const metadata = {
@@ -15,7 +16,10 @@ export const dynamic = "force-dynamic";
 const LEVER_ICONS = [Layers, SlidersHorizontal];
 
 export default async function AuditPage() {
-  const stats = computeRunStats(await listRuns());
+  // Live run log locally; committed snapshot when deployed (the .data run store
+  // is git-ignored because it holds student answers, so it never ships).
+  const liveRuns = await listRuns();
+  const stats: RunStats = liveRuns.length ? computeRunStats(liveRuns) : (runStatsSnapshot as RunStats);
   const deviations = [
     { label: "Exact band", count: stats.exact, tone: "good" as const },
     { label: "Off by one band", count: stats.adjacent, tone: "mid" as const },

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "index:semantic": "node --env-file=.env.local scripts/build-semantic-index.mjs"
+    "index:semantic": "node --env-file=.env.local scripts/build-semantic-index.mjs",
+    "snapshot:runs": "node scripts/build-run-stats-snapshot.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

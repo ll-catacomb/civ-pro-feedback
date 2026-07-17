@@ -1,0 +1,103 @@
+{
+  "versions": 11,
+  "totalRuns": 59,
+  "gradedRuns": 58,
+  "exact": 20,
+  "adjacent": 27,
+  "twoPlus": 11,
+  "exactPct": 34,
+  "withinOnePct": 81,
+  "meanDistance": 0.84,
+  "perVersion": [
+    {
+      "version": "civpro-feedback-v1.0.0",
+      "runs": 1,
+      "graded": 0,
+      "exact": 0,
+      "meanDistance": null,
+      "firstAt": "2026-07-15T01:34:35.566Z"
+    },
+    {
+      "version": "civpro-feedback-v1.1.0",
+      "runs": 1,
+      "graded": 1,
+      "exact": 0,
+      "meanDistance": 2,
+      "firstAt": "2026-07-15T14:44:58.148Z"
+    },
+    {
+      "version": "civpro-feedback-v1.3.0",
+      "runs": 8,
+      "graded": 8,
+      "exact": 3,
+      "meanDistance": 1,
+      "firstAt": "2026-07-15T17:42:43.104Z"
+    },
+    {
+      "version": "civpro-feedback-v1.4.0",
+      "runs": 9,
+      "graded": 9,
+      "exact": 4,
+      "meanDistance": 0.78,
+      "firstAt": "2026-07-15T19:19:09.133Z"
+    },
+    {
+      "version": "civpro-feedback-v2.1.0",
+      "runs": 4,
+      "graded": 4,
+      "exact": 2,
+      "meanDistance": 0.5,
+      "firstAt": "2026-07-15T20:42:48.210Z"
+    },
+    {
+      "version": "civpro-feedback-v2.2.0",
+      "runs": 8,
+      "graded": 8,
+      "exact": 3,
+      "meanDistance": 0.75,
+      "firstAt": "2026-07-16T15:25:59.440Z"
+    },
+    {
+      "version": "civpro-feedback-v3.1.0",
+      "runs": 8,
+      "graded": 8,
+      "exact": 2,
+      "meanDistance": 0.75,
+      "firstAt": "2026-07-16T17:20:30.408Z"
+    },
+    {
+      "version": "civpro-feedback-v3.2.0",
+      "runs": 6,
+      "graded": 6,
+      "exact": 1,
+      "meanDistance": 1.17,
+      "firstAt": "2026-07-16T18:32:24.154Z"
+    },
+    {
+      "version": "civpro-feedback-v3.2.1",
+      "runs": 2,
+      "graded": 2,
+      "exact": 0,
+      "meanDistance": 1.5,
+      "firstAt": "2026-07-16T19:47:13.937Z"
+    },
+    {
+      "version": "civpro-feedback-v4.0.0",
+      "runs": 4,
+      "graded": 4,
+      "exact": 2,
+      "meanDistance": 0.5,
+      "firstAt": "2026-07-17T17:02:16.391Z"
+    },
+    {
+      "version": "civpro-feedback-v4.1.0",
+      "runs": 8,
+      "graded": 8,
+      "exact": 3,
+      "meanDistance": 0.75,
+      "firstAt": "2026-07-17T17:36:33.278Z"
+    }
+  ],
+  "firstAt": "2026-07-15",
+  "lastAt": "2026-07-17"
+}
