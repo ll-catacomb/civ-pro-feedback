@@ -1,0 +1,23 @@
+---
+title: "Assignment 1 Model Answer — Ford"
+source: "assignments/original/2009-assignment-01-alysson-ford-model-answer.doc"
+extracted_date: 2026-04-19
+---
+
+# Assignment 1 Model Answer
+
+## Removal to Maryland Federal Court
+
+The best strategy to get the case to Maryland federal court would be to get Diggle dismissed from the case for lack of in personam jurisdiction (IPJ) and then to remove the case to federal court on the basis of diversity jurisdiction. There is no evidence that Diggle had any contact with Maryland — neither the continuous and systematic contacts necessary for general jurisdiction, *Helicopteros*, nor the minimum contacts required for specific jurisdiction under *International Shoe*. The fact that Diggle's car was involved in an accident in Maryland is insufficient to confer jurisdiction over him since the decision to take the trip to Maryland was the unilateral action of Weasley and Pettigrew, *see Hanson*, and Diggle had no reason to foresee that the car would be taken to Maryland under the stream of commerce test. *See World-Wide Volkswagen*. Once Diggle is dismissed, Weasley can remove the case to Maryland federal court under §§ 1441 & 1446 based on diversity jurisdiction since she is a domiciliary of D.C. and Pettigrew is a domiciliary of either Virginia or South Carolina, and the hospital bills indicate that the amount in controversy is over $75,000.
+
+Alternatively, both Diggle and Weasley may be able to jointly remove the case to federal court based on diversity jurisdiction. Diggle could argue that he is a domiciliary of Barbados since he intends to remain there indefinitely, which would ensure complete diversity regardless of Pettigrew's domicile. He could also claim that he is a domiciliary of South Carolina while Pettigrew is a domiciliary of Virginia, as there is no evidence that he intended to remain in Virginia after school, whereas Pettigrew has purchased a condo, registered to vote, and obtained a driver's license there. Alternatively, Diggle could argue that he intended to remain indefinitely in Virginia and thus his domicile changed to Virginia while he was in school, but that Pettigrew is still a South Carolina resident since he intends to move to D.C. after law school and thus has no intention to remain indefinitely in Virginia. However, it is possible that the court may find that both Diggle and Pettigrew are domiciliaries of the same state (either SC or VA), thus destroying diversity jurisdiction under § 1332. *See Strawbridge*.
+
+## Transfer to Virginia Federal Court
+
+It is unlikely that the case can be transferred to Virginia federal court. In order to transfer a case under either § 1404 or § 1406, the transferee district must be one in which the case could have been brought by the plaintiff. Although it is likely that the Virginia court would have had IPJ over Diggle and Weasley based on their former residence and road trip, respectively, it probably could not have laid venue under § 1391. Neither of the defendants live in Virginia, and the fact that the trip passed through Virginia and part of the affair may have been conducted in the state is probably not a substantial enough portion of the events. It is unlikely that venue could have been laid under § 1391(a)(3) since it appears that the action could have been brought in D.C., where the negligence occurred and where there would have been IPJ over both Weasley and Diggle.[^1]
+
+## Other Strategies
+
+Diggle and Weasley might be able to get the case dismissed under forum non conveniens by arguing that D.C. would be a more convenient forum. Under the balancing test from *Gulf Oil* and *Piper Aircraft*, Weasley and Diggle could argue that D.C. is a more appropriate forum since one of the parties (Weasley) lives there, the witnesses (Ernie and hospital staff) are based there, the evidence (the vehicle and hospital records) is there, and the negligence (failure to repair the car) took place in D.C. However, the court would probably refuse to dismiss the case under forum non conveniens because of the marked preference for allowing a plaintiff to choose his forum and because it is likely that Maryland law will apply under the First Restatement on choice of law since the injury took place there.
+
+[^1]: Which statute is proper may depend on how the case is removed to Maryland federal court. If Diggle is dismissed from the case, then venue was probably properly laid (because the crash took place in Maryland, probably meeting § 1391(a)(2)) and the case should be transferred under § 1404. By contrast, if Diggle is not dismissed from the case, then venue would not have been proper since the court did not have IPJ over him, and the case should probably be transferred under § 1406.

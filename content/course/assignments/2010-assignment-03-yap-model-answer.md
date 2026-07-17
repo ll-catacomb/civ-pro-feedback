@@ -1,0 +1,27 @@
+---
+title: "Assignment 3 Model Answer — Civil Procedure 2, 2010 (Yap)"
+source: "assignments/original/2010-assignment-03-yap-model-answer.doc"
+extracted_date: 2026-04-18
+---
+
+# Assignment 3: Model Answer
+
+---
+
+Although Pansy and Luna effectively have the same underlying case, it is unlikely that Pansy will be able to make use of Luna's prior litigation to help her case. Pansy will want to invoke issue preclusion on the issue of tortious interference on the grounds that the issue was decided at summary judgment, but in order to do so Pansy will need to overcome two specific hurdles: first, she must show that the judge's announcement in Luna's case was a decision of enough finality to support preclusive effect; second, she must demonstrate that she could not have joined the first suit, and that offensive non-mutual collateral estoppel is proper. Because she is unlikely to be able to demonstrate either, it is doubtful that she will be able to make use of Luna's suit.
+
+Whenever dealing with issues of preclusive effect, it is important to examine the source of the possible preclusion. Here, because we are dealing with the preclusive effect of a federal court decision in state court, federal common law governs. *Semtek*.
+
+The baseline requirements for collateral estoppel are: (1) the issue was actually litigated, (2) the issue was necessary to the first decision, and (3) the second issue is substantially similar to the first. Requirements (1) and (3) have been met, as the motions were argued, and Pansy and Luna suffered the same injury from the same event.
+
+However, because the parties settled before a final decision was issued, whether a finding of tortious interference was "necessary to the decision" is unclear. In order to be "necessary to the decision," an actual decision needs to be reached. Here, the parties settled and dismissed after an oral announcement by the judge in Luna's favor. Bearing in mind that the judge retains the right to change her mind prior to the issuance of a final order, the court is unlikely to find that, under common law principles, the decision was of a sufficient quality to sustain an application of collateral estoppel.
+
+Second, because Luna and Pansy are not the same party, Pansy will need to convince the court to apply offensive non-mutual collateral estoppel. The touchstone for this inquiry is whether Pansy could have joined the initial lawsuit. *Parklane*. Joinder of the initial lawsuit requires an examination of the rules for supplemental jurisdiction, which in turn demands a resolution of the subject matter jurisdiction for the initial lawsuit.
+
+If jurisdiction for Luna's suit was purely diversity (she qualifies, as she is domiciled out of state and the amount in controversy is $100,100), then Pansy could not have joined, as she is domiciled in Massachusetts. The court would not have had original jurisdiction, and the rules for supplemental jurisdiction prevent its exercise in diversity suits over additional plaintiffs who would destroy complete diversity. 28 U.S.C. § 1367(b). However, if subject matter jurisdiction for Luna's suit was federal question jurisdiction, then Pansy could have joined—either with original jurisdiction, or under supplemental jurisdiction, which allows pendent parties (28 U.S.C. § 1367(a))—and the court would likely deny application of collateral estoppel.
+
+Luna's complaint rests on a state cause of action, so the pertinent test is whether the claim "necessarily raise[s] a stated federal issue, actually disputed and substantial…[the resolution of which will not disturb the] balance of federal and state judicial responsibilities." *Grable*. Federal question jurisdiction will not be granted merely when a state cause of action includes violation of a federal statute as one of its elements. *Merrell Dow*. However, Weasley & Weasley dispute the validity of the underlying statute, decision of which would effectively decide this claim and any future claims under the statute, and the issue is one of limited scope that would not result in significant litigation moving to the federal courts. *Grable*. Moreover, the issue is not fact-bound; it is a purely legal question of the extent of Congress's powers, and thus does not fall under the *Empire* exception. Federal question jurisdiction is thus likely. As a result, Luna will probably fail to qualify for offensive non-mutual collateral estoppel under *Parklane*.
+
+Thus, Pansy is unlikely to be able to make use of Luna's lawsuit in her own case.
+
+Of course, the *Parklane* analysis rests final discretion in the trial court, but it's not entirely clear that Pansy can present a strong case for application of issue preclusion. First, the facts disclose exactly the type of behavior the Court was worried about in *Parklane*: waiting on the sidelines and jumping in after finding out about a favorable verdict. Second, given the tentative nature of the decision and the lack of clear and reviewable reasoning, it seems inappropriate to grant preclusion. Conversely, however, there are strong consistency and efficiency arguments weighing for preclusion, including the fact that the defendant effectively gets a second bite at the apple by settling after an adverse announcement. There is no clear answer, and any decision must balance the crowdedness of its docket, the likelihood of additional litigation if preclusion is applied—which is probably fairly high, given that it was a citywide mistake—and the gravity of the issue at stake.

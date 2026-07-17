@@ -1,0 +1,25 @@
+---
+title: "Model Answer — Assignment 3 (2020)"
+source: "assignments/original/2020-assignment-03-hackney-model-answer.pdf"
+extracted_date: 2026-04-13
+---
+
+<!-- page: 1 -->
+
+## Successful PDP Claims
+
+Either party could challenge the overall procedural safeguards provided by the USEA as deficient when compared to the minimum requirements laid out in *Vitek*. Some requirements are met. USEA is an independent decision-maker. Witnesses are represented through sworn affidavits. The lack of discovery is not antithetical to *Vitek*: it's not mandated. That an appeal can be made is more than *Vitek* requires. And *Vitek* doesn't require *per se* legal counsel at state expense. Some issues are concerning. Although notice was given, we are not made privy to the details of notice, meaning it could be insufficient. Relatedly, although the ALJ made a written explanation, it's unclear whether this is required. Additionally, while WW was given an opportunity to respond, *Vitek* likely would have required both parties the opportunity to contest each other's evidence had it been between two private parties (as opposed to the government and a private party). And *Vitek* does require a hearing. Especially because the dispute concerned a testimonial dispute, it seems difficult to judge Margolis's claim on the papers. Overall, without more information, there seems to be a global due process concern.
+
+WW is right to request a jury trial. To decide if there is a right to a jury trial, *Terry* counsels a 2-prong test. The first prong considers the nature of the issue, while the second looks at the nature of the remedy. When evaluating, we consider the historical context of the cause of action, analogizing if necessary. Admittedly, the analysis is muddled. Though we know that historically an action for a third-party breach was an action in equity, this claim is ultimately about compensatory damages to Margolis — a remedy at law. By contrast, an equitable remedy could have been for an injunction or WW's specific performance (brought prior to Nov. 3). So, prongs one and two are directly contrasting. But *Terry* says prong two dominates. Layered on this is that at the heart of the dispute is a factual inquiry: whether an oral increase in the number of ballots was actually made. Rather than a conclusion of law, which a judge is better suited to decide, a jury is the more appropriate factfinder.
+
+The strong claim WW has for a jury trial could be defeated if there is a public rights exception. This comes into play when Congress establishes a new adjudicator. Notwithstanding the *Terry* analysis above, if a public right is at issue, then the 7th Amendment does not prevent Congress from assigning factfinding to an administrative forum. This requires the government to (1) be a party to the litigation and (2) be acting as a sovereign. In the case at bar, the government is not a party, so the exception does not apply.
+
+## Unsuccessful PDP Claims
+
+Margolis will have a tough time requesting legal counsel at state expense. Begin with *Lassiter*, which provides a presumption *against* provision of counsel in the absence of an incarceration risk. Noting that, conduct an *MvE* analysis, augmented for private parties as described in *Doehr*. The private interest of Margolis for pain and suffering damages appears comparatively minimal. In context, this is relatively small in comparison to the private interests recognized as significant (often when seizure is involved), like parental rights or involuntary treatment in a mental hospital. WW's private interest is paying damages. Because a seizure has not occurred pre-judgment, this
+
+<!-- page: 2 -->
+
+is similarly minor. The risk of erroneous determination is muddled. Mitigating concerns are that claims must be substantiated, rather than conclusory, and statements are made under penalty of perjury, as opposed to mere allegation.
+
+WW could not bring a successful procedural due process challenge to the USEA's prohibition on expanding the case beyond parties and claims to the original complaint. Even though it seems like the injury Margolis complains of could be due to the negligence of the polling place (it seems more likely that lack of seating, rather than insufficient quantities of ballots, caused her pain and suffering), WW nevertheless may not avail itself of joinder, cross-suit, nor other procedural actions available in an Article III court. Note that none of these are part of the minimum requirements in *Vitek*. Though ability to respond is part of *Vitek*, it would be a stretch to characterize these deficiencies under that umbrella. Thus, this claim would likely fail. And an *MvE* test (modified by *Doehr*) counsels against allowing these safeguards. The private interests, discussed above, are both relatively minor. And the risk of erroneous determination is minor: the inability to draw in the polling place as a party and allege their negligence proximately caused Margolis's pain and suffering likely won't increase the odds an ALJ erroneously determining a lack of ballots was the true source of her harm.
