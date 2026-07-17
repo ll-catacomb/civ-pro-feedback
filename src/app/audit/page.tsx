@@ -3,14 +3,25 @@ import { ArrowDown, ChevronDown, Database, FileCode2, Layers, Lock, ShieldCheck,
 import { AuditExamples } from "@/components/audit-examples";
 import { SiteHeader } from "@/components/site-header";
 import { AUDIT_PROMPT_VERSION, CHAIN_STAGES, CHANGE_SURFACES } from "@/lib/audit-content";
+import { computeRunStats } from "@/lib/run-stats";
+import { listRuns } from "@/lib/store";
 
 export const metadata = {
   title: "Review dossier — CivPro Practice",
 };
 
+export const dynamic = "force-dynamic";
+
 const LEVER_ICONS = [Layers, SlidersHorizontal];
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  const stats = computeRunStats(await listRuns());
+  const deviations = [
+    { label: "Exact band", count: stats.exact, tone: "good" as const },
+    { label: "Off by one band", count: stats.adjacent, tone: "mid" as const },
+    { label: "Off by two bands", count: stats.twoPlus, tone: "bad" as const },
+  ];
+  const maxDev = Math.max(1, ...deviations.map((d) => d.count));
   return (
     <>
       <SiteHeader />
@@ -97,7 +108,7 @@ export default function AuditPage() {
             <AuditExamples />
           </section>
 
-          <section className="audit-section audit-section--last">
+          <section className="audit-section">
             <div className="audit-section__head">
               <span className="eyebrow">Where to make changes</span>
               <h2>Two levers you can direct</h2>
@@ -128,6 +139,63 @@ export default function AuditPage() {
                 );
               })}
             </div>
+          </section>
+
+          <section className="audit-section audit-section--last">
+            <div className="audit-section__head">
+              <span className="eyebrow">Track record</span>
+              <h2>Every iteration, every run</h2>
+              <p>
+                The grade estimate has been rebuilt {stats.versions} times as distinct prompt-chain versions.
+                Each version was re-scored blind against the same eight instructor-graded answers. Below is the
+                complete record — {stats.totalRuns} logged runs{stats.firstAt ? ` between ${stats.firstAt} and ${stats.lastAt}` : ""} — with no
+                cherry-picking.
+              </p>
+            </div>
+
+            <div className="audit-statgrid">
+              <div className="audit-stat"><strong>{stats.versions}</strong><span>prompt-chain versions tried</span></div>
+              <div className="audit-stat"><strong>{stats.totalRuns}</strong><span>grading runs logged</span></div>
+              <div className="audit-stat"><strong>{stats.exactPct}%</strong><span>landed the exact band</span></div>
+              <div className="audit-stat"><strong>{stats.withinOnePct}%</strong><span>within one band</span></div>
+              <div className="audit-stat"><strong>{stats.meanDistance ?? "—"}</strong><span>avg. bands off</span></div>
+            </div>
+
+            <div className="audit-devs">
+              <span className="eyebrow">Deviation across all {stats.gradedRuns} graded runs</span>
+              <div className="audit-dev-bars">
+                {deviations.map((d) => (
+                  <div key={d.label} className="audit-dev">
+                    <div className="audit-dev-track">
+                      <div className={`audit-dev-fill audit-dev-fill--${d.tone}`} style={{ width: `${(d.count / maxDev) * 100}%` }} />
+                    </div>
+                    <div className="audit-dev-meta">
+                      <span>{d.label}</span>
+                      <strong>{d.count} · {stats.gradedRuns ? Math.round((d.count / stats.gradedRuns) * 100) : 0}%</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="audit-versions">
+              <div className="audit-ver-row audit-ver-head">
+                <span>Prompt version</span><span>Runs</span><span>Exact</span><span>Avg. bands off</span><span>First run</span>
+              </div>
+              {stats.perVersion.map((v) => (
+                <div key={v.version} className={`audit-ver-row ${v.version === AUDIT_PROMPT_VERSION ? "is-current" : ""}`}>
+                  <span className="audit-ver-name">{v.version.replace("civpro-feedback-", "")}{v.version === AUDIT_PROMPT_VERSION && <em>frozen</em>}</span>
+                  <span>{v.graded || v.runs}</span>
+                  <span>{v.graded ? `${v.exact}/${v.graded}` : "—"}</span>
+                  <span>{v.meanDistance ?? "—"}</span>
+                  <span className="audit-ver-date">{v.firstAt.slice(0, 10)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="audit-fineprint">
+              Distance is whole-band (predicted vs. instructor band); &ldquo;within one band&rdquo; counts exact and
+              adjacent calls. Runs from the current frozen version{stats.perVersion.some((v) => v.version === AUDIT_PROMPT_VERSION) ? "" : " are pending — its prompt tightened the shoulder-flag rule after the last scored batch"}.
+            </p>
           </section>
         </div>
       </main>
