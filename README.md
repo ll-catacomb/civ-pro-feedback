@@ -26,20 +26,17 @@ npm install
 cp .env.example .env.local
 ```
 
-Add an Anthropic API key (and optionally an OpenAI key for semantic retrieval embeddings) to `.env.local`, then run:
+Add your Anthropic API key to `.env.local` — it is the only key the project needs — then run:
 
 ```bash
-npm run index:semantic
 npm run dev
 ```
 
-`index:semantic` embeds the non-exam course corpus into a private, Git-ignored local index. Re-run it after changing course materials, then restart the app. If the index or embedding call is unavailable, grading continues with a visibly labeled lexical fallback.
-
-To inspect exactly how many files, chunks, and characters would be sent without making an API call or writing an index, run `npm run index:semantic -- --dry-run`.
+There is no index to build. Course retrieval reads `content/course` directly at startup, so changed course materials take effect on the next restart.
 
 Open `http://localhost:3000` for the Feedback Quality Lab and `http://localhost:3000/practice` for the secondary student experience. `/qa` redirects to the homepage.
 
-The entire grading chain runs on the Claude API (`claude-opus-4-8` by default; override with `ANTHROPIC_WORK_MODEL` / `ANTHROPIC_JUDGE_MODEL`). The blind evaluation owns the band recommendation and bands comparatively against instructor-graded reference answers (leave-one-out, so a run never sees its own grade). v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline after calibration showed the cross-model judging layer did not improve band accuracy; pre-v4 dual runs remain readable in the QA lab and exports. Course retrieval fuses semantic similarity from `text-embedding-3-large` (the only remaining OpenAI call, optional) with lexical ranking, retrieves 48 candidates, and reranks them into a curated packet of up to 24 excerpts.
+The entire project runs on a single Anthropic API key (`claude-opus-5` by default; override with `ANTHROPIC_WORK_MODEL` / `ANTHROPIC_JUDGE_MODEL`). Every stage opts into a server-side refusal fallback, so a safety-classifier false positive is re-run on Anthropic's recommended substitute instead of failing the run; each stage trace records the model that actually answered. The blind evaluation owns the band recommendation and bands comparatively against instructor-graded reference answers (leave-one-out, so a run never sees its own grade). v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline after calibration showed the cross-model judging layer did not improve band accuracy; v4.2.0 removed the last OpenAI call by replacing embedding-based retrieval with a Claude query-expansion stage. Pre-v4 dual runs remain readable in the QA lab and exports. Course retrieval now expands the issue map into the doctrine vocabulary the course materials actually use, ranks the corpus by BM25, retrieves 48 candidates, and reranks them into a curated packet of up to 24 excerpts.
 
 ## Verification
 

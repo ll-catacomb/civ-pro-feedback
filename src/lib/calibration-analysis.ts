@@ -11,7 +11,7 @@ import {
   type StageTrace,
 } from "@/lib/types";
 
-const CALIBRATION_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-4-8";
+const CALIBRATION_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-5";
 export const CALIBRATION_ANALYSIS_VERSION = "calibration-analysis-v2.0.0";
 
 function gradeAgreement(run: FeedbackRun): CalibrationAnalysis["gradeAgreement"] {

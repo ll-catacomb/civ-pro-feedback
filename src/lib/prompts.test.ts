@@ -5,6 +5,7 @@ import {
   evaluationUserPrompt,
   judgeDeveloperPrompt,
   PROMPT_VERSION,
+  queryExpansionDeveloperPrompt,
   rubricDeveloperPrompt,
   sourceRerankDeveloperPrompt,
   submissionFitDeveloperPrompt,
@@ -83,5 +84,12 @@ describe("prompt-chain invariants", () => {
     expect(sourceRerankDeveloperPrompt).toContain("Reject administrative instructions");
     expect(sourceRerankDeveloperPrompt).toContain("Cover every distinct high-weight issue");
     expect(sourceRerankDeveloperPrompt).toContain("up to 24 candidate course excerpts");
+  });
+
+  it("expands the retrieval query without inventing authority", () => {
+    expect(queryExpansionDeveloperPrompt).toContain("Never invent a case name, statute, or doctrine");
+    expect(queryExpansionDeveloperPrompt).toContain("Emit search terms, not sentences");
+    expect(queryExpansionDeveloperPrompt).toContain("bare numeric form");
+    expect(queryExpansionDeveloperPrompt).toContain("including ones they got wrong");
   });
 });

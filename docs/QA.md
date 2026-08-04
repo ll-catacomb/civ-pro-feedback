@@ -10,7 +10,7 @@ The supplied 2019 LP Word answer contains three anchored comments from Travis Fi
 
 ## Baseline procedure
 
-1. Add `OPENAI_API_KEY` to `.env.local` and start the app.
+1. Add `ANTHROPIC_API_KEY` to `.env.local` — the only key the project uses — and start the app.
 2. Open `/`.
 3. Use **Run all blind · 2 parallel** to run the eight ready fixtures with bounded concurrency, or run them individually. Do not change prompts or models during the batch.
 4. Export the run CSV and complete JSON archive. Keep these as the versioned baseline for the prompt version shown in the dashboard.
@@ -29,7 +29,7 @@ Rate each run on these questions:
 - Pedagogy: Does each priority tell the student what to do differently next time?
 - Proportionality: Does the tone and emphasis fit the seriousness of the issue?
 - Grounding: Do cited source excerpts actually support the associated claim?
-- Retrieval: Did the run use hybrid retrieval, and do the recorded rerank reasons explain why the selected excerpts matter to the weighted issues? Treat a lexical-fallback run as a separate QA condition.
+- Retrieval: Did the query-expansion stage run (`expanded_lexical` rather than `lexical_fallback`), are its expansion terms doctrine vocabulary actually present in the course materials rather than invented authority, and do the recorded rerank reasons explain why the selected excerpts matter to the weighted issues? Treat a `lexical_fallback` run as a separate QA condition. Runs labeled `hybrid` predate v4.2.0's embedding removal and are not comparable on retrieval.
 - Band discrimination: Does each blind evaluation distinguish central errors from secondary or bonus omissions, use the exam's actual point allocation, and explain both the upper and lower adjacent-band boundary?
 
 Suggested interpretation: 5 = publish as-is; 4 = minor edit; 3 = useful but material edit; 2 = unreliable in important places; 1 = unsafe or fundamentally misdirected.

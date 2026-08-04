@@ -17,7 +17,7 @@ export default function PracticePage() {
             <p>Submit a full practice exam response and receive precise, course-grounded feedback that has been independently checked before you see it.</p>
             <a href="#practice" className="hero__cta">Choose an exam <ArrowDown size={18} /></a>
           </div>
-          <div className="hero__proof"><span className="proof-number">16</span><div><strong>model checks in a configured dual run</strong><p>Two-pass exam fit → parallel OpenAI + Claude chains → two cross-model judges → final decision</p></div></div>
+          <div className="hero__proof"><span className="proof-number">8</span><div><strong>model stages behind every grade</strong><p>Two-pass exam fit → weighted issue map → course-material retrieval → blind evaluation → coaching → judge</p></div></div>
         </section>
         <section className="method-strip" aria-label="Feedback method">
           <div><BookOpenCheck size={21} /><span><strong>Course-specific</strong>451 cleaned source documents</span></div>

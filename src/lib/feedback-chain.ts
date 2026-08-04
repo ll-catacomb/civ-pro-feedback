@@ -18,6 +18,8 @@ import {
   judgeDeveloperPrompt,
   judgeUserPrompt,
   PROMPT_VERSION,
+  queryExpansionDeveloperPrompt,
+  queryExpansionUserPrompt,
   rubricDeveloperPrompt,
   rubricUserPrompt,
   sourceRerankDeveloperPrompt,
@@ -33,6 +35,7 @@ import {
   FeedbackSchema,
   IssueMapSchema,
   JudgeSchema,
+  RetrievalQuerySchema,
   SourceRerankSchema,
   SubmissionFitAssessmentSchema,
   SubmissionFitJudgeSchema,
@@ -57,12 +60,17 @@ export type FeedbackIntake = {
 
 type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 
-const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-4-8";
-const JUDGE_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-4-8";
+const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-5";
+const JUDGE_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-5";
+// Used only when a safety classifier declines a request; see attemptClaudeStage.
+const FALLBACK_MODEL = process.env.ANTHROPIC_FALLBACK_MODEL ?? "claude-opus-4-8";
 const RETRIEVAL_CANDIDATE_LIMIT = 48;
 const FINAL_SOURCE_LIMIT = 24;
 
 export class FeedbackConfigurationError extends Error {}
+
+/** Raised for failures that cannot be cleared by retrying the same request. */
+export class NonRetryableStageError extends Error {}
 
 export function describeStageCause(cause: unknown): string {
   if (!(cause instanceof Error)) return "";
@@ -109,6 +117,7 @@ const STAGE_RETRY_DELAYS_MS = [5_000, 20_000, 60_000];
 const STAGE_RETRY_JITTER_MS = 5_000;
 
 function isNonRetryable(error: unknown): boolean {
+  if (error instanceof NonRetryableStageError) return true;
   return error instanceof Anthropic.APIError
     && typeof error.status === "number"
     && [400, 401, 403, 404, 413].includes(error.status);
@@ -128,12 +137,25 @@ async function attemptClaudeStage<T>(input: {
   const startedAt = Date.now();
   // Streamed with generous headroom: adaptive thinking plus the nested
   // feedback JSON regularly exceeds 15K output tokens on judge stages.
-  const response = await input.client.messages.stream({
+  //
+  // Claude Opus 5 ships elevated safety classifiers that can decline a request
+  // outright, so every stage opts into a server-side fallback: a declined
+  // request is re-run on FALLBACK_MODEL inside the same call rather than
+  // failing the run. A Civil Procedure answer should never trip a cyber or bio
+  // classifier, but a false positive would otherwise lose a whole submission.
+  //
+  // Anthropic recommends `fallbacks: "default"` (category-routed, nothing to
+  // pin) over naming a model, but the SDK does not type the scalar form yet and
+  // this repo gates on tsc. Opus 4.8 is the documented target for a
+  // cyber-category refusal, so the pinned form behaves identically today.
+  const response = await input.client.beta.messages.stream({
     model: input.model,
     max_tokens: 64000,
     thinking: { type: "adaptive" },
     system: input.developerPrompt,
     messages: [{ role: "user", content: input.userPrompt }],
+    betas: ["server-side-fallback-2026-06-01"],
+    fallbacks: [{ model: FALLBACK_MODEL }],
     ...(input.safetyIdentifier ? { metadata: { user_id: input.safetyIdentifier } } : {}),
     output_config: {
       effort: input.reasoningEffort,
@@ -142,6 +164,15 @@ async function attemptClaudeStage<T>(input: {
   }).finalMessage();
   if (response.stop_reason === "max_tokens") {
     throw new Error("Output truncated at max_tokens before the structured object completed.");
+  }
+  // A refusal is a successful HTTP 200 with empty or partial content, and it is
+  // deterministic: retrying the same prompt cannot clear it, so fail fast with
+  // the classifier category instead of burning the retry ladder.
+  if (response.stop_reason === "refusal") {
+    const category = response.stop_details?.type === "refusal" ? response.stop_details.category : null;
+    throw new NonRetryableStageError(
+      `Every configured model declined this request${category ? ` (${category} classifier)` : ""}. The submission needs manual review.`,
+    );
   }
   const text = response.content
     .filter((block) => block.type === "text")
@@ -154,7 +185,9 @@ async function attemptClaudeStage<T>(input: {
 
   input.traces.push({
     name: input.stageName,
-    model: input.model,
+    // The model that actually answered, which is the fallback rather than the
+    // requested model whenever a fallback served the turn.
+    model: response.model,
     reasoningEffort: input.reasoningEffort,
     durationMs: Date.now() - startedAt,
     inputTokens: response.usage.input_tokens,
@@ -306,8 +339,34 @@ export async function runFeedbackChain(
     traces,
   });
 
+  // The Claude API has no embeddings endpoint, so the semantic half of
+  // retrieval is a model stage rather than a vector store: Claude names the
+  // vocabulary the course materials would actually use for these doctrines, and
+  // BM25 matches it. Non-fatal — retrieval still runs on issue-map and answer
+  // terms alone, and labels the run as a lexical fallback.
+  let expansionTerms: string[] = [];
+  try {
+    const retrievalQuery = await parseClaudeStage({
+      client,
+      schema: RetrievalQuerySchema,
+      stageName: "retrieval_query",
+      model: WORK_MODEL,
+      reasoningEffort: "low",
+      developerPrompt: queryExpansionDeveloperPrompt,
+      userPrompt: queryExpansionUserPrompt({ issueMap, answer: input.answer }),
+      safetyIdentifier,
+      traces,
+    });
+    expansionTerms = [
+      ...retrievalQuery.criterionQueries.flatMap((entry) => entry.terms),
+      ...retrievalQuery.crossCuttingTerms,
+    ];
+  } catch {
+    console.warn("Retrieval query expansion failed; searching on issue-map and answer terms only for this run.");
+  }
+
   const retrievalCandidates = await retrieveCourseContext(
-    { issueMap, answer: input.answer },
+    { issueMap, answer: input.answer, expansionTerms },
     RETRIEVAL_CANDIDATE_LIMIT,
   );
   let sources = retrievalCandidates.slice(0, FINAL_SOURCE_LIMIT);
@@ -345,7 +404,7 @@ export async function runFeedbackChain(
         ...retrievalCandidates.filter((source) => !selectedIds.has(source.id)),
       ].slice(0, FINAL_SOURCE_LIMIT);
     } catch {
-      console.warn("Source reranking failed; using hybrid retrieval order for this run.");
+      console.warn("Source reranking failed; using raw retrieval order for this run.");
     }
   }
   const formattedSources = formatSources(sources);

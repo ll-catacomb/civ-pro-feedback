@@ -3,21 +3,21 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 
-import OpenAI from "openai";
-
 import { parseCourseMarkdown } from "@/lib/course-markdown";
 import type { IssueMap, RetrievedSource } from "@/lib/types";
 
-type Chunk = Omit<RetrievedSource, "score" | "retrievalMethod" | "semanticScore" | "lexicalScore" | "rerankRelevance" | "rerankReason"> & {
-  searchText: string;
+type Chunk = Omit<
+  RetrievedSource,
+  "score" | "retrievalMethod" | "semanticScore" | "lexicalScore" | "rerankRelevance" | "rerankReason"
+> & {
+  termFrequencies: Map<string, number>;
+  termCount: number;
 };
 
-type IndexedChunk = Omit<Chunk, "searchText"> & { embedding: string };
-type SemanticIndex = {
-  version: number;
-  model: string;
-  dimensions: number;
-  chunks: IndexedChunk[];
+type Corpus = {
+  chunks: Chunk[];
+  documentFrequency: Map<string, number>;
+  averageTermCount: number;
 };
 
 const STOP_WORDS = new Set([
@@ -28,12 +28,29 @@ const STOP_WORDS = new Set([
   "would", "your", "question", "answer", "civil", "procedure", "court", "federal", "state",
 ]);
 
-const SEMANTIC_INDEX_PATH = process.env.SEMANTIC_INDEX_PATH
-  ? path.resolve(process.env.SEMANTIC_INDEX_PATH)
-  : path.join(process.cwd(), ".data", "semantic-index-v1.json");
+// Okapi BM25. Saturating term frequency and length normalization matter here
+// because course chunks range from short case notes to 2.2K-character outline
+// sections, and a long section should not outrank a precisely on-point note
+// merely by repeating a doctrine name.
+const BM25_K1 = 1.5;
+const BM25_B = 0.75;
 
-let cachedChunks: Chunk[] | undefined;
-let cachedSemanticIndex: SemanticIndex | null | undefined;
+// A title term is strong evidence of what a chunk is about, so title tokens are
+// counted repeatedly rather than scored as a separate additive bonus.
+const TITLE_TERM_WEIGHT = 3;
+
+// Query-term weights by provenance. The issue map is the authoritative statement
+// of what the exam tests. Expansion terms are Claude's rendering of that same
+// doctrine into the vocabulary the course materials actually use, so they rank
+// just below it. The student's own wording is useful for finding the materials
+// that correct them, but it is the noisiest of the three.
+const ISSUE_MAP_TERM_WEIGHT = 1;
+const EXPANSION_TERM_WEIGHT = 0.8;
+const ANSWER_TERM_WEIGHT = 0.5;
+
+const MAX_CHUNKS_PER_DOCUMENT = 2;
+
+let cachedCorpus: Corpus | undefined;
 
 function walkMarkdown(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -53,52 +70,72 @@ function splitSections(content: string): string[] {
   });
 }
 
-function loadChunks(): Chunk[] {
-  if (cachedChunks) return cachedChunks;
+// Words, and statute numbers in their bare numeric form. Civil Procedure
+// materials cite the same provision as "1331", "§ 1331", and "section 1331", so
+// a three-or-more-digit run is indexed as its own term with the section sign
+// stripped; that is how "arising under" chunks become findable at all.
+function tokenize(input: string, limit = 240): string[] {
+  const matches = input.toLowerCase().match(/§\s?\d{3,}|\d{3,}|[a-z][a-z0-9§-]{2,}/g) ?? [];
+  const tokens = matches
+    .map((token) => token.replace(/§\s?/, "").trim())
+    .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
+  return [...new Set(tokens)].slice(0, limit);
+}
+
+function countTerms(input: string): Map<string, number> {
+  const frequencies = new Map<string, number>();
+  const matches = input.toLowerCase().match(/§\s?\d{3,}|\d{3,}|[a-z][a-z0-9§-]{2,}/g) ?? [];
+  for (const match of matches) {
+    const token = match.replace(/§\s?/, "").trim();
+    if (token.length < 3 || STOP_WORDS.has(token)) continue;
+    frequencies.set(token, (frequencies.get(token) ?? 0) + 1);
+  }
+  return frequencies;
+}
+
+function loadCorpus(): Corpus {
+  if (cachedCorpus) return cachedCorpus;
   const root = path.join(process.cwd(), "content/course");
-  cachedChunks = walkMarkdown(root)
+  const chunks = walkMarkdown(root)
+    // Historical exams are excluded: the selected exam and its model answer are
+    // supplied directly, and an unrelated exam can contaminate the feedback.
     .filter((filePath) => !filePath.includes(`${path.sep}exams${path.sep}`))
     .flatMap((filePath) => {
       const relativePath = path.relative(process.cwd(), filePath);
       const fallbackTitle = path.basename(filePath, ".md").replaceAll("-", " ");
       const parsed = parseCourseMarkdown(fs.readFileSync(filePath, "utf8"), fallbackTitle);
-      return splitSections(parsed.content).map((excerpt, index) => ({
-        id: `C-${relativePath.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${index + 1}`,
-        title: parsed.title,
-        path: relativePath,
-        excerpt: excerpt.trim(),
-        searchText: `${parsed.title} ${excerpt}`.toLowerCase(),
-      }));
+      return splitSections(parsed.content).map((excerpt, index) => {
+        const termFrequencies = countTerms(excerpt);
+        for (const [term, count] of countTerms(parsed.title)) {
+          termFrequencies.set(term, (termFrequencies.get(term) ?? 0) + count * TITLE_TERM_WEIGHT);
+        }
+        let termCount = 0;
+        for (const count of termFrequencies.values()) termCount += count;
+        return {
+          id: `C-${relativePath.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${index + 1}`,
+          title: parsed.title,
+          path: relativePath,
+          excerpt: excerpt.trim(),
+          termFrequencies,
+          termCount,
+        };
+      });
     });
-  return cachedChunks;
-}
 
-function loadSemanticIndex(): SemanticIndex | null {
-  if (cachedSemanticIndex) return cachedSemanticIndex;
-  try {
-    cachedSemanticIndex = JSON.parse(fs.readFileSync(SEMANTIC_INDEX_PATH, "utf8")) as SemanticIndex;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") console.warn("Semantic index could not be loaded; using lexical fallback.");
-    cachedSemanticIndex = null;
+  const documentFrequency = new Map<string, number>();
+  for (const chunk of chunks) {
+    for (const term of chunk.termFrequencies.keys()) {
+      documentFrequency.set(term, (documentFrequency.get(term) ?? 0) + 1);
+    }
   }
-  return cachedSemanticIndex;
-}
+  const totalTermCount = chunks.reduce((total, chunk) => total + chunk.termCount, 0);
 
-function tokenize(input: string, limit = 120): string[] {
-  return [...new Set(
-    input.toLowerCase().match(/[a-z][a-z0-9§-]{2,}/g)?.filter((token) => !STOP_WORDS.has(token)) ?? [],
-  )].slice(0, limit);
-}
-
-function sampleEvenly(value: string, targetCharacters: number): string {
-  if (value.length <= targetCharacters) return value;
-  const segmentCount = 4;
-  const segmentLength = Math.floor(targetCharacters / segmentCount);
-  const maxStart = value.length - segmentLength;
-  return Array.from({ length: segmentCount }, (_, index) => {
-    const start = Math.floor((maxStart * index) / (segmentCount - 1));
-    return value.slice(start, start + segmentLength);
-  }).join("\n…\n");
+  cachedCorpus = {
+    chunks,
+    documentFrequency,
+    averageTermCount: chunks.length > 0 ? totalTermCount / chunks.length : 1,
+  };
+  return cachedCorpus;
 }
 
 function issueMapText(issueMap: IssueMap): string {
@@ -109,133 +146,113 @@ function issueMapText(issueMap: IssueMap): string {
   ].join("\n")).join("\n\n");
 }
 
-function lexicalScores(chunks: Chunk[], terms: string[]): Map<string, number> {
-  const raw = chunks.map((chunk) => {
-    const title = chunk.title.toLowerCase();
-    const score = terms.reduce((total, term) => {
-      const occurrences = chunk.searchText.split(term).length - 1;
-      return total + Math.min(occurrences, 5) + (title.includes(term) ? 4 : 0);
-    }, 0);
-    return { id: chunk.id, score };
-  });
-  const maximum = Math.max(...raw.map((item) => item.score), 1);
-  return new Map(raw.map((item) => [item.id, item.score / maximum]));
+/** Weight per query term, keeping the strongest provenance when one repeats. */
+function buildQueryTerms(input: {
+  issueMap: IssueMap;
+  answer: string;
+  expansionTerms: string[];
+}): Map<string, number> {
+  const weighted = new Map<string, number>();
+  const add = (terms: string[], weight: number) => {
+    for (const term of terms) {
+      weighted.set(term, Math.max(weighted.get(term) ?? 0, weight));
+    }
+  };
+  add(tokenize(issueMapText(input.issueMap)), ISSUE_MAP_TERM_WEIGHT);
+  add(tokenize(input.expansionTerms.join("\n")), EXPANSION_TERM_WEIGHT);
+  add(tokenize(input.answer), ANSWER_TERM_WEIGHT);
+  return weighted;
 }
 
-function decodeEmbedding(encoded: string): Float32Array {
-  const buffer = Buffer.from(encoded, "base64");
-  return new Float32Array(buffer.buffer, buffer.byteOffset, buffer.byteLength / Float32Array.BYTES_PER_ELEMENT);
-}
-
-function cosineSimilarity(left: number[], right: Float32Array): number {
-  let dot = 0;
-  let leftMagnitude = 0;
-  let rightMagnitude = 0;
-  const length = Math.min(left.length, right.length);
-  for (let index = 0; index < length; index += 1) {
-    dot += left[index] * right[index];
-    leftMagnitude += left[index] ** 2;
-    rightMagnitude += right[index] ** 2;
+function bm25Scores(corpus: Corpus, queryTerms: Map<string, number>): Map<string, number> {
+  const inverseDocumentFrequency = new Map<string, number>();
+  for (const term of queryTerms.keys()) {
+    const frequency = corpus.documentFrequency.get(term) ?? 0;
+    inverseDocumentFrequency.set(
+      term,
+      Math.log(1 + (corpus.chunks.length - frequency + 0.5) / (frequency + 0.5)),
+    );
   }
-  return dot / (Math.sqrt(leftMagnitude) * Math.sqrt(rightMagnitude) || 1);
+
+  const scores = new Map<string, number>();
+  for (const chunk of corpus.chunks) {
+    const lengthNormalizer = BM25_K1 * (1 - BM25_B + (BM25_B * chunk.termCount) / corpus.averageTermCount);
+    let score = 0;
+    for (const [term, weight] of queryTerms) {
+      const termFrequency = chunk.termFrequencies.get(term);
+      if (!termFrequency) continue;
+      score += weight
+        * (inverseDocumentFrequency.get(term) ?? 0)
+        * ((termFrequency * (BM25_K1 + 1)) / (termFrequency + lengthNormalizer));
+    }
+    if (score > 0) scores.set(chunk.id, score);
+  }
+  return scores;
 }
 
-function lexicalFallback(chunks: Chunk[], lexical: Map<string, number>, limit: number): RetrievedSource[] {
-  return chunks
-    .map((chunk) => ({ ...chunk, score: lexical.get(chunk.id) ?? 0 }))
-    .filter((chunk) => chunk.score > 0)
-    .sort((left, right) => right.score - left.score)
-    .slice(0, limit)
-    .map((chunk) => ({
-      id: chunk.id,
-      title: chunk.title,
-      path: chunk.path,
-      excerpt: chunk.excerpt,
-      score: chunk.score,
-      retrievalMethod: "lexical_fallback" as const,
-      lexicalScore: chunk.score,
-    }));
-}
-
-function fuseRanks(input: {
-  chunks: Chunk[];
-  lexical: Map<string, number>;
-  semantic: Map<string, number>;
+function selectCandidates(input: {
+  corpus: Corpus;
+  scores: Map<string, number>;
   limit: number;
+  retrievalMethod: NonNullable<RetrievedSource["retrievalMethod"]>;
 }): RetrievedSource[] {
-  const lexicalRank = new Map([...input.lexical.entries()].sort((a, b) => b[1] - a[1]).map(([id], index) => [id, index + 1]));
-  const semanticRank = new Map([...input.semantic.entries()].sort((a, b) => b[1] - a[1]).map(([id], index) => [id, index + 1]));
-  const ranked = input.chunks.map((chunk) => {
-    const lexicalPosition = lexicalRank.get(chunk.id) ?? input.chunks.length;
-    const semanticPosition = semanticRank.get(chunk.id) ?? input.chunks.length;
-    const score = (0.4 / (60 + lexicalPosition)) + (0.6 / (60 + semanticPosition));
-    return {
-      ...chunk,
-      score,
-      retrievalMethod: "hybrid" as const,
-      lexicalScore: input.lexical.get(chunk.id) ?? 0,
-      semanticScore: input.semantic.get(chunk.id) ?? 0,
-    };
-  }).sort((left, right) => right.score - left.score);
+  const ranked = input.corpus.chunks
+    .flatMap((chunk) => {
+      const score = input.scores.get(chunk.id);
+      return score ? [{ chunk, score }] : [];
+    })
+    .sort((left, right) => right.score - left.score);
 
+  const maximum = ranked[0]?.score ?? 1;
   const perDocument = new Map<string, number>();
   const selected: RetrievedSource[] = [];
-  for (const chunk of ranked) {
-    if ((perDocument.get(chunk.path) ?? 0) >= 2) continue;
-    selected.push({
-      id: chunk.id,
-      title: chunk.title,
-      path: chunk.path,
-      excerpt: chunk.excerpt,
-      score: chunk.score,
-      retrievalMethod: chunk.retrievalMethod,
-      lexicalScore: chunk.lexicalScore,
-      semanticScore: chunk.semanticScore,
-    });
-    perDocument.set(chunk.path, (perDocument.get(chunk.path) ?? 0) + 1);
+  for (const entry of ranked) {
     if (selected.length >= input.limit) break;
+    // Cap chunks per document so one long outline cannot crowd out coverage of
+    // the other weighted issues.
+    if ((perDocument.get(entry.chunk.path) ?? 0) >= MAX_CHUNKS_PER_DOCUMENT) continue;
+    perDocument.set(entry.chunk.path, (perDocument.get(entry.chunk.path) ?? 0) + 1);
+    const normalized = entry.score / maximum;
+    selected.push({
+      id: entry.chunk.id,
+      title: entry.chunk.title,
+      path: entry.chunk.path,
+      excerpt: entry.chunk.excerpt,
+      score: normalized,
+      retrievalMethod: input.retrievalMethod,
+      lexicalScore: normalized,
+    });
   }
   return selected;
 }
 
+/**
+ * Ranks non-exam course material against the weighted issue map, the student's
+ * answer, and the doctrine vocabulary named by the retrieval-query stage.
+ *
+ * The Claude API has no embeddings endpoint, so the semantic half of retrieval
+ * is a model stage rather than a vector store: `expansionTerms` carries the
+ * words a course outline would use for these doctrines, and BM25 matches them
+ * against the corpus. When that stage fails, retrieval still runs on issue-map
+ * and answer terms alone and labels itself `lexical_fallback`.
+ */
 export async function retrieveCourseContext(
-  input: { issueMap: IssueMap; answer: string },
+  input: { issueMap: IssueMap; answer: string; expansionTerms?: string[] },
   limit = 24,
 ): Promise<RetrievedSource[]> {
-  const chunks = loadChunks();
-  const issues = issueMapText(input.issueMap);
-  const terms = [...new Set([...tokenize(issues), ...tokenize(input.answer)])];
-  const lexical = lexicalScores(chunks, terms);
-  const semanticIndex = loadSemanticIndex();
-  if (!semanticIndex || !process.env.OPENAI_API_KEY) return lexicalFallback(chunks, lexical, limit);
-
-  const indexedById = new Map(semanticIndex.chunks.map((chunk) => [chunk.id, chunk]));
-  const indexIsCurrent = semanticIndex.chunks.length === chunks.length
-    && chunks.every((chunk) => indexedById.get(chunk.id)?.excerpt === chunk.excerpt);
-  if (!indexIsCurrent) {
-    console.warn("Semantic index is stale; rebuild it before restarting the app. Using lexical fallback.");
-    return lexicalFallback(chunks, lexical, limit);
-  }
-
-  try {
-    const query = `${issues}\n\nStudent answer language:\n${sampleEvenly(input.answer, 16000)}`;
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await client.embeddings.create({
-      model: semanticIndex.model,
-      dimensions: semanticIndex.dimensions,
-      encoding_format: "float",
-      input: query,
-    });
-    const queryEmbedding = response.data[0].embedding;
-    const semantic = new Map(semanticIndex.chunks.map((chunk) => [
-      chunk.id,
-      cosineSimilarity(queryEmbedding, decodeEmbedding(chunk.embedding)),
-    ]));
-    return fuseRanks({ chunks, lexical, semantic, limit });
-  } catch {
-    console.warn("Semantic query failed; using lexical fallback for this run.");
-    return lexicalFallback(chunks, lexical, limit);
-  }
+  const corpus = loadCorpus();
+  const expansionTerms = input.expansionTerms ?? [];
+  const queryTerms = buildQueryTerms({
+    issueMap: input.issueMap,
+    answer: input.answer,
+    expansionTerms,
+  });
+  return selectCandidates({
+    corpus,
+    scores: bm25Scores(corpus, queryTerms),
+    limit,
+    retrievalMethod: expansionTerms.length > 0 ? "expanded_lexical" : "lexical_fallback",
+  });
 }
 
 export function formatSources(sources: RetrievedSource[]): string {

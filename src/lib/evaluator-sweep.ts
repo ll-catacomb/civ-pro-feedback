@@ -19,7 +19,7 @@ import { formatSources } from "@/lib/retrieval";
 import { listRuns } from "@/lib/store";
 import { EvaluationSchema, type GradeBand, type StageTrace } from "@/lib/types";
 
-const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-4-8";
+const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-5";
 const SWEEP_CONCURRENCY = 2;
 
 export type SweepScope = "smoke" | "full";

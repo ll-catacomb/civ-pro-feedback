@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.1.1";
+export const PROMPT_VERSION = "civpro-feedback-v4.2.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -44,6 +44,24 @@ export function submissionFitJudgeUserPrompt(input: {
   return `# Selected examination\n${input.exam}\n\n# Submitted answer\n${input.answer}\n\n# First-pass assessment\n${JSON.stringify(input.firstPass, null, 2)}\n\n# Local exam-match signal\n${input.localExamMatches}`;
 }
 
+export const queryExpansionDeveloperPrompt = `You are the retrieval-query stage for Civil Procedure exam feedback. The course corpus is searched by keyword, so name the exact terms those materials would use for the doctrines in the weighted issue map.
+
+Rules:
+- Emit search terms, not sentences: doctrine names, canonical case names, statute and rule numbers, and terms of art.
+- Give every criterion the vocabulary a course outline or case note would use for it, including synonyms the issue map does not itself use.
+- Write statute and rule numbers in bare numeric form (1331, 1332, 1367, 1441) alongside their doctrinal names.
+- Prefer terms distinctive to one doctrine. Terms common to the whole subject — court, federal, procedure, plaintiff — match everything and help nothing.
+- Never invent a case name, statute, or doctrine that is not in, and does not plainly follow from, the issue map and the answer.
+- Cover the doctrines the student actually engaged, including ones they got wrong, so the evidence packet can correct them.
+- Return terms only, not hidden chain-of-thought.`;
+
+export function queryExpansionUserPrompt(input: {
+  issueMap: IssueMap;
+  answer: string;
+}): string {
+  return `# Weighted issue map\n${JSON.stringify(input.issueMap, null, 2)}\n\n# Student answer\n${input.answer}`;
+}
+
 export const sourceRerankDeveloperPrompt = `You are the evidence-selection stage for Civil Procedure exam feedback. Select up to 24 candidate course excerpts that best support accurate evaluation of the weighted issue map and the student's actual analysis.
 
 Rules:
@@ -61,7 +79,7 @@ export function sourceRerankUserPrompt(input: {
   answer: string;
   candidates: string;
 }): string {
-  return `# Weighted issue map\n${JSON.stringify(input.issueMap, null, 2)}\n\n# Student answer\n${input.answer}\n\n# Hybrid retrieval candidates\n${input.candidates}`;
+  return `# Weighted issue map\n${JSON.stringify(input.issueMap, null, 2)}\n\n# Student answer\n${input.answer}\n\n# Retrieval candidates\n${input.candidates}`;
 }
 
 const SHARED_POLICY = `

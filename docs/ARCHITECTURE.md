@@ -13,12 +13,12 @@ student answer
     |
     +--> responsive answer: single Claude chain
              |
-             +--> issue map, hybrid retrieval + rerank,
+             +--> issue map, query expansion, retrieval + rerank,
                   blind evaluation with anchor pack (bands here),
                   coaching draft, skeptical judge
 ```
 
-Every stage runs on the Claude API (v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline; calibration showed the cross-model judging layer added cost without improving band accuracy, and the historical dual-run fields remain readable in the store and UI). The blind evaluation's provisional band is the run's band recommendation.
+Every stage runs on the Claude API, and a single `ANTHROPIC_API_KEY` is the only credential the project needs (v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline; calibration showed the cross-model judging layer added cost without improving band accuracy, and the historical dual-run fields remain readable in the store and UI. v4.2.0 removed the last OpenAI call — see Corpus below). The blind evaluation's provisional band is the run's band recommendation.
 
 Banding happens inside the blind evaluation — the stage audits have measured as the pipeline's most accurate component. There is no separate band-calibration stage; audits showed it systematically degraded the evaluator's holistic judgment by regrading the same defect list. Banding is comparative rather than absolute: the evaluation receives an anchor pack of instructor-graded answers (same-exam answers preferred, other years only to fill thin bands, always excluding the answer under review so its own grade never enters its run) plus one or two same-year assignment answers the instructor circulated as the best in the class, and the prompt requires explicit pairwise stronger/comparable/weaker verdicts against each graded reference. Anchors calibrate the texture of each band; the prompt forbids using them as doctrinal authority. An evaluator-only calibration sweep (POST /api/calibrations/evaluator-sweep, or the dashboard controls) re-runs the blind evaluator against either a four-fixture, one-per-band smoke set or the full benchmark using stored issue maps and evidence packets, so band-prompt experiments can be screened for at most four to eight paid calls. Every sweep is stored separately from ordinary run metrics. Issue-map weights preserve the exam's stated points exactly rather than normalizing to 100, and each evaluation records concise upper- and lower-boundary explanations with its band.
 
@@ -32,10 +32,9 @@ The responsiveness gate is conservative: both model passes must independently as
 - `content/calibration/`: anonymized text extracted from the supplied historical answers.
 - `src/lib/exams.ts`: the three official exam/model-answer pairs used by the UI.
 - `src/lib/exam-match.ts`: a deterministic, IDF-weighted comparison against historical exam prompts that supplies advisory evidence to the independent responsiveness judge.
-- `scripts/build-semantic-index.mjs`: builds a private, Git-ignored embedding index from non-exam course materials. Exact source text stays in the local index so every selected excerpt remains inspectable.
-- `src/lib/retrieval.ts`: combines semantic similarity and lexical ranking with reciprocal-rank fusion, limits repeated chunks from one document, and falls back to lexical retrieval if the index is missing, stale, or temporarily unavailable. Historical exams are excluded because the selected exam and model answer are supplied directly and unrelated exams can contaminate feedback.
+- `src/lib/retrieval.ts`: ranks non-exam course material by BM25 over the corpus, which it chunks and indexes in memory at first use. There is no build step and no persisted index, so changed course materials take effect on restart. Query terms are weighted by provenance — issue map above expansion vocabulary above the student's own wording — each document is capped at two excerpts, and historical exams are excluded because the selected exam and model answer are supplied directly and unrelated exams can contaminate feedback.
 
-Retrieval occurs after the model has built the weighted issue map, so the query reflects the doctrines and analytical tasks actually posed by the selected exam. The system retrieves a broad pool of 48 hybrid candidates, and a low-reasoning model reranks them into a curated evidence packet of up to 24 excerpts. That larger packet is supplied to the blind doctrinal evaluation, coaching pass, and final skeptical judge. The final run preserves the retrieval method, semantic and lexical scores, rerank relevance, and exact cited text for QA.
+Retrieval occurs after the model has built the weighted issue map, so the query reflects the doctrines and analytical tasks actually posed by the selected exam. Because the Claude API has no embeddings endpoint, the semantic half of retrieval is a model stage rather than a vector store: v4.2.0 replaced the OpenAI embedding index with a low-reasoning query-expansion stage that names, per criterion, the vocabulary a course outline would use for that doctrine — doctrine names, case names, and bare statute numbers — which BM25 then matches against the corpus. The prompt forbids inventing authorities absent from the issue map and answer, and the stage is non-fatal: if it fails, retrieval runs on issue-map and answer terms alone and the run is labeled `lexical_fallback` in the UI and the store. The system retrieves a broad pool of 48 candidates, and a low-reasoning model reranks them into a curated evidence packet of up to 24 excerpts. That larger packet is supplied to the blind doctrinal evaluation, coaching pass, and final skeptical judge. The final run preserves the retrieval method, lexical score, rerank relevance, and exact cited text for QA; `semanticScore` and the `hybrid` method appear only on runs persisted before v4.2.0.
 
 The corpus is copied into this repository so the app is reproducible and does not depend on a sibling repository at runtime.
 
@@ -48,9 +47,9 @@ Before multi-user deployment, replace this adapter with an authenticated databas
 ## Privacy boundary
 
 - The API key stays server-side.
-- OpenAI API storage is disabled with `store: false`.
 - A salted hash, rather than the response label, is used as the safety identifier.
 - Historical student identifiers and exam-system metadata were removed from calibration Markdown.
-- `.data` (including the semantic index and run archive), `.env*`, and temporary extraction artifacts are ignored by Git.
+- Student answers are sent only to the Claude API. No other outside service receives them.
+- `.data` (the run archive), `.env*`, and temporary extraction artifacts are ignored by Git.
 
 This is a formative-learning tool, not an official grading system. Model and judge scores must be reviewed against human evidence.

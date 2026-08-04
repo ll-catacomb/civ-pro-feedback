@@ -19,7 +19,8 @@ const PROGRESS_STAGES = [
   "Checking that the response answers the selected exam",
   "Independently verifying exam responsiveness",
   "Building a weighted issue map",
-  "Running hybrid semantic and lexical retrieval",
+  "Naming the doctrine vocabulary to search for",
+  "Searching the course materials for supporting text",
   "Reranking the most useful course evidence",
   "Running a blind doctrinal audit",
   "Drafting answer-specific coaching",
@@ -57,9 +58,17 @@ function ChainReport({ title, feedback }: { title: string; feedback: Feedback })
   );
 }
 
+/** "hybrid" only appears on runs persisted before v4.2.0's embedding removal. */
+function retrievalMethodLabel(run: FeedbackRun): string {
+  const methods = new Set(run.sources.map((source) => source.retrievalMethod));
+  if (methods.has("expanded_lexical")) return "Doctrine-vocabulary course search.";
+  if (methods.has("hybrid")) return "Hybrid semantic + lexical retrieval.";
+  return "Issue-map keyword search (query expansion unavailable).";
+}
+
 function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => void }) {
   const outcome = getAssessmentOutcome(run);
-  const usedHybridRetrieval = run.sources.some((source) => source.retrievalMethod === "hybrid");
+  const retrievalLabel = retrievalMethodLabel(run);
   if (outcome.creditStatus === "zero_nonresponsive") {
     return <ZeroCreditResult run={run} onReset={onReset} />;
   }
@@ -156,7 +165,7 @@ function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => voi
           <div className="rail-card">
             <span className="eyebrow">Grounding record</span>
             <strong>{run.sources.length} course excerpts</strong>
-            <p><b>{usedHybridRetrieval ? "Hybrid semantic + lexical retrieval." : "Lexical fallback retrieval."}</b> Selected from non-exam course materials; the chosen exam and model answer are supplied separately.</p>
+            <p><b>{retrievalLabel}</b> Selected from non-exam course materials; the chosen exam and model answer are supplied separately.</p>
           </div>
           <details className="rail-details">
             <summary>View cited sources <ChevronDown size={16} /></summary>
@@ -302,7 +311,7 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
           ) : (
             <button className="primary-button" type="submit" disabled={answer.trim().length < 120}>Run the feedback chain <ArrowRight size={18} /></button>
           )}
-          <p className="privacy-line">Your response is sent to the Claude API for grading (and to the OpenAI embeddings API for course-material retrieval when configured) and saved to this app’s local QA record.</p>
+          <p className="privacy-line">Your response is sent to the Claude API for grading and saved to this app’s local QA record. No other outside service receives it.</p>
         </form>
       </div>
     </section>

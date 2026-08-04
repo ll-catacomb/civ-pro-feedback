@@ -2,6 +2,7 @@ import {
   coachDeveloperPrompt,
   evaluationDeveloperPrompt,
   judgeDeveloperPrompt,
+  queryExpansionDeveloperPrompt,
   rubricDeveloperPrompt,
   sourceRerankDeveloperPrompt,
   submissionFitDeveloperPrompt,
@@ -15,6 +16,11 @@ import auditExamplesData from "@/lib/audit-examples-data.json";
 // civpro-feedback-v4.1.1. The two worked examples are verbatim outputs of the
 // eight-fixture calibration benchmark; they are embedded here rather than read
 // from the mutable run store so this page stays stable while QA continues.
+//
+// AUDIT_PROMPT_VERSION stays pinned to the benchmark that produced those
+// examples. CHAIN_STAGES below is not frozen — it documents the chain as
+// currently implemented, so it already reflects v4.2.0's retrieval stages.
+// Re-pin this once v4.2.0 has a scored calibration batch of its own.
 
 export const AUDIT_PROMPT_VERSION = "civpro-feedback-v4.1.1";
 
@@ -56,10 +62,18 @@ export const CHAIN_STAGES: ChainStage[] = [
     what: "Builds a point-aware map of every scored question and subpart from the exam and the instructor model answer, preserving the exam's stated point allocations exactly (never normalized to 100).",
   },
   {
-    step: "2",
+    step: "2a",
+    name: "Retrieval query expansion",
+    engine: "Claude · low reasoning",
+    prompt: "queryExpansionDeveloperPrompt",
+    promptText: queryExpansionDeveloperPrompt,
+    what: "Names the vocabulary the course materials would actually use for each weighted criterion — doctrine names, case names, statute numbers — so the keyword search can find on-point material the issue map does not word the same way. It may not invent authorities that are absent from the issue map and answer.",
+  },
+  {
+    step: "2b",
     name: "Course-material retrieval",
-    engine: "Hybrid search · no model",
-    what: "Retrieves 48 candidate excerpts from 451 course files by fusing semantic similarity (OpenAI text-embedding-3-large) with lexical ranking. Falls back to lexical-only if embeddings are unavailable. Historical exams are excluded so unrelated exams cannot contaminate feedback.",
+    engine: "BM25 search · no model",
+    what: "Retrieves 48 candidate excerpts from 451 course files by keyword relevance, weighting issue-map terms above the expansion vocabulary and the student's own wording, and capping each document at two excerpts so one long outline cannot crowd out other issues. Historical exams are excluded so unrelated exams cannot contaminate feedback.",
   },
   {
     step: "3",
@@ -144,7 +158,7 @@ export const CHANGE_SURFACES: ChangeSurface[] = [
       "The order, presence, and configuration of the stages above all live in one file. Each stage is a single call; a stage can be reordered, removed, or added by moving or copying one block. Model choice and reasoning effort per stage are set here, and the model names are overridable in .env.local without touching code.",
     items: [
       { name: "Stage order & gating", detail: "The sequence of stages and the zero-credit gate logic (both responsiveness passes must independently agree) are in runFeedbackChain / runFeedbackIntake." },
-      { name: "Model & reasoning effort", detail: "WORK_MODEL and JUDGE_MODEL (default claude-opus-4-8) and each stage's reasoning effort (low / medium / high) are set at the top of the file and per call." },
+      { name: "Model & reasoning effort", detail: "WORK_MODEL and JUDGE_MODEL (default claude-opus-5) and each stage's reasoning effort (low / medium / high) are set at the top of the file and per call." },
       { name: "Retrieval breadth", detail: "RETRIEVAL_CANDIDATE_LIMIT (48) and FINAL_SOURCE_LIMIT (24) control how much course material is searched and how much reaches the evaluator." },
     ],
   },

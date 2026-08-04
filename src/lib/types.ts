@@ -45,13 +45,25 @@ export const SourceSchema = z.object({
   path: z.string(),
   excerpt: z.string(),
   score: z.number(),
-  retrievalMethod: z.enum(["hybrid", "lexical_fallback"]).optional(),
+  // "hybrid" only appears on runs persisted before v4.2.0, when the semantic
+  // half of retrieval was an embedding index; "expanded_lexical" is BM25 over
+  // the doctrine vocabulary named by the retrieval-query stage.
+  retrievalMethod: z.enum(["hybrid", "expanded_lexical", "lexical_fallback"]).optional(),
   semanticScore: z.number().optional(),
   lexicalScore: z.number().optional(),
   rerankRelevance: z.number().int().min(1).max(4).optional(),
   rerankReason: z.string().optional(),
 });
 export type RetrievedSource = z.infer<typeof SourceSchema>;
+
+export const RetrievalQuerySchema = z.object({
+  criterionQueries: z.array(z.object({
+    criterionId: z.string(),
+    terms: z.array(z.string()).min(1).max(40),
+  })).min(1).max(40),
+  crossCuttingTerms: z.array(z.string()).max(40),
+});
+export type RetrievalQuery = z.infer<typeof RetrievalQuerySchema>;
 
 export const SourceRerankSchema = z.object({
   selections: z.array(z.object({
