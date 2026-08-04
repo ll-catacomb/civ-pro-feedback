@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ABBREVIATIONS,
+  BRAIN_OFF_TOPICS,
+  GRADER_META_FEEDBACK,
+  LAW_CHANGES,
+  coachDeveloperPrompt,
   evaluationDeveloperPrompt,
   evaluationUserPrompt,
+  GREINERISMS,
   judgeDeveloperPrompt,
   PROMPT_VERSION,
   queryExpansionDeveloperPrompt,
@@ -84,6 +90,56 @@ describe("prompt-chain invariants", () => {
     expect(sourceRerankDeveloperPrompt).toContain("Reject administrative instructions");
     expect(sourceRerankDeveloperPrompt).toContain("Cover every distinct high-weight issue");
     expect(sourceRerankDeveloperPrompt).toContain("up to 24 candidate course excerpts");
+  });
+
+  it("carries the course terminology conventions verbatim into the pre-judge and judge stages", () => {
+    // Verbatim anchors from the instructor-supplied glossary.
+    expect(GREINERISMS).toContain("Greiner Happy Court Rule");
+    expect(GREINERISMS).toContain("imaginary lawsuit rule");
+    expect(GREINERISMS).toContain('We just use the term “plausibility pleading,” not “Twiqbal.”');
+    expect(GREINERISMS).toContain("we use the term arising under jurisdiction");
+    for (const prompt of [evaluationDeveloperPrompt, coachDeveloperPrompt, judgeDeveloperPrompt]) {
+      expect(prompt).toContain(GREINERISMS);
+    }
+  });
+
+  it("coaches 'brain off' topics into the feedback and preserves the carve-out", () => {
+    expect(BRAIN_OFF_TOPICS).toContain("Specific personal jurisdiction");
+    expect(BRAIN_OFF_TOPICS).toContain("Interlocutory appeals checklist");
+    // The one topic that is explicitly NOT fully brain off must survive verbatim.
+    expect(BRAIN_OFF_TOPICS).toContain("second step is a vague standard");
+    expect(coachDeveloperPrompt).toContain(BRAIN_OFF_TOPICS);
+    expect(coachDeveloperPrompt).toContain("turn their brain off");
+    // The judge must not strip brain-off coaching, but does not carry the list.
+    expect(judgeDeveloperPrompt).toContain('do not strike the phrase "brain off"');
+  });
+
+  it("folds recurring grader meta-feedback into the coaching stage", () => {
+    expect(GRADER_META_FEEDBACK).toContain("Apply law to facts");
+    expect(GRADER_META_FEEDBACK).toContain("Avoid conclusory sentences.");
+    expect(GRADER_META_FEEDBACK).toContain("support both sides of an issue");
+    expect(coachDeveloperPrompt).toContain(GRADER_META_FEEDBACK);
+    expect(coachDeveloperPrompt).toContain("never as generic advice");
+  });
+
+  it("overrides stale course materials with the instructor's law-change corrections", () => {
+    expect(LAW_CHANGES).toContain("12(b)(6) and 8(a)(2) materials before 2009 are unreliable");
+    expect(LAW_CHANGES).toContain("section 1391, effective 2012");
+    expect(LAW_CHANGES).toContain("single-plaintiff-multiple-defendant");
+    // The corrections ride on SHARED_POLICY, so every doctrinal stage inherits them.
+    for (const prompt of [rubricDeveloperPrompt, evaluationDeveloperPrompt, coachDeveloperPrompt, judgeDeveloperPrompt]) {
+      expect(prompt).toContain(LAW_CHANGES);
+      expect(prompt).toContain("only sanctioned departure from the closed source set");
+    }
+  });
+
+  it("carries the student abbreviation key into every answer-reading stage", () => {
+    expect(ABBREVIATIONS).toContain("NMOCE");
+    expect(ABBREVIATIONS).toContain("HCOL");
+    expect(ABBREVIATIONS).toContain("JAMOL");
+    for (const prompt of [evaluationDeveloperPrompt, coachDeveloperPrompt, judgeDeveloperPrompt]) {
+      expect(prompt).toContain(ABBREVIATIONS);
+    }
   });
 
   it("expands the retrieval query without inventing authority", () => {

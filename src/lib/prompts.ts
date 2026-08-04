@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.2.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.6.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -82,6 +82,87 @@ export function sourceRerankUserPrompt(input: {
   return `# Weighted issue map\n${JSON.stringify(input.issueMap, null, 2)}\n\n# Student answer\n${input.answer}\n\n# Retrieval candidates\n${input.candidates}`;
 }
 
+// Instructor-supplied corrections to the dated course corpus, verbatim. These
+// override any stale retrieved source, model answer, or exam text and are the
+// only sanctioned departure from the closed source set (see SHARED_POLICY).
+export const LAW_CHANGES = `* Prior to 2009: Iqbal had not been decided, so the federal court system thought that it used notice pleading. After 2009, it uses plausibility pleading. 12(b)(6) and 8(a)(2) materials before 2009 are unreliable.
+* Congress revised the the venue statute, section 1391, effective 2012, so materials before that date are unreliable on venue.
+* In the late 2010s, I switched the way I taught Exxon. It is no longer permissible to suggest that there is an interpretation of Exxon and 1367 that may permit a single-plaintiff-multiple-defendant exercise of diversity jurisdiction in  a non-class-action-fairness-act setting.
+* Public rights exception/*Atlas Roofing* is no longer part of our course
+* Effects test for PJ
+* Think I saw this in old outlines but we didn’t cover it: Citizenship of Federally Chartered Banks`;
+
+// Standard abbreviations students may use, verbatim. Each abbreviation is listed
+// on its own line beneath the full term(s) it stands for. Injected into the
+// stages that read the student's answer so an abbreviation is never misread or
+// penalized. (This is the "common abbreviations tab" referenced in GREINERISMS.)
+export const ABBREVIATIONS = `In personam jurisdiction
+Personal jurisdiction
+IPJ
+PJ
+Specific in personam jurisdiction
+SIPJ
+SPJ
+General personal jurisdiction
+GPJ
+Subject matter jurisdiction
+SMJ
+Diversity jurisdiction
+DJ
+Arising under jurisdiction
+AUJ
+Supplemental Jurisdiction
+SuppJ
+Non-mutual offensive collateral estoppel
+NMOCE
+Non-mutual defensive collateral estoppel
+NMDCE
+Summary judgment
+SJ
+Horizontal choice of law
+HCOL
+Vertical choice of law
+VCOL
+Quasi-in-rem jurisdiction
+QIRJ
+Forum non conveniens
+FNC
+Motion to dismiss
+MTD
+Preliminary injunction
+PInj
+Procedural due process
+PDP
+Judgment as a matter of law
+JMOL
+JAMOL
+Federal rule of civil procedure
+FRCP
+Fair and reasonable
+F&R
+Transaction or occurrence
+T/O
+Lex loci delicti
+LLD
+Forum selection clause
+FSC
+Access to justice
+A2J
+Cause of action
+COA
+Principal place of business
+PPOB
+Amount in controversy
+AIC
+Common nucleus of operative facts
+CNOF
+Summary judgment
+SJ
+Case or controversy
+CorC
+Transaction or occurence
+TO`;
+
 const SHARED_POLICY = `
 You are working on formative feedback for a Civil Procedure practice exam.
 
@@ -94,7 +175,69 @@ Non-negotiable rules:
 - Quote the student sparingly and exactly. If no useful quotation exists, use an empty string.
 - Produce concise, auditable findings rather than hidden chain-of-thought.
 - Do not reveal or infer any real student's identity.
+
+Authoritative corrections. The course materials in the source set are dated and the law has since changed in places. The instructor-supplied corrections below control wherever a retrieved source, the instructor model answer, or the exam reflects the older position — applying them is the only sanctioned departure from the closed source set. Do not penalize a student for following current law on these points, do not credit a superseded rule as current, and do not expect or reward a topic marked as no longer part of the course:
+
+${LAW_CHANGES}
 `.trim();
+
+// Course-specific terminology conventions supplied by the instructor, reproduced
+// verbatim (word for word, no edits). Injected into the evaluation, coaching, and
+// judge stages so the grade and the student-facing feedback speak the course's
+// vocabulary. "Positive" terms are encouraged; "negative" terms are disfavored in
+// this course in favor of the stated preferred term.
+export const GREINERISMS = `POSITIVE GREINERISMS
+A “happy court” and the “Greiner Happy Court Rule”
+Context: Greiner calls a court that can exercise personal jurisdiction over the defendant and in which venue is proper a “happy court.” This is relevant because of what Greiner calls the “Greiner Happy Court Rule”: if a transferor court is a happy court (has personal jurisdiction and venue is proper), then the choice of law analysis of the transferor court will follow the transfer and the transferee court will use the transferor’s choice of law analysis so that there are no major change in rules, in particular, limitations periods.
+If the transferor court is a happy court: apply transferor choice of law rules
+If the transferor court is an unhappy court: apply transferee choice of law rules
+If a plaintiff violates forum selection clause and the case is transferred: apply transferee choice of law rules
+“Incorporeal”
+Context: an incorporeal object in intangible. This could be proprietary data stored in a server somewhere, for example. Greiner often tests on civil procedure problems where an incorporeal object is stolen and requires students to locate where the object “is,” which is relevant for what courts could host the lawsuit and what laws would apply. (A student may discuss: is data located in the computer where the program was made? Or in a data center that stores it in another state? Or at the headquarters of the company that made it? And then proceed on the exam from there.)
+See “common abbreviations” tab
+Abbreviating a lot is a Greinerism itself due to the tight word counts and the fact that Greiner does encourage and understand them! If a student is not abbreviating, he/she/they is probably doing something wrong!
+Imaginary lawsuit rule
+Context: A declaratory judgment is a type of lawsuit in which a party that anticipates that it would/could be a defendant in a future lawsuit acts first by seeking that a court declare what the legal rights, duties, or status of the parties are. The lawsuit that the party seeking the declaratory judgment anticipated is does not actually happen, so Greiner calls it an “imaginary lawsuit.”
+A declaratory judgement only allowed in federal court if the coercive action, the “imaginary lawsuit,” could have been brought in federal court  (First Federal Savings). This is what Greiner calls the “imaginary lawsuit rule,” and other civil procedure professors call the coercive action rule.
+
+NEGATIVE GREINERISMS
+“Res judicata”
+Context: we use the term claim preclusion
+“Choice of law” in the context of preclusion (specifically inter-system preclusion)
+Context:
+“Federal question jurisdiction”
+Context: we use the term arising under jurisdiction. This is the jurisdiction for federal court under 28 U.S.C 1331.
+“Twiqbal”
+Context: “Twiqbal” is a portmanteau of Twombly and Iqbal, the two cases that established that plausibility pleading is the federal standard. This is different from notice pleading, which was previously the federal standard. We just use the term “plausibility pleading,” not “Twiqbal.”`;
+
+// Instructor-flagged "brain off" topics, reproduced verbatim. On these, strong
+// students tend to overthink; the coaching stage uses this to tell them to run
+// the taught procedure mechanically instead. Note the Smith-Grable carve-out:
+// the second step is NOT brain off.
+export const BRAIN_OFF_TOPICS = `* Venue
+* Specific personal jurisdiction
+* Claim preclusion
+* Issue preclusion
+* Horizontal choice of law
+* Subject matter jurisdiction
+  * Diversity
+  * Arising under
+    * Well-pleaded complaint rule is brain off, but
+    * Smith-Grable exception is brain off as to two-step process and first, step, but second step is a vague standard
+* Erie
+* Transfer
+* Removal triggers
+* Interlocutory appeals checklist`;
+
+// Recurring exam-craft notes past teaching fellows/graders flagged, verbatim.
+// The coaching stage draws on these when the answer actually exhibits them.
+export const GRADER_META_FEEDBACK = `* When a legal structure/algorithm exists for a topic, follow up completely
+* Apply law to facts
+* Avoid quotations of case law, statutes, rules or other sources of law longer than one or two words
+* Cite cases and statutes when possible to reduce verboseness
+* Avoid conclusory sentences.
+* When the issue is close enough to so merit, explain how the facts and law might support both sides of an issue.
+  * Later in the exam, you can explain what would be different if you chose differently earlier in the decision tree`;
 
 export const rubricDeveloperPrompt = `${SHARED_POLICY}
 
@@ -141,7 +284,15 @@ Calibrate to what the references tolerate: the DS reference itself reaches wrong
 
 When a comparison is genuinely close, band definitions: DS (strongest) — canvassing, alternatives, and prioritization sustained across every weighted question; H — mostly sound resolutions and rich analysis with real errors on some cores; P — issue recognition present but core analyses repeatedly underdeveloped, misframed, or unresolved even when the prose is sophisticated; LP (weakest) — heavily weighted questions combine wrong results with conclusory, inverted, or skipped core analysis, regardless of breadth of coverage. This answer's actual instructor grade is intentionally withheld; do not speculate about it.
 
-Use the exam's explicit point values in the issue map as controlling. Do not infer normalized weights or divide a question's points among subissues. Explain both adjacent boundaries concisely: whyNotHigher states why the answer does not belong one band higher (or says it is already DS), and whyNotLower states why it does not belong one band lower (or says it is already LP). These are boundary checks, not duplicate defect lists.`;
+Use the exam's explicit point values in the issue map as controlling. Do not infer normalized weights or divide a question's points among subissues. Explain both adjacent boundaries concisely: whyNotHigher states why the answer does not belong one band higher (or says it is already DS), and whyNotLower states why it does not belong one band lower (or says it is already LP). These are boundary checks, not duplicate defect lists.
+
+Course-specific terminology conventions ("Greinerisms") follow, verbatim. When the student's analysis correctly deploys a POSITIVE convention or framework below, credit it and name it in the finding; a heavily weighted question that turns on one of these frameworks (the Greiner Happy Court Rule, locating an incorporeal object, the imaginary lawsuit rule) should be assessed against it. Never lower coverage merely because the student abbreviates — abbreviation is expected in this course. A NEGATIVE term is a terminology/style matter in this course, not by itself a doctrinal error: do not mark the analysis wrong for using it, but you may note that the course's preferred term applies.
+
+${GREINERISMS}
+
+Students may use the standard abbreviations below; expand them silently when reading the answer and never lower coverage for using them. Each abbreviation appears on its own line beneath the full term or terms it stands for.
+
+${ABBREVIATIONS}`;
 
 export function evaluationUserPrompt(input: {
   exam: string;
@@ -156,7 +307,23 @@ export function evaluationUserPrompt(input: {
 
 export const coachDeveloperPrompt = `${SHARED_POLICY}
 
-Act as an exacting but constructive law professor. Convert the independent evaluation into feedback a student can act on during the next practice attempt. Prioritize no more than five improvements. Explain why each matters and give a concrete revision move. Preserve genuine strengths. The example revision must illustrate improved legal analysis without supplying a complete model answer.`;
+Act as an exacting but constructive law professor. Convert the independent evaluation into feedback a student can act on during the next practice attempt. Prioritize no more than five improvements. Explain why each matters and give a concrete revision move. Preserve genuine strengths. The example revision must illustrate improved legal analysis without supplying a complete model answer.
+
+Course-specific terminology conventions ("Greinerisms") follow, verbatim. Where the student's analysis fits a POSITIVE convention below, name it and encourage its use; where the student uses a NEGATIVE term, tell them the course's preferred term and keep the fix concrete (this is a terminology correction, not a doctrinal error, so keep it proportionate). Never tell a student to stop abbreviating — abbreviation is expected in this course.
+
+${GREINERISMS}
+
+Greiner also flags certain topics as "brain off." On these, competent students often overthink — reaching for a creative or tricky wrinkle — when the right move is to turn their brain off and mechanically run the standard procedure or map they were taught. When a capable answer overcomplicates one of these topics (invents a clever exception, hunts for a trick, or departs from the standard checklist), the single highest-value improvement is exactly that: tell the student to turn their brain off on that topic and walk the taught steps in order; the professor's own phrase "brain off" is worth using. Give this advice only for a topic on the list below, and respect its one carve-out — the Smith-Grable exception's second step is NOT brain off (it is a genuine vague standard that requires judgment). The flagged "brain off" topics:
+
+${BRAIN_OFF_TOPICS}
+
+Past teaching fellows and graders repeatedly flagged the recurring exam-craft points below. When this answer actually exhibits one of them, prefer raising it — anchored to the specific place in the answer, never as generic advice — and fold it into the prioritized improvements or the example revision. The recurring grader notes:
+
+${GRADER_META_FEEDBACK}
+
+Students may use the standard abbreviations below; never tell a student to expand them or write them out in full. Each abbreviation appears on its own line beneath the full term or terms it stands for.
+
+${ABBREVIATIONS}`;
 
 export function coachUserPrompt(input: {
   answer: string;
@@ -169,7 +336,15 @@ export function coachUserPrompt(input: {
 
 export const judgeDeveloperPrompt = `${SHARED_POLICY}
 
-Act as a skeptical final judge. Verify the draft feedback against the student answer, issue map, instructor model answer, and course sources. Penalize generic praise, unsupported doctrinal assertions, inaccurate quotations, overclaiming, and advice that does not follow from the answer. Return a corrected, publication-ready feedback object even when the draft is already good. Approval means no material correction was required. Do not change an accurate critique merely to sound different.`;
+Act as a skeptical final judge. Verify the draft feedback against the student answer, issue map, instructor model answer, and course sources. Penalize generic praise, unsupported doctrinal assertions, inaccurate quotations, overclaiming, and advice that does not follow from the answer. Return a corrected, publication-ready feedback object even when the draft is already good. Approval means no material correction was required. Do not change an accurate critique merely to sound different.
+
+Course-specific terminology conventions ("Greinerisms") follow, verbatim. Treat them as authoritative course vocabulary: do not flag the draft's correct use of a POSITIVE course term or framework as an unsupported assertion, and preserve any accurate guidance that steers the student from a NEGATIVE term to the course's preferred term. Do not substitute outside terminology of your own for the course's terms. The draft may also advise the student to treat an overcomplicated topic as "brain off" and run the taught procedure mechanically; preserve that advice when the answer did overthink such a topic, and do not strike the phrase "brain off" as informal. Likewise preserve accurate exam-craft guidance drawn from recurring grader notes (for example: apply law to facts, avoid quoting sources of law beyond a word or two, argue both sides when the issue is close).
+
+${GREINERISMS}
+
+Students may use the standard abbreviations below; treat an abbreviation and its full term as equivalent when checking quotations and claims, and do not flag an abbreviation as informal or unclear. Each abbreviation appears on its own line beneath the full term or terms it stands for.
+
+${ABBREVIATIONS}`;
 
 export function judgeUserPrompt(input: {
   exam: string;
