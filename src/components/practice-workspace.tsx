@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle, ArrowRight, Check, ChevronDown, CircleCheck, FileText,
   LoaderCircle, RotateCcw, ShieldCheck, Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
+import { GavelGame } from "@/components/gavel-game";
 import {
   getAssessmentOutcome,
   getBandEstimateExplanation,
@@ -14,18 +15,6 @@ import {
   getFormativeBandEstimate,
 } from "@/lib/outcomes";
 import type { Exam, Feedback, FeedbackRun } from "@/lib/types";
-
-const PROGRESS_STAGES = [
-  "Checking that the response answers the selected exam",
-  "Independently verifying exam responsiveness",
-  "Building a weighted issue map",
-  "Naming the doctrine vocabulary to search for",
-  "Searching the course materials for supporting text",
-  "Reranking the most useful course evidence",
-  "Running a blind doctrinal audit",
-  "Drafting answer-specific coaching",
-  "Judging every feedback claim against the sources",
-];
 
 function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
   if (!ids.length) return null;
@@ -234,33 +223,40 @@ function ZeroCreditResult({ run, onReset }: { run: FeedbackRun; onReset: () => v
   );
 }
 
+function WaitingView({ exam }: { exam: Exam }) {
+  return (
+    <section className="waiting-shell" aria-live="polite">
+      <div className="waiting-head">
+        <LoaderCircle className="spin" size={20} />
+        <div>
+          <strong>Grading your {exam.year} practice answer…</strong>
+          <span>This usually takes about 10–15 minutes. Keep this tab open — your feedback appears here on its own when it&rsquo;s ready.</span>
+        </div>
+      </div>
+      <GavelGame />
+    </section>
+  );
+}
+
 export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
   const [selectedId, setSelectedId] = useState(exams[0].id);
-  const [studentLabel, setStudentLabel] = useState("");
   const [answer, setAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [progressIndex, setProgressIndex] = useState(0);
   const [error, setError] = useState("");
   const [run, setRun] = useState<FeedbackRun | null>(null);
   const selectedExam = useMemo(() => exams.find((exam) => exam.id === selectedId) ?? exams[0], [exams, selectedId]);
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
 
-  useEffect(() => {
-    if (!isSubmitting) return;
-    const timer = window.setInterval(() => setProgressIndex((current) => Math.min(current + 1, PROGRESS_STAGES.length - 1)), 13000);
-    return () => window.clearInterval(timer);
-  }, [isSubmitting]);
-
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
-    setProgressIndex(0);
     setIsSubmitting(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     try {
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: selectedId, answer, studentLabel: studentLabel || "Anonymous practice" }),
+        body: JSON.stringify({ examId: selectedId, answer, studentLabel: "Anonymous practice" }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Feedback failed.");
@@ -274,46 +270,41 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
   }
 
   if (run) return <FeedbackResult run={run} onReset={() => { setRun(null); setAnswer(""); }} />;
+  if (isSubmitting) return <WaitingView exam={selectedExam} />;
 
   return (
     <section className="practice-shell" id="practice">
-      <div className="practice-grid">
-        <aside className="exam-panel">
-          <span className="eyebrow">1 · Choose an exam</span>
+      <form className="practice-form" onSubmit={submit}>
+        <div className="practice-field">
+          <label className="field-label">Which exam are you practicing?</label>
           <div className="exam-options">
             {exams.map((exam) => (
               <button className={`exam-option ${selectedId === exam.id ? "is-selected" : ""}`} key={exam.id} type="button" onClick={() => setSelectedId(exam.id)}>
-                <span>{exam.year}</span><strong>{exam.questionCount} questions</strong><small>Open-length submission</small>
+                <span>{exam.year}</span><strong>{exam.questionCount} questions</strong>
                 {selectedId === exam.id && <Check size={17} />}
               </button>
             ))}
           </div>
-          <div className="exam-summary"><FileText size={20} /><div><strong>{selectedExam.title}</strong><p>{selectedExam.shortDescription}</p></div></div>
           <details className="exam-document">
-            <summary>Read the full exam <ChevronDown size={17} /></summary>
+            <summary><FileText size={15} /> Read the {selectedExam.year} exam <ChevronDown size={16} /></summary>
             <div className="markdown-document"><ReactMarkdown>{selectedExam.prompt}</ReactMarkdown></div>
           </details>
-          <div className="process-note"><ShieldCheck size={19} /><p><strong>Blind by design.</strong> Feedback is generated before any known grade is joined to the run.</p></div>
-        </aside>
+        </div>
 
-        <form className="answer-panel" onSubmit={submit}>
+        <div className="practice-field">
           <div className="answer-heading">
-            <div><span className="eyebrow">2 · Submit a response</span><h2>Paste the complete exam answer</h2></div>
+            <label className="field-label" htmlFor="answer">Paste your answer</label>
             <span className="word-count">{wordCount.toLocaleString()} words</span>
           </div>
-          <label className="field-label" htmlFor="student-label">Response label <span>optional</span></label>
-          <input id="student-label" className="text-input" value={studentLabel} onChange={(event) => setStudentLabel(event.target.value)} placeholder="e.g. Practice attempt 02" maxLength={80} />
-          <label className="field-label" htmlFor="answer">Answer</label>
-          <textarea id="answer" className="answer-textarea" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Paste the response exactly as written…" minLength={120} required />
-          {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
-          {isSubmitting ? (
-            <div className="progress-card" aria-live="polite"><LoaderCircle className="spin" size={22} /><div><strong>{PROGRESS_STAGES[progressIndex]}</strong><span>Rigorous feedback takes a few minutes. Keep this page open.</span></div><span>{progressIndex + 1}/{PROGRESS_STAGES.length}</span></div>
-          ) : (
-            <button className="primary-button" type="submit" disabled={answer.trim().length < 120}>Run the feedback chain <ArrowRight size={18} /></button>
-          )}
-          <p className="privacy-line">Your response is sent to the Claude API for grading and saved to this app’s local QA record. No other outside service receives it.</p>
-        </form>
-      </div>
+          <textarea id="answer" className="answer-textarea" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Paste your full exam answer here…" minLength={120} required />
+        </div>
+
+        {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
+        <div className="practice-submit">
+          <button className="primary-button" type="submit" disabled={answer.trim().length < 120}>Get feedback <ArrowRight size={18} /></button>
+          <span className="submit-note">Takes about 10–15 minutes. Formative feedback and an estimated band — not an official grade.</span>
+        </div>
+      </form>
     </section>
   );
 }
