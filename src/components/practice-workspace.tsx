@@ -258,8 +258,15 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ examId: selectedId, answer, studentLabel: "Anonymous practice" }),
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Feedback failed.");
+      // The response may not be JSON: a hosting timeout returns a plain-text
+      // error page, which would otherwise throw a cryptic JSON parse error.
+      const raw = await response.text();
+      let payload: { run?: FeedbackRun; error?: string } | null = null;
+      try { payload = raw ? JSON.parse(raw) : null; } catch { payload = null; }
+      if (!response.ok || !payload?.run) {
+        if (payload?.error) throw new Error(payload.error);
+        throw new Error("This hosted preview stopped the request before grading finished — a full run takes about 10–15 minutes, longer than the server allows. Your answer was not graded. Please let the course team know.");
+      }
       setRun(payload.run);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
