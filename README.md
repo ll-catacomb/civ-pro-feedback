@@ -47,6 +47,8 @@ npm run build
 
 Tests validate the core structured contracts and blindness/prompt invariants. A live model run is intentionally not part of the automated suite because it has API cost and non-determinism; run the historical fixtures from the homepage for the model-level evaluation.
 
-## Deployment warning
+## Deployment
 
-The current store is local JSON and routes are unauthenticated. That is appropriate for private local QA, but not for student deployment. Add authentication, rate limiting, a durable database, and a clear retention policy before accepting real student work online.
+The read-only Feedback Quality Report (`/`) and Review Dossier (`/audit`) run anywhere, including Vercel, because they fall back to committed snapshots. Live student grading (`/practice`) needs a long-lived server with a writable disk — a full run is ~10–15 minutes, longer than serverless function limits allow. See [DEPLOY.md](DEPLOY.md) for the Render/Railway/Fly setup.
+
+The current store is local JSON on disk and the routes are unauthenticated. That is appropriate for a single-instance pilot with a persistent disk, but before accepting real student work at scale, add authentication, rate limiting, a durable database, and a clear retention policy.
