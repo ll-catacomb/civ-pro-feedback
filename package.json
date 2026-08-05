@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "snapshot:runs": "node scripts/build-run-stats-snapshot.mjs"
+    "snapshot:runs": "node scripts/build-run-stats-snapshot.mjs",
+    "snapshot:report": "node scripts/build-report-snapshot.mjs",
+    "snapshot": "npm run snapshot:runs && npm run snapshot:report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
