@@ -30,7 +30,9 @@ const EXAM_CONFIG = [
   {
     id: "2019-final" as const,
     year: 2019,
-    title: "Civil Procedure 2 — 2019 Final",
+    // The 2019 exam text reads "Civil Procedure 6, Fall 2019" (Greiner's section
+    // number that year); 2014 and 2015 were his "Civil Procedure 2" section.
+    title: "Civil Procedure 6 — 2019 Final",
     shortDescription: "Six questions on jurisdiction, Erie, summary judgment, preclusion, and Rule 23.",
     questionCount: 6,
     promptPath: "content/course/exams/2019-greiner-civpro2-final.md",
