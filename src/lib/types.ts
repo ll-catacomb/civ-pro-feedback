@@ -277,7 +277,7 @@ export const DualDecisionSchema = z.object({
 export type DualDecision = z.infer<typeof DualDecisionSchema>;
 
 export const FeedbackRequestSchema = z.object({
-  examId: z.enum(["2014-final", "2015-final", "2019-final"]),
+  examId: z.enum(["2015-final", "2019-final"]),
   answer: z.string().min(120, "Please submit at least 120 characters."),
   studentLabel: z.string().trim().max(80).optional().default("Anonymous practice"),
   actualGrade: GradeBandSchema.optional(),
@@ -336,7 +336,7 @@ export const FeedbackRunSchema = z.object({
 export type FeedbackRun = z.infer<typeof FeedbackRunSchema>;
 
 export type Exam = {
-  id: "2014-final" | "2015-final" | "2019-final";
+  id: "2015-final" | "2019-final";
   year: number;
   title: string;
   shortDescription: string;

@@ -4,8 +4,8 @@ import { buildAnchorPack, exemplarAssignmentAnswers, gradedAnchorFixtures } from
 
 describe("anchor pack blindness", () => {
   it("never includes the answer under review in its own anchor stack", () => {
-    for (const fixtureId of ["2015-ds", "2015-h", "2015-lp", "2019-ds", "2019-p", "2014-p"]) {
-      const examId = `${fixtureId.slice(0, 4)}-final` as "2014-final" | "2015-final" | "2019-final";
+    for (const fixtureId of ["2015-ds", "2015-h", "2015-lp", "2015-p", "2019-ds", "2019-p"]) {
+      const examId = `${fixtureId.slice(0, 4)}-final` as "2015-final" | "2019-final";
       const anchorIds = gradedAnchorFixtures(examId, fixtureId).map((anchor) => anchor.fixtureId);
       expect(anchorIds).not.toContain(fixtureId);
     }
@@ -14,7 +14,7 @@ describe("anchor pack blindness", () => {
   it("prefers same-exam anchors and back-fills only the excluded answer's own band", () => {
     const anchors = gradedAnchorFixtures("2015-final", "2015-h");
     const sameExam = anchors.filter((anchor) => anchor.sameExam).map((anchor) => anchor.fixtureId).sort();
-    expect(sameExam).toEqual(["2015-ds", "2015-lp"]);
+    expect(sameExam).toEqual(["2015-ds", "2015-lp", "2015-p"]);
     // The excluded fixture's own band gets a cross-year reference so its band
     // interval is never unanchored during calibration.
     const crossYear = anchors.filter((anchor) => !anchor.sameExam);
@@ -28,15 +28,17 @@ describe("anchor pack blindness", () => {
     expect(lpAnchor?.sameExam).toBe(false);
   });
 
-  it("falls back to other years only when the same-exam stack is thin", () => {
-    const anchors = gradedAnchorFixtures("2014-final", "2014-p");
-    expect(anchors.length).toBeGreaterThan(0);
-    expect(anchors.every((anchor) => !anchor.sameExam)).toBe(true);
-  });
-
-  it("anchors the full band ladder", () => {
-    const bands = gradedAnchorFixtures("2019-final").map((anchor) => anchor.band);
-    for (const band of ["DS", "H", "P", "LP"]) expect(bands).toContain(band);
+  it("anchors the full band ladder for both exams", () => {
+    // Both exams now carry a same-exam fixture in every band, so an unexcluded
+    // pack is entirely same-exam. The thin-stack cross-year fallback in
+    // gradedAnchorFixtures survives for future exams with a partial stack.
+    for (const examId of ["2015-final", "2019-final"] as const) {
+      const anchors = gradedAnchorFixtures(examId);
+      for (const band of ["DS", "H", "P", "LP"]) {
+        expect(anchors.map((anchor) => anchor.band)).toContain(band);
+      }
+      expect(anchors.every((anchor) => anchor.sameExam)).toBe(true);
+    }
   });
 });
 
@@ -52,6 +54,6 @@ describe("anchor pack contents", () => {
 
   it("pulls same-year assignment exemplars", () => {
     expect(exemplarAssignmentAnswers("2019-final").length).toBeGreaterThan(0);
-    expect(exemplarAssignmentAnswers("2014-final").length).toBeGreaterThan(0);
+    expect(exemplarAssignmentAnswers("2015-final").length).toBeGreaterThan(0);
   });
 });

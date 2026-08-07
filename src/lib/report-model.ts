@@ -1,3 +1,4 @@
+import { WITHDRAWN_FIXTURE_IDS } from "@/lib/calibration";
 import { getFinalFeedback, getFormativeBandEstimate } from "@/lib/outcomes";
 import type { Feedback, FeedbackRun, GradeBand } from "@/lib/types";
 
@@ -70,9 +71,12 @@ export function buildReportModel(runs: FeedbackRun[]): ReportModel {
     return { version, graded: d.length, exact: d.filter((x) => x === 0).length, withinOne: d.filter((x) => x <= 1).length, meanDistance: mean(d) };
   }).sort((a, b) => cmpVer(a.version, b.version));
 
+  // Withdrawn fixtures are excluded from the cards and the headline summary but
+  // deliberately left in `trend` above, which is a frozen record of each prompt
+  // version's completed batch.
   const byFixture = new Map<string, FeedbackRun[]>();
   for (const r of runs) {
-    if (!r.calibrationId) continue;
+    if (!r.calibrationId || WITHDRAWN_FIXTURE_IDS.has(r.calibrationId)) continue;
     const list = byFixture.get(r.calibrationId) ?? [];
     list.push(r);
     byFixture.set(r.calibrationId, list);

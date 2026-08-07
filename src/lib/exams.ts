@@ -10,15 +10,6 @@ const EXAM_DIRECTORY = path.join(process.cwd(), "content", "course", "exams");
 
 const EXAM_CONFIG = [
   {
-    id: "2014-final" as const,
-    year: 2014,
-    title: "Civil Procedure 2 — 2014 Final",
-    shortDescription: "Three questions on Erie, preclusion, jurisdiction, and dispositive-motion standards.",
-    questionCount: 3,
-    promptPath: "content/course/exams/2014-final.md",
-    modelAnswerPath: "content/course/exams/2014-greiner-civpro2-model-answer.md",
-  },
-  {
     id: "2015-final" as const,
     year: 2015,
     title: "Civil Procedure 2 — 2015 Final",
@@ -31,7 +22,7 @@ const EXAM_CONFIG = [
     id: "2019-final" as const,
     year: 2019,
     // The 2019 exam text reads "Civil Procedure 6, Fall 2019" (Greiner's section
-    // number that year); 2014 and 2015 were his "Civil Procedure 2" section.
+    // number that year); 2015 was his "Civil Procedure 2" section.
     title: "Civil Procedure 6 — 2019 Final",
     shortDescription: "Six questions on jurisdiction, Erie, summary judgment, preclusion, and Rule 23.",
     questionCount: 6,
