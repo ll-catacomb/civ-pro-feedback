@@ -30,7 +30,7 @@ The responsiveness gate is conservative: both model passes must independently as
 
 - `content/course/`: a snapshot of 451 cleaned Markdown files from `civil-procedure-materials`.
 - `content/calibration/`: anonymized text extracted from the supplied historical answers.
-- `src/lib/exams.ts`: the three official exam/model-answer pairs used by the UI.
+- `src/lib/exams.ts`: the two official exam/model-answer pairs used by the UI.
 - `src/lib/exam-match.ts`: a deterministic, IDF-weighted comparison against historical exam prompts that supplies advisory evidence to the independent responsiveness judge.
 - `src/lib/retrieval.ts`: ranks non-exam course material by BM25 over the corpus, which it chunks and indexes in memory at first use. There is no build step and no persisted index, so changed course materials take effect on restart. Query terms are weighted by provenance — issue map above expansion vocabulary above the student's own wording — each document is capped at two excerpts, and historical exams are excluded because the selected exam and model answer are supplied directly and unrelated exams can contaminate feedback.
 

@@ -1,13 +1,13 @@
 # CivPro Practice
 
-A Next.js application for course-grounded Civil Procedure exam practice. Students paste a response to the 2014, 2015, or 2019 final and receive personalized feedback after a structured prompt chain. A two-pass intake gate first verifies that the response answers the selected exam; a clearly different-exam response receives zero credit and substantive grading stops. Instructors can run historical answers blind, compare predicted and actual bands, inspect the complete audit trail, rate feedback quality, and export results for Airtable.
+A Next.js application for course-grounded Civil Procedure exam practice. Students paste a response to the 2015 or 2019 final and receive personalized feedback after a structured prompt chain. A two-pass intake gate first verifies that the response answers the selected exam; a clearly different-exam response receives zero credit and substantive grading stops. Instructors can run historical answers blind, compare predicted and actual bands, inspect the complete audit trail, rate feedback quality, and export results for Airtable.
 
 ## Included
 
 - 451 cleaned course-context Markdown files imported from `civil-procedure-materials`
-- the official 2014, 2015, and 2019 exams and instructor model answers
-- eight valid anonymized DS/H/P/LP calibration responses
-- the supplied file named `2015 Exam Answer (P 3)` correctly matched to its actual 2014 Diggle/Parkinson and LupinBank/Clearwater exam
+- the official 2015 and 2019 exams and instructor model answers
+- eight valid anonymized calibration responses — a full DS/H/P/LP ladder for each of the two exams
+- an exam-fingerprinting check on every submission, which is what caught the mislabeled answer originally supplied for the 2015 P slot
 - student submission and evidence-grounded feedback UI
 - blind calibration dashboard as the homepage; student practice at `/practice`
 - one-click batch calibration with three bounded parallel chains and independent per-fixture persistence

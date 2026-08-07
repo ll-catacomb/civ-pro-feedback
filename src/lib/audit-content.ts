@@ -21,6 +21,10 @@ import auditExamplesData from "@/lib/audit-examples-data.json";
 // examples. CHAIN_STAGES below is not frozen — it documents the chain as
 // currently implemented, so it already reflects v4.2.0's retrieval stages.
 // Re-pin this once v4.2.0 has a scored calibration batch of its own.
+//
+// The "accurate" example was regenerated from the same benchmark's 2019 LP run
+// when the 2014 answer it previously used was withdrawn from the calibration
+// set. Both examples now carry the 2019 exam's corrected title.
 
 export const AUDIT_PROMPT_VERSION = "civpro-feedback-v4.1.1";
 
@@ -170,7 +174,7 @@ export const CHANGE_SURFACES: ChangeSurface[] = [
     items: [
       { name: "Stage instructions", detail: "prompts.ts holds every developer prompt by name — e.g. evaluationDeveloperPrompt is the grading rubric and banding rules, judgeDeveloperPrompt is the skeptical-verifier instruction. Editing the band definitions or the shoulder-flag rule happens here." },
       { name: "Grading reference answers", detail: "anchors.ts assembles the instructor-graded reference answers (one per band) the evaluation compares against. Which answers anchor which band, and the leave-one-out rule, are set here." },
-      { name: "Course corpus, exams & model answers", detail: "content/ holds the 451 course files, the three exams and instructor model answers, and the eight graded calibration answers. Adding or correcting course material changes what the system can cite." },
+      { name: "Course corpus, exams & model answers", detail: "content/ holds the 451 course files, the two exams and instructor model answers, and the eight graded calibration answers. Adding or correcting course material changes what the system can cite." },
     ],
   },
 ];

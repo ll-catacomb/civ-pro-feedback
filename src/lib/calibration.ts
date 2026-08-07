@@ -11,13 +11,13 @@ export const CALIBRATION_FIXTURES: CalibrationFixture[] = [
   { id: "2015-ds", examId: "2015-final", label: "2015 answer — DS", actualGrade: "DS", answerPath: "content/calibration/2015-ds.md", status: "ready" },
   { id: "2015-h", examId: "2015-final", label: "2015 answer — H", actualGrade: "H", answerPath: "content/calibration/2015-h.md", status: "ready" },
   {
-    id: "2014-p",
-    examId: "2014-final",
-    label: "2014 answer — P",
+    id: "2015-p",
+    examId: "2015-final",
+    label: "2015 answer — P",
     actualGrade: "P",
-    answerPath: "content/calibration/2014-p.md",
+    answerPath: "content/calibration/2015-p.md",
     status: "ready",
-    note: "Received in the source email labeled a 2015 answer, but its Diggle/Parkinson and LupinBank/Clearwater problems and three-question structure match the 2014 final exactly (the 2015 final has four questions and different parties). Calibrated against the 2014 exam and renamed to 2014-p accordingly.",
+    note: "Replaces the answer originally supplied for this slot, which was a 2014 answer (Diggle/Parkinson, LupinBank/Clearwater, three questions) sent under a 2015 filename. The source of that file supplied this genuine 2015 P answer instead; fingerprinting confirms it against the 2015 final.",
   },
   { id: "2015-lp", examId: "2015-final", label: "2015 answer — LP", actualGrade: "LP", answerPath: "content/calibration/2015-lp.md", status: "ready" },
   { id: "2019-ds", examId: "2019-final", label: "2019 answer — DS", actualGrade: "DS", answerPath: "content/calibration/2019-ds.md", status: "ready" },
@@ -52,6 +52,18 @@ export const CALIBRATION_FIXTURES: CalibrationFixture[] = [
     ],
   },
 ];
+
+/**
+ * Fixtures withdrawn from the benchmark whose runs are deliberately kept in the
+ * store. `2014-p` was the mislabeled answer that occupied the 2015 P slot; it is
+ * no longer a submission anyone should review, so it is dropped from the report's
+ * submission cards and headline metrics. Its runs stay in the trend, because the
+ * per-version rows are a record of what was actually scored at each prompt
+ * version and rewriting them would falsify completed QA history.
+ *
+ * Mirrored in scripts/build-report-snapshot.mjs — keep the two in sync.
+ */
+export const WITHDRAWN_FIXTURE_IDS = new Set(["2014-p"]);
 
 export function getCalibrationFixture(id: string): CalibrationFixture & { answer: string } {
   const fixture = CALIBRATION_FIXTURES.find((candidate) => candidate.id === id);

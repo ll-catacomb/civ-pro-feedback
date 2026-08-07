@@ -2,7 +2,20 @@
 
 ## What the benchmark can establish
 
-Eight supplied answers align with the 2014, 2015, or 2019 finals and have a known instructor band: DS, H, P, or LP. The file supplied as `2015 Exam Answer (P 3).docx` actually answers the 2014 Diggle/Parkinson and LupinBank/Clearwater final. It is therefore labeled `2014-P` and calibrated only against the matching 2014 exam and model answer.
+Eight supplied answers align with the 2015 or 2019 final and have a known instructor band: DS, H, P, or LP. Each exam now carries a complete four-band ladder.
+
+### Provenance of the 2015 P slot
+
+The file first supplied for this slot, `2015 Exam Answer (P 3).docx`, actually answered the 2014 Diggle/Parkinson and LupinBank/Clearwater final: three questions, different parties. The intake fingerprinting check caught it, and it was benchmarked as `2014-P` against the matching 2014 exam. The source has since supplied the genuine 2015 P answer, which fingerprints to the 2015 final. `2014-P` is withdrawn as a fixture, and the 2014 exam is no longer offered anywhere in the product.
+
+Three consequences for reading the numbers:
+
+- **The completed trend history is frozen, not recomputed.** The `2014-P` runs stay in the store and in the per-version trend rows, because those rows record what was actually scored at each prompt version and rewriting them would falsify finished QA. `WITHDRAWN_FIXTURE_IDS` in `src/lib/calibration.ts` drops the fixture from the submission cards and the headline summary only. The practical effect: for versions v1.3.0 through v4.1.0, the trend row counts eight answers while only seven are browsable. The narrative findings below are likewise left as written.
+- **No other fixture was re-scored.** The seven surviving fixtures' runs, feedback, and reviewer ratings are byte-identical to what they were before the swap. Only the new 2015 P answer was run.
+- **The 2015 P run is a `lexical_fallback` run.** Its query-expansion stage exhausted all four attempts on a schema violation (the model exceeded the 40-item cap in `RetrievalQuerySchema`), so retrieval ran on issue-map and answer terms alone. This is an existing condition in the cohort rather than a new one: the v4.6.0 batch now splits four `expanded_lexical` (2015 DS, 2019 DS/H/LP) and four `lexical_fallback` (2015 H/LP/P, 2019 P). Per the retrieval rubric above, compare within condition.
+- **The 2015 DS, H, and LP runs predate the P anchor.** `anchors.ts` prefers a same-exam graded answer per band, and until this correction the 2015 stack had no P member — so those three runs were scored against a stack with a gap at P. Only the new 2015 P answer has been run under the completed ladder. Treat cross-fixture comparisons within 2015 as approximate, and re-run those three before drawing any conclusion that depends on the 2015 cohort being scored under identical conditions.
+
+Because the runs are retained, `/api/export` and `/api/export/json` still contain the 2014 answer and its historical runs. Filter on `calibrationId` if a downstream consumer must not see it.
 
 The current answer's known grade is never included in its grading-chain prompt. Beginning with v3, the chain may receive labeled performance anchors from different assessments; those are development examples, not evidence about the current answer. The chain finishes first, and only then does the server join the current answer's actual grade and run a separately versioned post-hoc calibration analysis. Before doctrinal grading, two independent checks verify that the answer responds to the selected exam. Clear different-exam responses receive zero credit and stop before issue mapping.
 

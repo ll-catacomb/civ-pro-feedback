@@ -31,8 +31,13 @@ const trend = [...byVersion.entries()].map(([version, list]) => {
   return { version, graded: d.length, exact: d.filter((x) => x === 0).length, withinOne: d.filter((x) => x <= 1).length, meanDistance: mean(d) };
 }).sort((a, b) => cmpVer(a.version, b.version));
 
+// Mirrors WITHDRAWN_FIXTURE_IDS in src/lib/calibration.ts. Withdrawn fixtures
+// drop out of the submission cards and headline summary but stay in `trend`,
+// which is a frozen record of each prompt version's completed batch.
+const WITHDRAWN_FIXTURE_IDS = new Set(["2014-p"]);
+
 const byFixture = new Map();
-for (const r of runs) { if (!r.calibrationId) continue; const l = byFixture.get(r.calibrationId) ?? []; l.push(r); byFixture.set(r.calibrationId, l); }
+for (const r of runs) { if (!r.calibrationId || WITHDRAWN_FIXTURE_IDS.has(r.calibrationId)) continue; const l = byFixture.get(r.calibrationId) ?? []; l.push(r); byFixture.set(r.calibrationId, l); }
 const fixtures = [...byFixture.entries()].map(([fixtureId, list]) => {
   const sorted = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const run = sorted.find((r) => r.promptVersion === latestVersion) ?? sorted[0];

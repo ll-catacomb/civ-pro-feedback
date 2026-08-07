@@ -27,9 +27,9 @@ describe("feedback contracts", () => {
       .toHaveLength(answer.length);
   });
 
-  it("accepts the correctly matched 2014 final", () => {
-    expect(FeedbackRequestSchema.parse({ examId: "2014-final", answer: "Analysis ".repeat(20) }).examId)
-      .toBe("2014-final");
+  it("rejects exams that are no longer offered", () => {
+    expect(() => FeedbackRequestSchema.parse({ examId: "2014-final", answer: "Analysis ".repeat(20) }))
+      .toThrow();
   });
 
   it("preserves explicit exam points and permits unallocated criteria", () => {

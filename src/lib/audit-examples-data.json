@@ -2,135 +2,106 @@
   {
     "key": "accurate",
     "tabLabel": "Where it was accurate",
-    "tabHint": "2014 final · predicted P+, actual P (exact)",
-    "editorial": "The system landed the band exactly (a high P) and the skeptical judge confirmed the feedback had no material defects. The comments below are specific to what the student actually wrote — down to the missing link between amount-in-controversy and choice of law on the heaviest question — rather than generic study advice.",
-    "examTitle": "Civil Procedure 2 — 2014 Final",
-    "actual": "P",
-    "predicted": "P",
+    "tabHint": "2019 final · predicted LP+, actual LP (exact)",
+    "editorial": "The system landed the band exactly, at the bottom of the scale — the hardest place to be both accurate and humane. It found the two sections that genuinely work (the multi-Justice Erie canvass and the full Rule 23 walk) and named them before turning to the heavily weighted questions the student left blank or skipped. The skeptical judge added one correction the coaching draft had missed: the answer treated an interstate choice-of-law conflict as an Erie/Supremacy problem, and the published feedback says so.",
+    "examTitle": "Civil Procedure 6 — 2019 Final",
+    "actual": "LP",
+    "predicted": "LP",
     "lean": "high",
     "distance": 0,
-    "qualityScore": 88,
-    "bandRationale": "Pairwise: versus the P (2019) reference, whose Erie section is mechanical and whose cores are competent but shallow, the student is comparable-to-stronger — the four-test Erie work across nine subparts is richer and the normative discussion in 1(e)/1(f)(2) is more sophisticated, and breadth is at least equal; so the student edges out the P reference. Versus the H (2015) reference, which handles its heaviest questions completely (full Smith-Grable/floodgates, full HCOL) with mostly sound cores, the student is weaker: the single heaviest question (Q2a, 16 pts) omits its central analytical path — that AIC/SMJ turns on HCOL/punitives — and Q2b misapplies the resulting issue-preclusion consequence, so the entire 21-point Question 2 is underdeveloped or misframed. Both P and H references carry their own defects (P's mechanical, conclusory Erie; H's rough edges), so the comparison is on paths and framing, not surface polish. Leaving an interval of ≥P and <H, the student does not meet the H definition of mostly-sound resolutions across cores because a heavily weighted core path is missing; the strong, rich Q1 work and clear outperformance of the P reference place this at the top of P.",
-    "whyNotHigher": "Not H because the single most heavily weighted question (Q2a, 16 pts) omits its central analytical path — AIC and thus diversity SMJ hinge on horizontal choice of law on punitive damages, a link the answer never makes — and Q2b compounds this with a misframed issue-preclusion payoff. With the whole 21-point Question 2 underdeveloped or misframed, the answer lacks H's mostly-sound resolutions across the cores despite sophisticated prose.",
-    "whyNotLower": "Not LP because the heavily weighted cores are not skipped, inverted, or conclusory: the 37-point Q1 Erie analysis is largely sound and rich, Semtek is correctly applied in the preclusion subparts, the normative subparts genuinely engage trade-offs, and Q3 argues both sides and reaches a reasoned choice. Issue recognition and substantial development are present throughout.",
+    "qualityScore": 87,
+    "bandRationale": "Pairwise against the same-exam P reference: the P answer completes every question with real analysis — a full Celotex-based Q2 addressing both motions, a Q1 SMJ analysis that anchors Claim 1 and runs supplemental jurisdiction, and a Q4 with the Semtek MA/NH mutuality wrinkle. This student, by contrast, leaves Q2 (the second-most-weighted question) essentially blank, skips Q3, misses Q1's central 1367(b)/AIC core, and omits Q6's required original proposal. The student is clearly WEAKER than the P reference across the most heavily weighted questions. Against the same-exam H and DS references the gap is larger still — both canvass alternatives and resolve cores the student never reaches. Against the LP (different-year) reference the answer is COMPARABLE: the LP reference is complete but reaches wrong/conclusory results, while this student has genuinely competent patches (Erie in Q1, Q5) offset by outright skipped heavily-weighted cores (Q2, Q3) and an incomplete Q6. The LP signature — heavily weighted questions combining conclusory or skipped core analysis regardless of surface breadth — fits: Q2 skipped, Q1 SMJ core wrong, Q6 half-missing. The competent Erie and Q5 sections keep it at the top of the band.",
+    "whyNotHigher": "Not P because the P reference and definition require issue recognition with cores that are underdeveloped rather than skipped; here the second-most-weighted question (Q2, 11 pts) is essentially blank, Q3 is skipped, Q6's required original proposal is missing, and Q1's controlling supplemental-jurisdiction/AIC issue and 12(b)(6) are absent. Too many heavily weighted cores are skipped or conclusory to merit P.",
+    "whyNotLower": "This is already the weakest band.",
     "feedback": {
-      "headline": "Rich Erie analysis carries a strong Question 1; the 21-point Question 2 needs a rebuilt central path",
-      "overview": "You produced sophisticated, wide-ranging work — especially across the nine subparts of Question 1, where you ran all four vertical-choice-of-law tests consistently, correctly deployed Semtek on preclusion, and offered genuine normative arguments rather than doctrine restatement. The weakness is concentrated in Question 2 (21 points total), where the single most important analytical move is missing: the amount-in-controversy, and therefore diversity SMJ, turns on horizontal choice of law on punitive damages. That gap also destabilizes your 2(b) issue-preclusion payoff. Fixing the Q2 spine, tightening a couple of directional calls in Q1, and consistently arguing both sides of the normative subparts would move this answer up. The five priorities below are ranked so you can spend your next attempt where the points are.",
+      "headline": "Genuine competence in the Erie and Rule 23 sections, but too many heavily weighted cores are skipped or conclusory",
+      "overview": "Your answer shows real command in two spots — the multi-Justice Erie/Shady Grove canvass in Q1 and the full Rule 23 walk in Q5 — but the overall performance is dragged down because the second-most-weighted question (Q2) is essentially blank, Q3 is skipped, Q1's controlling supplemental-jurisdiction/AIC issue is missed, and Q6 omits its required original proposal. The through-line to fix is triage against point weights: the heaviest questions received the least developed analysis. This feedback prioritizes the moves that will most raise your next attempt.",
       "strengths": [
         {
-          "label": "Consistent four-test Erie framework across subparts",
-          "detail": "You ran York, Scalia/Hanna, Harlan, and Ginsburg every time and tracked how the settlement commentary and SJC opinion shift Harlan and Ginsburg while holding York and Scalia constant — exactly the structure the course materials model.",
-          "answerExcerpt": "Following Ginsburg in Shady Grove, we should follow state law and read the FRCP narrowly in light of the state interest in screening out applicants",
-          "sources": [
-            "Class 24 Summary: Erie Doctrine (Shady Grove), Access to Justice, and Turner v. Rogers",
-            "HLS Civil Procedure – Class 24: Finish Class Actions, Complex Cases, Access to Justice"
-          ]
+          "label": "Developed vertical choice-of-law analysis on the summons rule",
+          "detail": "On the MRCP 4(a)(1)(H) attachment you actually ran the framework — outcome-determination, the Harlan primary-conduct test, and the Scalia/Ginsburg/Stevens Shady Grove positions — rather than just naming Erie. This is the most competent stretch of the answer and reads like real doctrinal engagement. (Note the caveat under improvements about not extending Erie to the substantive BD conflict.)",
+          "answerExcerpt": "Scalia SG: FRCP is source of law so use valid and applicable test. REA really regulates procedure so valid (Sibbach)",
+          "sources": []
         },
         {
-          "label": "Correct Semtek application on preclusion",
-          "detail": "In 1(f)(1) you identified claim preclusion, framed the 'on the merits' question, and correctly stated that a diversity court borrows the rendering state's (MA) preclusion law with that law being the needed unknown.",
-          "answerExcerpt": "Federal common law governs the claim-preclusive effect of a dismissal by a federal court sitting in diversity, which in turn will apply the claim-preclusion laws of the state in which the federal court is located",
-          "sources": [
-            "Assignment 3 — Draft Model Answer — Civil Procedure 2, 2013"
-          ]
+          "label": "Full Rule 23 terrain with correct numerosity intuition",
+          "detail": "Q5 walks all four 23(a) prerequisites, correctly identifies the suit as a 23(b)(3) damages class, addresses predominance and superiority, and reaches the right numerosity conclusion from the 20-plus members across distant states — tracking the course materials on commonality/predominance and geographic dispersion.",
+          "answerExcerpt": "HG made up of Harry, Ginny, and 20 other stakeholders, so has numerousity. Since other stakeholders mostly in Western states, court also more likely to certify claims.",
+          "sources": []
         },
         {
-          "label": "Genuine normative engagement",
-          "detail": "1(e) went beyond doctrine to argue that a state-purpose-dependent Erie test trades intrastate for interstate forum shopping, weighing federalism-as-laboratory against national consistency and reaching a defended conclusion.",
-          "answerExcerpt": "allowing procedural rules due to state motivations would prevent intrastate forum shopping and inequitable justice, it promotes interstate forum shopping and inequitable justice",
-          "sources": [
-            "Assignment 3 Model Answer — Civil Procedure 2, 2014 (Bruland)",
-            "Assignment 3 Model Answer — Civil Procedure 2, 2014 (Reese)"
-          ]
+          "label": "Serious engagement with access-to-justice policy",
+          "detail": "In Q6 you take the equity dimension seriously and connect preclusion expansion to resource disparities between well-funded and marginalized litigants — the kind of policy weighing the course rewards.",
+          "answerExcerpt": "those who cannot afford a lawyer or an adequate lawyer will face severe access to justice problems",
+          "sources": []
         }
       ],
       "improvements": [
         {
           "priority": "high",
-          "label": "Q2a: connect amount-in-controversy to horizontal choice of law",
-          "whatHappened": "You canvassed all six fora and addressed PJ, venue, and citizenship, but you asserted SMJ 'through DJ or FQJ' without the pivotal move: whether the $75K threshold is met depends on which state's law governs punitive damages, which is a horizontal-choice-of-law question. NY's Second Restatement approach could allow punitives (pushing AIC over the line), while NJ's First Restatement place-of-harm rule could bar them (collapsing AIC). You mention HCOL only in a trailing paragraph and never link it to AIC.",
-          "whyItMatters": "This is the heaviest question on the exam (16 points), and the AIC/HCOL link is its central analytical spine. Without it, the diversity-SMJ analysis is conclusory and the 'best forum' recommendation loses its strategic engine — the very reason NY federal is attractive.",
-          "howToImprove": "Before declaring diversity SMJ satisfied, run the AIC as a variable: state each forum's choice-of-law regime, apply it to the punitive-damages question, compute the resulting AIC, and only then conclude whether diversity is available in that forum. Make the best-forum pick follow from that computation.",
-          "sources": [
-            "Model Answer — Assignment 01 (2013)",
-            "Assignment 2 Model Answer (Chu)"
-          ]
+          "label": "Q2 (11 pts) is essentially unanswered",
+          "whatHappened": "You recited only the abstract summary-judgment standard and stopped. There is no resolution of the horizontal choice-of-law predicate that determines whether the MA-only Public Access defense even exists, no burden allocation, no application of the discovery record, and no separate treatment of the two motions.",
+          "whyItMatters": "This is the second-most-weighted question. Leaving it blank forfeits a large share of available points regardless of how strong other sections are, and it is the single biggest driver of the band placement.",
+          "howToImprove": "Even under time pressure, sequence it: first resolve which state's law governs the PAD (transferee court applies the transferor's choice-of-law rules; whether NH's first-restatement lex loci or MA's interest analysis, the harm points to MA), then allocate the trial burden to each movant, then apply the concrete record (FluNetwork report, Evans's testimony, video similarity) to show whether a genuine dispute exists on each of the two motions.",
+          "sources": []
         },
         {
           "priority": "high",
-          "label": "Q2b: reframe the value of an SMJ dismissal",
-          "whatHappened": "You correctly invoked issue preclusion with its elements and even flagged nonmutual defensive estoppel, but you routed the payoff to precluding Clearwater's use of the CFPB regulation. The intended move is different: an SMJ dismissal for lack of diversity requires a holding that NJ law applies (barring punitives, dropping AIC), and that choice-of-law holding — once actually litigated and necessary — precludes Clearwater's later punitive-damages claim.",
-          "whyItMatters": "A state court can still hear the federal regulation, so estopping its use is a shaky consequence; the counterintuitive benefit of 'losing' on SMJ is that the embedded HCOL/AIC holding travels via issue preclusion into the later damages suit. This flows directly from the Q2a gap.",
-          "howToImprove": "Trace the chain explicitly: SMJ dismissal ⇒ necessary holding that NJ law governs ⇒ that holding is preclusive on the choice-of-law issue ⇒ Clearwater cannot later claim punitives. Verify same-issue, actually-litigated, and necessary before asserting preclusion.",
-          "sources": [
-            "Civil Procedure 2007 — Assignment 4, Model Answer 3",
-            "Assignment 3 — Draft Model Answer — Civil Procedure 2, 2013"
-          ]
+          "label": "Q1 misses the controlling AIC/1367(b) supplemental-jurisdiction core",
+          "whatHappened": "You aggregated the claims to reach the amount in controversy ('valued on entire amount claimed so million$ meets AIC') and never spotted that the count against Droobles is below $75K, nor ran the supplemental-jurisdiction inquiry under 1367(b)/Exxon. You also omitted the 12(b)(6) Twombly-Iqbal plausibility ground entirely.",
+          "whyItMatters": "The AIC deficiency plus 1367(b) analysis is the central SMJ issue on a 25-point question, and the course materials treat the multiple-defendant/Rule 20 ouster as exactly the trap here. Aggregating claims against separate defendants is a rule error, not just an omission.",
+          "howToImprove": "Separate each claim: identify the anchoring claim that independently satisfies 1332, then ask whether 1367(a) reaches the deficient claim and whether 1367(b) ousts it because the defendant was joined under Rule 20. Add a short 12(b)(6) paragraph applying plausibility to the allegations of Droobles' participation.",
+          "sources": []
         },
         {
           "priority": "medium",
-          "label": "Q1a: add the threshold posture and Twombly foreclosure",
-          "whatHappened": "Your Erie analysis is solid, but you skipped the front-end the model leads with: confirming DJ, IPJ over the defendant, and proper venue, plus the point that the complaint's specificity forecloses any Twombly/Iqbal dismissal, leaving Rule 26 noncompliance as the sole basis.",
-          "whyItMatters": "These threshold checks show issue-spotting discipline and frame why the Erie question is even reached; omitting them leaves the analysis starting mid-stream and forfeits easy points.",
-          "howToImprove": "Open 1(a) with a one-to-two sentence posture sweep (DJ present, IPJ, venue) and a line noting that the detailed complaint means the only live dismissal ground is the state expert-report rule — then pivot to the four tests.",
-          "sources": [
-            "Walden v. Fiore and Berk v. Choy — Case Writeups",
-            "Assignment 2 — Model Answer (Kagan)"
-          ]
+          "label": "Q4 skips the Harry-vs-Ginny privity line and the Semtek transfer wrinkle",
+          "whatHappened": "You invoked the right vocabulary (Parklane, Blonder-Tongue, Gonzalez) but opened with a category error ('CP doesn't apply to DD because can only be offensive posture'), never drew the outcome-controlling distinction between Harry (controlling shareholder, in privity) and Ginny (small stake, no privity), and omitted the Semtek MA-vs-NH mutuality question that decides Ginny's issue preclusion.",
+          "whyItMatters": "Privity and which state's preclusion law governs after transfer are the two hinges of this question; without them the conclusions are asserted rather than reasoned, and the course expressly warns not to confuse claim and issue preclusion.",
+          "howToImprove": "Run each defendant/plaintiff pairing line by line: for claim preclusion against Harry, analyze same-claim, final judgment, and privity via his control of HG; explain why Ginny is not in privity; then for Ginny's offensive nonmutual issue preclusion, use Semtek to pick MA (no mutuality) vs. NH (strict mutuality) and note it is outcome-determinative.",
+          "sources": []
         },
         {
           "priority": "medium",
-          "label": "Q1b/Q1c: fix the direction of the shifts and note the SJC controls",
-          "whatHappened": "In 1(b) you said the settlement commentary 'lends more force to Ginsburg' before hedging, but characterizing the rule as a settlement/timing device makes it look procedural — dampening Ginsburg and pushing Harlan toward federal. In 1(c) you flipped Harlan correctly but expressed skepticism about intuiting the SJC's intent rather than recognizing that the state high court's authoritative interpretation trumps the drafters' commentary.",
-          "whyItMatters": "Getting the direction of each Justice's shift right is the core skill these subparts test; a muddled direction reads as uncertainty about what each test actually cares about.",
-          "howToImprove": "State a rule of thumb: procedural-purpose evidence weakens Ginsburg and pushes Harlan federal; primary-conduct purpose (defensive medicine) pushes Harlan state and strengthens Ginsburg. And note explicitly that under Erie the SJC's reading of state law is authoritative and displaces contrary commentary.",
-          "sources": [
-            "Class 24 Summary: Erie Doctrine (Shady Grove), Access to Justice, and Turner v. Rogers",
-            "Walden v. Fiore and Berk v. Choy — Case Writeups"
-          ]
+          "label": "Q6 omits the required original proposal and the due-process hook",
+          "whatHappened": "You developed the claim-preclusion expansion with pros and an extended access-to-justice critique, but never supplied the instruction's required second, original expansion, and the disadvantages drifted into criminal false-conviction and over-policing hypotheticals rather than the civil doctrine.",
+          "whyItMatters": "The original proposal is an express requirement worth part of a 15-point question, and the model answers ground the critique in Mullane notice/due process and the FRCP 13/20/42 framework — the doctrinal anchors your essay is missing.",
+          "howToImprove": "Add a distinct second expansion (e.g., broadening privity to bind represented nonparties) and analyze it separately. Tie disadvantages to notice/due process under Mullane and to consolidation limits under Rules 13/20/42 so the policy connects to course doctrine rather than general social commentary.",
+          "sources": []
         },
         {
-          "priority": "medium",
-          "label": "Q1g2: argue both sides before concluding",
-          "whatHappened": "You gave only the fairness/allow-continuation side and added a confused observation that NH applies MA preclusive effect 'as a minimum.' You omitted the counter-arguments: Parkinson could have obtained the report earlier, fairness to the defendant who must defend twice, and deterrence/forum-shopping incentives, plus the without-prejudice screening alternative.",
-          "whyItMatters": "Normative subparts are scored on whether you engage competing considerations and then choose; a one-sided answer forfeits half the analysis even when the prose is polished.",
-          "howToImprove": "Structure normative subparts as: strongest argument each way, then a reasoned pick. Here, weigh the plaintiff's cured defect against the defendant's repeat-defense burden and the deterrence rationale before landing.",
-          "sources": [
-            "Assignment 3 Model Answer — Civil Procedure 2, 2014 (Bruland)",
-            "Assignment 3 Response — Civil Procedure 2, 2013"
-          ]
+          "priority": "low",
+          "label": "Q3 (appealability) effectively skipped",
+          "whatHappened": "The only fragment ('If couldn't appeal, then likely not necessary to decision') appears misplaced from the preclusion discussion and does not address finality at all.",
+          "whyItMatters": "Q3 is small (3 pts) but fully answerable with a compact checklist; leaving it blank forfeits easy points.",
+          "howToImprove": "State the not-appealable path briefly: no final judgment under 1291 because damages are reserved, no Rule 54(b) certification, no 1292(b) or 1292(a)(1), no Cohen collateral order because liability goes to the merits, and no mandamus.",
+          "sources": []
+        },
+        {
+          "priority": "low",
+          "label": "Q1 misframes the BD/Public-Access conflict as an Erie/Supremacy issue",
+          "whatHappened": "After your (correct) Erie analysis of the summons rule, you wrote that the conflict between federal and MA business-disparagement law should also 'Use Eerie' and that the 'Supremacy clause for federal BD law vs MA BD law so fed law overrules state law.'",
+          "whyItMatters": "The BD/PAD conflict is a horizontal (interstate) choice-of-law problem, not a vertical Erie/Supremacy problem — there is no federal statute competing with a state rule here. Misclassifying it leads to the wrong governing-law analysis, which in turn controls whether the MA-only Public Access defense exists (the pivot of Q2).",
+          "howToImprove": "Reserve the Erie/Shady Grove framework for the state-procedure-vs-FRCP summons question. For the BD/PAD conflict, run horizontal choice of law: apply the forum's choice-of-law rules (Klaxon, plus the transferee-court wrinkle), then the R1 lex-loci or R2 interest analysis pointing to MA where the harm occurred.",
+          "sources": []
         }
       ],
       "revisionPlan": [
-        "In Q2a, treat amount-in-controversy as the dependent variable: for each candidate forum, state its choice-of-law regime, apply it to punitive damages, compute AIC, and only then rule on diversity SMJ.",
-        "Rebuild the Q2b payoff around issue preclusion on the NJ-law/AIC holding barring a later punitive claim, not around preclusion of the CFPB regulation; check same-issue, actually-litigated, and necessary.",
-        "Add a threshold posture sweep (DJ, IPJ, venue) and a Twombly-foreclosure line to open Q1a.",
-        "Standardize a direction rule for the Erie shifts and add the point that the SJC's interpretation authoritatively fixes state law's meaning.",
-        "Convert one-sided normative subparts (especially 1(g)(2)) into strongest-argument-each-way-then-choose format."
+        "Budget words by point value before writing: Q1 (25), Q6 (15), and Q2 (11) should get the most ink; never let an 11-point question end at a bare rule statement.",
+        "For every SMJ question, separate each claim and each defendant and test AIC and 1367(a)/(b) individually before concluding diversity exists.",
+        "In summary-judgment and preclusion questions, resolve the choice-of-law predicate first (which state's substantive/preclusion law), then allocate burdens, then apply the record.",
+        "Keep vertical Erie analysis for state-procedure-vs-FRCP conflicts and horizontal choice of law (Klaxon, R1/R2) for competing state substantive laws; do not blend them.",
+        "In preclusion, go element by element and keep a distinct privity analysis for each party; identify which state's preclusion law governs under Semtek after any transfer.",
+        "In policy questions, complete every express instruction (here, the original proposal) and anchor pros/cons in named course doctrine (Mullane, Rules 13/20/42)."
       ],
-      "exampleRevision": "For Q2a, instead of 'SMJ can be established here through DJ or FQJ,' anchor the analysis to the AIC variable: 'Diversity SMJ requires more than $75K in controversy, and here the figure swings on which state's punitive-damages rule applies. In NY federal court, Klaxon sends us to NY's Second Restatement analysis, which — given the conduct and the injured party's NY contacts — could permit punitives and push the AIC to roughly $80K, satisfying §1332. In NJ, by contrast, the First Restatement's place-of-harm rule points to NY law only if harm occurred there; if NJ's own punitive bar governs, the recoverable amount collapses toward $20K and diversity SMJ fails. Because the AIC — and thus the existence of federal diversity jurisdiction — depends entirely on this horizontal choice-of-law determination, the forum choice is really a choice among choice-of-law regimes.' Note how this makes the later best-forum and 2(b) preclusion moves follow naturally, rather than asserting SMJ and analyzing HCOL as an afterthought.",
-      "closing": "You clearly command the Erie machinery and can write genuinely thoughtful normative analysis — that is the hard part and it is already strong. The path to a higher band runs almost entirely through Question 2: make AIC turn on horizontal choice of law, and let that holding carry into the issue-preclusion payoff. Tighten those links and your next attempt will match the sophistication of your prose with the completeness the heavy questions demand."
+      "exampleRevision": "On Q1 SMJ, instead of 'valued on entire amount claimed so million$ meets AIC,' analyze each claim separately: 'The HG v. Riddle claim (~$950K) independently satisfies 1332 and anchors the case. The claim against Droobles seeks only $50K, below the $75K threshold, so it needs supplemental jurisdiction. Under 1367(a) it forms part of the same case or controversy (the common deepfake scheme). But because Droobles is a second defendant who had to be joined under Rule 20, 1367(b) ousts supplemental jurisdiction over a plaintiff's Rule 20 claim in a diversity case — so, absent independent jurisdiction, that count must be dismissed even though the anchoring claim survives.' Note the contrast the course draws: a single defendant would not be joined via Rule 20, so the ouster would not apply.",
+      "closing": "You clearly can do rigorous doctrinal work — the Erie canvass proves it. The fastest path to a higher band is not deeper analysis where you are already strong, but making sure every heavily weighted question gets a real, sequenced answer, and keeping the Erie and choice-of-law frameworks in their proper lanes. Practice triage against point values and complete the cores you are currently skipping."
     },
     "judgeFindings": [
       {
         "severity": "note",
-        "problem": "No defect. The critique matches the model answer (AIC $80K under NY law vs $20K under NJ's punitive bar) and the student's failure to link HCOL to AIC. Quotation and reasoning are accurate.",
-        "correction": "None required."
-      },
-      {
-        "severity": "note",
-        "problem": "No defect. Correctly distinguishes the student's misframed 'preclude use of the CFPB regulation' payoff from the intended choice-of-law issue preclusion.",
-        "correction": "None required."
-      },
-      {
-        "severity": "note",
-        "problem": "Verified: three strength excerpts match the student text exactly; every sourceId maps to a supplied source. No fabricated citations or misquotes.",
-        "correction": "None required."
-      },
-      {
-        "severity": "note",
-        "problem": "Minor omission, not material. Q3 scored coverage 3 and the draft reasonably prioritized the five highest-value gaps; the Rule 56/50 point could be added as a low-priority item but its absence does not distort the feedback.",
-        "correction": "Optional: add a low-priority note that only Rule 56 (and directed verdicts) can prevent sunk trial costs, whereas by JNOV the expenditure has occurred — the model's core distinction the student only gestured at."
+        "problem": "In Q1 the student wrote 'Also conflict with federal business disparagement (BD) law and MA BD law... Use Eerie' and 'Supremacy clause for federal BD law vs MA BD law so fed law overrules state law.' This is a legal-rule error: the BD/PAD conflict is a horizontal (interstate) choice-of-law problem, not a vertical Erie/Supremacy problem. The draft's Erie praise is correctly targeted at the MRCP 4(a)(1)(H) attachment, but the draft does not flag the misapplication to the substantive tort conflict.",
+        "correction": "Add a low-priority note that the vertical Erie framework applies only to the state-vs-federal procedural summons rule; the federal-BD-vs-MA-BD conflict (and the MA-only Public Access defense) is resolved through horizontal choice of law (Klaxon plus R1/R2 analysis), not Supremacy."
       }
     ]
   },
@@ -139,7 +110,7 @@
     "tabLabel": "Where it was most wrong",
     "tabHint": "2019 final · predicted P+, actual DS (two bands low)",
     "editorial": "This is the benchmark's worst band miss: the instructor graded the answer DS (the top band); the system placed it at a high P, two bands low. The disagreement is reasoned rather than random — the evaluator downgraded the answer for a conflated preclusion analysis and a skipped personal-jurisdiction path on heavily weighted questions, while the instructor evidently rewarded the answer's breadth and sophistication more heavily. This is exactly the kind of values judgment worth a lawyer's eye. Note also the second lesson here: the skeptical judge (step 6) caught the coaching draft telling the student their §1367(b) analysis was wrong when it was actually right, and corrected it before publication — the low QA score of 57 reflects that catch.",
-    "examTitle": "Civil Procedure 2 — 2019 Final",
+    "examTitle": "Civil Procedure 6 — 2019 Final",
     "actual": "DS",
     "predicted": "P",
     "lean": "high",
