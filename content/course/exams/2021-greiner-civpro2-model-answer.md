@@ -27,18 +27,18 @@ interest)
 The assertion of quasi-in-rem jurisdiction is likely invalid because the bank account is likely not
 "located" in Texas. Location options for the incorporeal bank account include:
 
-    · Dallas: Perhaps HvB suggests that the account follows the account-holder, and the account
+    Â· Dallas: Perhaps HvB suggests that the account follows the account-holder, and the account
          holder's current location is somewhat ascertainable, but that means the location will be
          transient and uncertain, plus a bank account for Montoya is an asset not a debt.
 
-    · Pensacola: Montoya and Florin might anticipate this location as the place where their
-         relationship vis-à-vis this account began, and is the likely state of Montoya's domicile (see
+    Â· Pensacola: Montoya and Florin might anticipate this location as the place where their
+         relationship vis-Ã -vis this account began, and is the likely state of Montoya's domicile (see
          below), but no third party or to a court contemplated a pre-notice seizure would know, making
          it hard to administer. In addition, account holders sometimes have little current relationship
          with the place where they opened the account, making this location seem arbitrary (although
          the same is often true of a human being's domicile).
 
-    · Reno or Delaware: These are certain and easily ascertainable. HvB suggests one of these two (a
+    Â· Reno or Delaware: These are certain and easily ascertainable. HvB suggests one of these two (a
          bank account is a debt the bank owes the account holder). Reno is likely stronger because a
          bank's PPoB is a reasonable proxy for its system of records (all a modern bank is). Either choice
          might be fair to Montoya because he can be deemed to have had knowledge of these locations
@@ -93,7 +93,7 @@ definitely D. VT (accident), making 1391(b)(3) irrelevant.
 Regarding IPJ, under Rule 4(k)(1)(A), we'd ask if any of Ohio, Michigan, and VT state courts could
 exercise over IPJ over both BW. For any specific IPJ, all states have long-arms to constitutional limits.
 
-    · Ohio: Ohio has general IPJ over Buttercup. Regarding minimal contacts relating Westley, the
+    Â· Ohio: Ohio has general IPJ over Buttercup. Regarding minimal contacts relating Westley, the
          litigation, and Ohio, Westley made Buttercup, in Ohio (as she always told Montoya), his agent
          for the computer purchase negotiations; that said, the negotiations were online. Ohio might
          fairly and reasonably exercise IPJ over Westley, given the parties' expectations that Ohio law
@@ -101,21 +101,21 @@ exercise over IPJ over both BW. For any specific IPJ, all states have long-arms 
          time), and his relationship with Buttercup. Some evidence, definitely the computer (key for
          deciding who is at fault) and perhaps any notes Buttercup took during the negotiations, are in
          Ohio. Montoya has no special interest in litigating in Ohio. Ohio has an interest in protecting
-         Buttercup, but none vis-à-vis Westley.
-    · Michigan: Michigan has general IPJ over Westley. Regarding Buttercup and minimal contacts,
+         Buttercup, but none vis-Ã -vis Westley.
+    Â· Michigan: Michigan has general IPJ over Westley. Regarding Buttercup and minimal contacts,
          she instructed Montoya to ship the computer to Ann Arbor and instructed her "agent" (Westley)
          to pick it up there. Michigan might fairly and reasonably exercise IPJ over Buttercup given her
          relationship with Westley and the resulting lack of inconvenience, but Michigan has no interest
-         vis-à-vis Buttercup, no Michigan law will apply, no evidence relevant to the case is in Michigan.
+         vis-Ã -vis Buttercup, no Michigan law will apply, no evidence relevant to the case is in Michigan.
          Montoya may be familiar with Michigan, but has no interest in litigating there.
 
-    · Vermont: BW drove the computer to the state and used it there, where the accident occurred,
+    Â· Vermont: BW drove the computer to the state and used it there, where the accident occurred,
          likely constituting minimal contacts. Vermont could fairly and reasonably exercise IPJ over BW
          because it has an interest in regulating dangerous products brought inside its borders, its law
          may apply, it's somewhat convenient for BW (they vacation there), and key evidence (wiring) is
          there.
 
-    · Likely, no other state has minimal contacts. Regarding Oklahoma, in particular, nothing
+    Â· Likely, no other state has minimal contacts. Regarding Oklahoma, in particular, nothing
          whatsoever connects Westley to OK.
 
 Regarding HCOL, E.D. Mich. and D. Vt. would use R1 (Klaxon) and thus apply Vermont (place of injury)
@@ -137,7 +137,7 @@ requirement in Cohen (discussed in his Hanna concurrence), particularly given th
 findings regarding frivolous lawsuits and risky pre-litigation (primary) conduct, and thus apply state law.
 Scalia would say that 2201 is valid, citing Congress' constitutional power to provide remedies available in
 the lower federal courts it creates (Art. III), and applicable because it speaks to what federal district
-courts may do vis-à-vis declaratory judgments; Scalia would not require the 10%. Ginsburg would agree
+courts may do vis-Ã -vis declaratory judgments; Scalia would not require the 10%. Ginsburg would agree
 with Scalia on validity; on applicability, she might say that the Ohio law speaks to an issue (a deposit
 necessity) about which 2201 is silent, allowing the apparently important state law policy to flourish, but
 might also be unwilling to interpret a federal statute (as opposed to a federal rule) that narrowly.

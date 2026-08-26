@@ -7,29 +7,16 @@ import type { CalibrationFixture, GradeBand } from "@/lib/types";
 
 const CALIBRATION_DIRECTORY = path.join(process.cwd(), "content", "calibration");
 
-export const CALIBRATION_FIXTURES: CalibrationFixture[] = [
-  { id: "2015-ds", examId: "2015-final", label: "2015 answer — DS", actualGrade: "DS", answerPath: "content/calibration/2015-ds.md", status: "ready" },
-  { id: "2015-h", examId: "2015-final", label: "2015 answer — H", actualGrade: "H", answerPath: "content/calibration/2015-h.md", status: "ready" },
-  {
-    id: "2015-p",
-    examId: "2015-final",
-    label: "2015 answer — P",
-    actualGrade: "P",
-    answerPath: "content/calibration/2015-p.md",
-    status: "ready",
+/**
+ * Per-fixture extras that cannot be derived from a filename: provenance notes
+ * and real grader comments. Keyed by fixture id and overlaid onto whatever is
+ * discovered on disk.
+ */
+const FIXTURE_NOTES: Record<string, Pick<CalibrationFixture, "note" | "historicalFeedback">> = {
+  "2015-p": {
     note: "Replaces the answer originally supplied for this slot, which was a 2014 answer (Diggle/Parkinson, LupinBank/Clearwater, three questions) sent under a 2015 filename. The source of that file supplied this genuine 2015 P answer instead; fingerprinting confirms it against the 2015 final.",
   },
-  { id: "2015-lp", examId: "2015-final", label: "2015 answer — LP", actualGrade: "LP", answerPath: "content/calibration/2015-lp.md", status: "ready" },
-  { id: "2019-ds", examId: "2019-final", label: "2019 answer — DS", actualGrade: "DS", answerPath: "content/calibration/2019-ds.md", status: "ready" },
-  { id: "2019-h", examId: "2019-final", label: "2019 answer — H", actualGrade: "H", answerPath: "content/calibration/2019-h.md", status: "ready" },
-  { id: "2019-p", examId: "2019-final", label: "2019 answer — P", actualGrade: "P", answerPath: "content/calibration/2019-p.md", status: "ready" },
-  {
-    id: "2019-lp",
-    examId: "2019-final",
-    label: "2019 answer — LP",
-    actualGrade: "LP",
-    answerPath: "content/calibration/2019-lp.md",
-    status: "ready",
+  "2019-lp": {
     historicalFeedback: [
       {
         author: "Travis Fife",
@@ -51,7 +38,7 @@ export const CALIBRATION_FIXTURES: CalibrationFixture[] = [
       },
     ],
   },
-];
+};
 
 /**
  * Fixtures withdrawn from the benchmark whose runs are deliberately kept in the
@@ -64,6 +51,49 @@ export const CALIBRATION_FIXTURES: CalibrationFixture[] = [
  * Mirrored in scripts/build-report-snapshot.mjs — keep the two in sync.
  */
 export const WITHDRAWN_FIXTURE_IDS = new Set(["2014-p"]);
+
+const BAND_BY_SUFFIX: Record<string, GradeBand> = { ds: "DS", h: "H", p: "P", lp: "LP" };
+
+/**
+ * Graded reference answers, discovered from `content/calibration`. A fixture is
+ * a file named `<year>-<band>.md` — 2015-ds.md, 2021-h.md — so adding a year's
+ * graded ladder is a content drop with no code change.
+ *
+ * This matters beyond convenience. `gradedAnchorFixtures` prefers a SAME-EXAM
+ * reference for each band and only falls back to another year when the same-exam
+ * stack is thin, so every year whose ladder lands here stops being banded purely
+ * against 2015/2019. As of this writing only 2015 and 2019 have graded ladders,
+ * which means the other fourteen practicable exams are banded entirely
+ * cross-year.
+ */
+function discoverFixtures(): CalibrationFixture[] {
+  let files: string[];
+  try {
+    files = fs.readdirSync(CALIBRATION_DIRECTORY);
+  } catch {
+    return [];
+  }
+  return files
+    .flatMap((fileName) => {
+      const match = /^(\d{4})-(ds|h|p|lp)\.md$/i.exec(fileName);
+      if (!match) return [];
+      const [, year, suffix] = match;
+      const band = BAND_BY_SUFFIX[suffix.toLowerCase()];
+      const id = `${year}-${suffix.toLowerCase()}`;
+      return [{
+        id,
+        examId: `${year}-final`,
+        label: `${year} answer — ${band}`,
+        actualGrade: band,
+        answerPath: `content/calibration/${fileName}`,
+        status: "ready" as const,
+        ...FIXTURE_NOTES[id],
+      }];
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export const CALIBRATION_FIXTURES: CalibrationFixture[] = discoverFixtures();
 
 export function getCalibrationFixture(id: string): CalibrationFixture & { answer: string } {
   const fixture = CALIBRATION_FIXTURES.find((candidate) => candidate.id === id);

@@ -125,20 +125,20 @@ diversity and would be AIC-sufficient, supplemental SMJ would if necessary be av
 despite the presence of non-diverse (Supreme Tribe) or AIC-deficient (Exxon) unnamed class members.
 In this (b)(3)/damages class we look for
 
-    · numerosity (present because 94 >> 40);
-    · superiority (likely met because the plaintiffs are spread out and a common course of conduct
+    Â· numerosity (present because 94 >> 40);
+    Â· superiority (likely met because the plaintiffs are spread out and a common course of conduct
 
          applied to all, although if Buffy's claim is representative, the amounts at issue might be enough
          to attract lawyers to individual litigation);
-    · predominance/commonality (likely met if as a matter of HCOL the negligence per se theory for is
+    Â· predominance/commonality (likely met if as a matter of HCOL the negligence per se theory for is
          available for all claims, see above, because then all were injured as a result of non-testing, but
          might not work otherwise because negligence would be specific to circumstances, such as what
          MacClay and Chase saw for each set of trucks, plus there might be different damages
          facts/evidence for injuries to body versus property);
-    · typicality (likely met if the negligence per se theory works because Buffy's harm occurred in the
+    Â· typicality (likely met if the negligence per se theory works because Buffy's harm occurred in the
          same way as the unnamed class members, with the contrary argument being that Buffy's
          damages were extensive and therefore may be atypical);
-    · and representativeness (same as commonality plus typicality, there being no indication of
+    Â· and representativeness (same as commonality plus typicality, there being no indication of
          conflicts of interest).
 
 Question 4

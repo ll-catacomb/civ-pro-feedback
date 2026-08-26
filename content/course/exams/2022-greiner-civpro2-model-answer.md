@@ -132,22 +132,22 @@ when it was stolen. Where was that? The artwork is incorporeal, and it does not 
 code; the code is worthless without an interface to play it, and as this case demonstrates, code can exist
 in an large number of places. To locate incorporeal things, we consider policy arguments.
 
-    · Pierre: this is where the account-holder opened the Sylvania account (and here, the place
+    Â· Pierre: this is where the account-holder opened the Sylvania account (and here, the place
          where the account-holder relinquished total control of the item), but as this fact pattern
          demonstrates, this location could be gratuitous, depending on the vagaries of travel plans, and
          thus is both indefinite and accidental.
 
-    · San Antonio: This is where the account holder is domiciled, which is definite and ascertainable,
+    Â· San Antonio: This is where the account holder is domiciled, which is definite and ascertainable,
          and might comply with the holder's expectations. But it might not comply with company
          (Sylvania) expectations, and it would mean that property provided to Sylvania is located all over
          the world, which SCOTUS might find objectionable.
 
-    · Delaware or Oklahoma are ascertainable and definite, and they have connections to the events.
+    Â· Delaware or Oklahoma are ascertainable and definite, and they have connections to the events.
          Either is reasonable in a party-expectation sense because Sylvania is strongly connected to both,
          and a customer can be charged with knowledge of the location of companies with whom they
          choose to deal. Of the two, OK is more connected to events because decisions relevant to the
          security policy of digital items were likely made there, and thus key evidence would be there.
-    · Dallas, Columbia, or Boston: the data constituting "Duck" were physically in all three, so part of
+    Â· Dallas, Columbia, or Boston: the data constituting "Duck" were physically in all three, so part of
          what constituted "Duck" was there when stolen. But the fact that there are three locations,
          each with an equal claim to reasonableness, demonstrates that each is an unwise choice.
 

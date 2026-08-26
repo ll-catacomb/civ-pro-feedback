@@ -27,9 +27,29 @@ describe("feedback contracts", () => {
       .toHaveLength(answer.length);
   });
 
-  it("rejects exams that are no longer offered", () => {
-    expect(() => FeedbackRequestSchema.parse({ examId: "2014-final", answer: "Analysis ".repeat(20) }))
+  // Until v4.16.0 examId was a two-value enum, so the schema itself rejected any
+  // other year. Exams are now discovered from content/course/exams, so the
+  // schema takes any non-empty id and the registry is the authority — see
+  // isKnownExamId, which the feedback route calls before starting a run.
+  it("leaves exam-id validation to the registry", () => {
+    expect(FeedbackRequestSchema.parse({ examId: "2014-final", answer: "Analysis ".repeat(20) }).examId)
+      .toBe("2014-final");
+    expect(() => FeedbackRequestSchema.parse({ examId: "", answer: "Analysis ".repeat(20) }))
       .toThrow();
+  });
+
+  it("defaults to a whole-exam prose submission", () => {
+    const parsed = FeedbackRequestSchema.parse({ examId: "2015-final", answer: "Analysis ".repeat(20) });
+    expect(parsed.scope).toBe("full_exam");
+    expect(parsed.mode).toBe("full_draft");
+  });
+
+  it("requires a question label when only one question is submitted", () => {
+    const base = { examId: "2015-final", answer: "Analysis ".repeat(20) };
+    expect(() => FeedbackRequestSchema.parse({ ...base, scope: "single_question" }))
+      .toThrow(/which question/i);
+    expect(FeedbackRequestSchema.parse({ ...base, scope: "single_question", questionRef: "Question 3" }).questionRef)
+      .toBe("Question 3");
   });
 
   it("preserves explicit exam points and permits unallocated criteria", () => {

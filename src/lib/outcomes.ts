@@ -19,16 +19,95 @@ export function hedgedBandLabel(score: number): string {
   return BAND_SCALE[Math.round(score) - 1];
 }
 
+/**
+ * Feedback with nothing in it is not feedback, however well-formed the object.
+ * Deliberately tolerant of a missing array: this guard exists to handle output
+ * that is already malformed, so it must not itself throw on it.
+ */
+function hasContent(feedback: Feedback | undefined): boolean {
+  if (!feedback) return false;
+  return (feedback.improvements?.length ?? 0) > 0 || (feedback.strengths?.length ?? 0) > 0;
+}
+
+/**
+ * The feedback the student sees.
+ *
+ * Normally the judge's corrected object. But the judge can return a structurally
+ * valid object with every array empty: observed 8/2026 on a bullet submission,
+ * where it decided the draft cited authority outside the closed source set,
+ * declared it "unsafe to publish", and emitted nothing rather than repairing it
+ * — while the coach's draft held 13 improvements and 6 strengths. That reached
+ * the student as a blank page.
+ *
+ * The judge prompt now forbids this, but a prompt cannot be relied on for a
+ * property this consequential, so the fallback lives here: an unreviewed draft
+ * is worse than a judged one and is flagged as such by `isUnreviewedDraft`, but
+ * it is far better than nothing.
+ */
 export function getFinalFeedback(run: FeedbackRun): Feedback | undefined {
-  return run.dualDecision?.finalFeedback ?? run.judge?.feedback;
+  const judged = run.dualDecision?.finalFeedback ?? run.judge?.feedback;
+  if (hasContent(judged)) return judged;
+  if (hasContent(run.draftFeedback)) return run.draftFeedback;
+  return judged;
+}
+
+/**
+ * True when the student is being shown the coach's draft because the judge
+ * returned nothing usable. The feedback has not passed the accuracy pass, so the
+ * UI must say so and the run needs instructor review.
+ */
+export function isUnreviewedDraft(run: FeedbackRun): boolean {
+  const judged = run.dualDecision?.finalFeedback ?? run.judge?.feedback;
+  return !hasContent(judged) && hasContent(run.draftFeedback);
+}
+
+/**
+ * Whether a band means anything for this submission.
+ *
+ * The band is produced by ranking the answer against graded reference answers,
+ * and every reference we hold is a COMPLETE, PROSE answer to a FINAL EXAM. Three
+ * kinds of submission cannot be placed on that scale:
+ *
+ *  - an assignment, which is a different assessment at roughly a third of the
+ *    word budget — observed 8/2026 ranking an 850-word outline against 3,000-word
+ *    finals from other years and returning a confident LP;
+ *  - an outline, which is a different form, so "less developed than the reference"
+ *    is a fact about the format rather than the analysis;
+ *  - a single question, where the references answer the whole paper.
+ *
+ * The chain still records its band for QA, but nothing downstream should present
+ * it or score it as if it were comparable. A missing band is honest; a confident
+ * one drawn from an incommensurable comparison invites being read as a grade.
+ */
+export function isBandComparable(run: FeedbackRun): boolean {
+  // Absent fields mean a run persisted before v4.16.0, when the only accepted
+  // submission was a full-exam prose answer — which is comparable by definition.
+  if (run.examId?.includes("assignment") ?? false) return false;
+  if (run.mode === "bullet_points") return false;
+  if (run.scope === "single_question") return false;
+  return true;
+}
+
+/** Why the band is withheld, for the UI and for anyone reading a stored run. */
+export function bandSuppressionReason(run: FeedbackRun): string | undefined {
+  if (isBandComparable(run)) return undefined;
+  if (run.examId?.includes("assignment")) {
+    return "Assignments are not banded here: every graded reference answer we hold is a full final exam, which is a different assessment at several times the word budget.";
+  }
+  if (run.mode === "bullet_points") {
+    return "Outlines are not banded here: the graded reference answers are all written-out drafts, so a band would measure the format rather than the analysis.";
+  }
+  return "A single question is not banded here: the graded reference answers respond to the whole exam.";
 }
 
 /**
  * The student-facing estimate. Legacy dual runs preserve a genuine midpoint as
  * a shoulder grade (P–H); single-chain runs flag the evaluator's within-band
- * lean as H+ / H− style edges.
+ * lean as H+ / H− style edges. Withheld entirely where the comparison that
+ * produces it is not like-for-like — see isBandComparable.
  */
 export function getFormativeBandEstimate(run: FeedbackRun): string | undefined {
+  if (!isBandComparable(run)) return undefined;
   if (run.dualDecision?.bandScore !== undefined) {
     return hedgedBandLabel(run.dualDecision.bandScore);
   }
@@ -43,6 +122,7 @@ export function getFormativeBandEstimate(run: FeedbackRun): string | undefined {
 
 /** Numeric band estimate on the LP=1 … DS=4 scale; leans count a quarter band. */
 export function getFormativeBandScore(run: FeedbackRun): number | undefined {
+  if (!isBandComparable(run)) return undefined;
   if (run.dualDecision?.bandScore !== undefined) return run.dualDecision.bandScore;
   if (!run.predictedGrade) return undefined;
   const lean = run.evaluation?.bandLean;
@@ -50,6 +130,7 @@ export function getFormativeBandScore(run: FeedbackRun): number | undefined {
 }
 
 export function getAveragedCalibrationDistance(run: FeedbackRun): number | undefined {
+  if (!isBandComparable(run)) return undefined;
   const score = getFormativeBandScore(run);
   return score !== undefined && run.actualGrade
     ? Math.abs(score - bandValue(run.actualGrade))

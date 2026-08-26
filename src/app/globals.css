@@ -142,7 +142,23 @@ a { color: inherit; text-decoration: none; }
 .zero-policy { font-weight: 700; color: var(--ink) !important; }
 .feedback-section + .feedback-section { margin-top: 42px; }
 .section-kicker { margin-bottom: 14px; display: flex; align-items: center; gap: 9px; color: var(--crimson); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+/* Exam / scope / mode pickers. `practice-row` wraps so the question picker can
+   appear and disappear without reflowing the rest of the form awkwardly. */
+.practice-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.practice-row .practice-field { flex: 1 1 200px; min-width: 0; }
+.practice-select {
+  width: 100%; padding: 11px 13px; border: 1px solid var(--line, #d9d4cb); border-radius: 8px;
+  background: #fff; color: inherit; font: inherit; font-size: 14px; cursor: pointer;
+}
+.practice-select:focus-visible { outline: 2px solid var(--crimson); outline-offset: 1px; }
+.mode-note {
+  margin: -4px 0 0; padding: 11px 13px; border-left: 3px solid var(--crimson);
+  background: #f6f0e6; font-size: 13px; line-height: 1.5;
+}
+
 .feedback-stack { display: grid; gap: 12px; }
+.question-group + .question-group { margin-top: 22px; }
+.question-heading { margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
 .feedback-card { padding: 24px; border: 1px solid var(--line); background: var(--white); }
 .feedback-card h3 { margin: 0; font-family: var(--font-cormorant), serif; font-size: 24px; line-height: 1.1; }
 .feedback-card > p { color: #4f5a56; font-size: 13px; line-height: 1.65; }
@@ -157,7 +173,8 @@ a { color: inherit; text-decoration: none; }
 .coaching-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 0; }
 .coaching-grid > div:last-child { grid-column: 1 / -1; padding: 15px; background: #f6f0e6; }
 .coaching-grid dt { margin-bottom: 5px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.coaching-grid dd { margin: 0; color: #45504c; font-size: 12px; line-height: 1.6; }
+/* pre-line so a step-per-line instruction renders as steps, not one paragraph. */
+.coaching-grid dd { margin: 0; color: #45504c; font-size: 12px; line-height: 1.6; white-space: pre-line; }
 .source-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px; }
 .source-badges span { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 7px; border: 1px solid #c6d7d1; background: #f2f7f5; color: var(--crimson); font-size: 8px; }
 .revision-panel { margin-top: 42px; padding: 30px; background: var(--crimson); color: white; }
@@ -622,3 +639,16 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
   .practice-shell .exam-options { grid-template-columns: 1fr; }
   .practice-submit { flex-direction: column; align-items: stretch; }
 }
+
+/* Review-round cards: submissions with no known grade (outlines, single
+   questions, mock full drafts). Distinguished from graded fixtures by a form
+   chip rather than a band/distance pair, which do not apply to them. */
+.form-chip { padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.form-chip--bullets { background: #efe6d6; color: #6b5730; }
+.form-chip--draft { background: #e3ecea; color: #2f5850; }
+.sub-note--warn { color: var(--crimson); font-weight: 700; }
+/* Question grouping inside a rendered feedback block. */
+.fb-question + .fb-question { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line, #e4ded4); }
+.fb-question__head { margin-bottom: 8px; font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
+/* Line-broken step lists survive into the lab, as they do for the student. */
+.fb-steps { white-space: pre-line; }

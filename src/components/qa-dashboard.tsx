@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 
 import { runWithConcurrency } from "@/lib/concurrency";
-import type { ReportFixture, ReportModel } from "@/lib/report-model";
-import type { CalibrationFixture } from "@/lib/types";
+import type { ReportFixture, ReportModel, ReportSubmission } from "@/lib/report-model";
+import type { CalibrationFixture, Feedback } from "@/lib/types";
 
 function pct(n: number, d: number): string {
   return d ? `${Math.round((n / d) * 100)}%` : "—";
@@ -25,6 +25,133 @@ function BandChip({ band }: { band: string | null }) {
   if (!band) return <span className="report-band">—</span>;
   const base = band.replace(/[+−-]/g, "").toLowerCase();
   return <span className={`report-band report-band--${base}`}>{band}</span>;
+}
+
+/** Groups feedback cards by question, exam order preserved, cross-cutting last. */
+function groupByQuestion<T extends { questionRef?: string; crossCutting?: boolean }>(items: T[]) {
+  const groups: { heading: string; items: T[] }[] = [];
+  for (const item of items) {
+    const heading = !item.crossCutting && item.questionRef ? item.questionRef : "Across the whole exam";
+    const found = groups.find((g) => g.heading === heading);
+    if (found) found.items.push(item);
+    else groups.push({ heading, items: [item] });
+  }
+  return [
+    ...groups.filter((g) => g.heading !== "Across the whole exam"),
+    ...groups.filter((g) => g.heading === "Across the whole exam"),
+  ];
+}
+
+/**
+ * The feedback exactly as the student receives it, grouped by question so a
+ * reviewer reads everything about one question together — which is what the
+ * 8/2026 review rounds asked for and what the student page now does.
+ */
+function FeedbackBody({ fb }: { fb: Feedback | null }) {
+  if (!fb) return <p className="evidence-limit">No feedback was produced for this run.</p>;
+  const strengths = groupByQuestion(fb.strengths);
+  const improvements = groupByQuestion(fb.improvements);
+  const headings = [...new Set([...improvements.map((g) => g.heading), ...strengths.map((g) => g.heading)])];
+  return (
+    <div className="fb-render">
+      <h4>{fb.headline}</h4>
+      <p className="fb-overview">{fb.overview}</p>
+      {headings.map((heading) => (
+        <div className="fb-question" key={heading}>
+          <div className="fb-question__head">{heading}</div>
+          {(strengths.find((g) => g.heading === heading)?.items ?? []).length > 0 && <>
+            <div className="fb-sub"><CheckCircle2 size={14} /> What is working</div>
+            <ul className="fb-list">
+              {(strengths.find((g) => g.heading === heading)?.items ?? []).map((s, i) => (
+                <li key={i}><strong>{s.label}.</strong> {s.detail}{s.answerExcerpt && <blockquote>“{s.answerExcerpt}”</blockquote>}</li>
+              ))}
+            </ul>
+          </>}
+          {(improvements.find((g) => g.heading === heading)?.items ?? []).length > 0 && <>
+            <div className="fb-sub"><AlertTriangle size={14} /> What to work on</div>
+            <ul className="fb-list">
+              {(improvements.find((g) => g.heading === heading)?.items ?? []).map((im, i) => (
+                <li key={i}>
+                  <span className={`fb-pri fb-pri--${im.priority}`}>{im.priority}</span> <strong>{im.label}.</strong>{" "}
+                  <em>What happened:</em> {im.whatHappened} <em>Why it matters:</em> {im.whyItMatters}{" "}
+                  <em>Try this next:</em> <span className="fb-steps">{im.howToImprove}</span>
+                </li>
+              ))}
+            </ul>
+          </>}
+          {fb.exampleRevisionRef === heading && fb.exampleRevision && <>
+            <div className="fb-sub">Example of a stronger move</div>
+            <p className="fb-example">{fb.exampleRevision}</p>
+          </>}
+        </div>
+      ))}
+      {fb.revisionPlan.length > 0 && <>
+        <div className="fb-sub">Revision plan</div>
+        <ol className="fb-plan">{fb.revisionPlan.map((step, i) => <li key={i}>{step}</li>)}</ol>
+      </>}
+      {fb.exampleRevision && !fb.exampleRevisionRef && <>
+        <div className="fb-sub">Example of a stronger move</div><p className="fb-example">{fb.exampleRevision}</p>
+      </>}
+      {fb.closing && <p className="fb-closing">{fb.closing}</p>}
+    </div>
+  );
+}
+
+/**
+ * A run with no known grade: the TA-authored outlines and mock full-exam
+ * submissions. No band chip and no distance — these are the submission types
+ * the graded reference stack cannot rank (see isBandComparable).
+ */
+function ReviewCard({ sub, open, onToggle }: { sub: ReportSubmission; open: boolean; onToggle: () => void }) {
+  return (
+    <div className={`sub-card ${open ? "is-open" : ""}`}>
+      <button className="sub-card__head" onClick={onToggle} aria-expanded={open}>
+        <span className="sub-card__title"><FileText size={16} /> {sub.label}</span>
+        <span className="sub-card__meta">
+          <span className="sub-stat"><small>Item</small><b>{sub.examId}</b></span>
+          <span className={`form-chip form-chip--${sub.form}`}>{sub.form === "bullets" ? "Bullets" : "Full draft"}</span>
+          <span className="sub-stat"><small>Scope</small><b>{sub.scopeLabel}</b></span>
+          {sub.estimate && <span className="sub-stat"><small>Band</small><BandChip band={sub.estimate} /></span>}
+          <span className="sub-stat"><small>Feedback QA</small><b>{sub.qa ?? "—"}</b></span>
+        </span>
+        <ChevronDown className="sub-card__chev" size={18} />
+      </button>
+      {open && (
+        <div className="sub-card__body">
+          {sub.unreviewed && (
+            <p className="sub-note sub-note--warn">
+              The accuracy-check stage returned nothing usable, so this is the unreviewed draft.
+            </p>
+          )}
+          <div className="subfb-grid">
+            <div className="subfb-col">
+              <div className="subfb-col__label">Submission</div>
+              <div className="submission-text">{sub.answer}</div>
+            </div>
+            <div className="subfb-col">
+              <div className="subfb-col__label">Feedback the student receives</div>
+              <FeedbackBody fb={sub.feedback} />
+            </div>
+          </div>
+          <div className="sub-card__foot">
+            {sub.bandNote && (
+              <div className="sub-foot-block">
+                <strong>No band for this submission</strong>
+                <p>{sub.bandNote}</p>
+              </div>
+            )}
+            {sub.judgeFindings.length > 0 && (
+              <div className="sub-foot-block">
+                <strong><ShieldCheck size={13} /> Skeptical-judge audit</strong>
+                <ul className="sub-findings">{sub.judgeFindings.map((f, i) => <li key={i} className={`sf sf--${f.severity}`}><span>{f.severity}</span> {f.problem}{f.correction && f.correction !== "None required." && <em> Correction: {f.correction}</em>}</li>)}</ul>
+              </div>
+            )}
+            {!sub.isLatestVersion && <p className="sub-note">From an earlier prompt version ({sub.promptVersion.replace("civpro-feedback-", "")}).</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SubmissionCard({ fx, open, onToggle }: { fx: ReportFixture; open: boolean; onToggle: () => void }) {
@@ -52,26 +179,7 @@ function SubmissionCard({ fx, open, onToggle }: { fx: ReportFixture; open: boole
             </div>
             <div className="subfb-col">
               <div className="subfb-col__label">Feedback the student receives</div>
-              {fb ? (
-                <div className="fb-render">
-                  <h4>{fb.headline}</h4>
-                  <p className="fb-overview">{fb.overview}</p>
-                  {fb.strengths.length > 0 && <>
-                    <div className="fb-sub"><CheckCircle2 size={14} /> What is working</div>
-                    <ul className="fb-list">{fb.strengths.map((s, i) => <li key={i}><strong>{s.label}.</strong> {s.detail}{s.answerExcerpt && <blockquote>“{s.answerExcerpt}”</blockquote>}</li>)}</ul>
-                  </>}
-                  {fb.improvements.length > 0 && <>
-                    <div className="fb-sub"><AlertTriangle size={14} /> Highest-value improvements</div>
-                    <ul className="fb-list">{fb.improvements.map((im, i) => <li key={i}><span className={`fb-pri fb-pri--${im.priority}`}>{im.priority}</span> <strong>{im.label}.</strong> <em>What happened:</em> {im.whatHappened} <em>Why it matters:</em> {im.whyItMatters} <em>Try this next:</em> {im.howToImprove}</li>)}</ul>
-                  </>}
-                  {fb.revisionPlan.length > 0 && <>
-                    <div className="fb-sub">Revision plan</div>
-                    <ol className="fb-plan">{fb.revisionPlan.map((step, i) => <li key={i}>{step}</li>)}</ol>
-                  </>}
-                  {fb.exampleRevision && <><div className="fb-sub">Example of a stronger move</div><p className="fb-example">{fb.exampleRevision}</p></>}
-                  {fb.closing && <p className="fb-closing">{fb.closing}</p>}
-                </div>
-              ) : <p className="evidence-limit">No feedback was produced for this run.</p>}
+              <FeedbackBody fb={fb} />
             </div>
           </div>
 
@@ -108,6 +216,7 @@ function SubmissionCard({ fx, open, onToggle }: { fx: ReportFixture; open: boole
 
 export function QaReport({ report, interactive, fixtures }: { report: ReportModel; interactive: boolean; fixtures: CalibrationFixture[] }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [openSubs, setOpenSubs] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<null | { done: number; total: number }>(null);
   const [error, setError] = useState("");
 
@@ -229,6 +338,36 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
         </div>
         <p className="formative-note">Formative estimates for study and calibration — not official grades. The grade shown is produced before any real grade is joined to the run.</p>
       </section>
+
+      {report.submissions.length > 0 && (
+        <section className="report-section">
+          <div className="report-section__head">
+            <span className="eyebrow">Review round</span>
+            <h2>Bullet-point and mock full-exam submissions</h2>
+            <p>
+              Submissions with no known grade, run through the student path. These
+              exercise the two forms the graded ladder above cannot reach — outlines
+              and single questions — and are the set the teaching fellows review.
+              No band is shown where the graded reference answers are not a
+              like-for-like comparison. Showing the current prompt version only.
+            </p>
+          </div>
+          <div className="sub-cards">
+            {report.submissions.map((sub) => (
+              <ReviewCard
+                key={sub.id}
+                sub={sub}
+                open={openSubs.has(sub.id)}
+                onToggle={() => setOpenSubs((cur) => {
+                  const next = new Set(cur);
+                  if (next.has(sub.id)) next.delete(sub.id); else next.add(sub.id);
+                  return next;
+                })}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

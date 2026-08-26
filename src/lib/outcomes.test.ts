@@ -7,6 +7,10 @@ import {
   getFinalFeedback,
   getFormativeBandEstimate,
   formativeRangeIncludesActual,
+  isUnreviewedDraft,
+  isBandComparable,
+  bandSuppressionReason,
+  getFormativeBandScore,
 } from "@/lib/outcomes";
 import type { FeedbackRun } from "@/lib/types";
 
@@ -115,5 +119,93 @@ describe("band estimate explanation", () => {
     } as unknown as FeedbackRun;
     expect(getFormativeBandEstimate(solid)).toBe("P");
     expect(getBandEstimateExplanation(solid)).toBeUndefined();
+  });
+});
+
+describe("empty-judge recovery", () => {
+  const improvements = (n: number) => Array.from({ length: n }, (_, i) => ({
+    priority: "high" as const, label: `i${i}`, whatHappened: "", whyItMatters: "",
+    howToImprove: "", sourceIds: [] as string[],
+  }));
+  const feedback = (n: number, strengths = 0) => ({
+    headline: "h", overview: "o", revisionPlan: [] as string[], exampleRevision: "", closing: "",
+    strengths: Array.from({ length: strengths }, (_, i) => ({
+      label: `s${i}`, detail: "", answerExcerpt: "", sourceIds: [] as string[],
+    })),
+    improvements: improvements(n),
+  });
+
+  // Observed 8/2026: the judge declared a draft "unsafe to publish", emitted an
+  // object with every array empty, and the student would have seen a blank page
+  // while the coach's draft held 13 improvements and 6 strengths.
+  function runWith(judged: ReturnType<typeof feedback> | undefined, draft?: ReturnType<typeof feedback>) {
+    return {
+      judge: judged
+        ? { approved: false, qualityScore: 70, checks: {}, findings: [], feedback: judged }
+        : undefined,
+      draftFeedback: draft,
+    } as unknown as FeedbackRun;
+  }
+
+  it("falls back to the draft when the judge returns an empty object", () => {
+    const run = runWith(feedback(0), feedback(13, 6));
+    expect(getFinalFeedback(run)?.improvements).toHaveLength(13);
+    expect(getFinalFeedback(run)?.headline).toBe("h");
+    expect(isUnreviewedDraft(run)).toBe(true);
+  });
+
+  it("prefers the judge whenever it returned anything usable", () => {
+    const run = runWith(feedback(2), feedback(13));
+    expect(getFinalFeedback(run)?.improvements).toHaveLength(2);
+    expect(isUnreviewedDraft(run)).toBe(false);
+  });
+
+  it("does not claim an unreviewed draft when both are empty", () => {
+    expect(isUnreviewedDraft(runWith(feedback(0), feedback(0)))).toBe(false);
+  });
+
+  it("counts strengths-only feedback as content", () => {
+    // A judge that cut every improvement but kept a strength has still spoken.
+    expect(isUnreviewedDraft(runWith(feedback(0, 1), feedback(13)))).toBe(false);
+  });
+});
+
+describe("band comparability", () => {
+  // Every graded reference is a complete prose answer to a whole final. A
+  // submission that is none of those cannot be placed on that scale — observed
+  // 8/2026 ranking an 850-word assignment outline against 3,000-word finals and
+  // returning a confident LP, which then flipped to P on an identical re-run.
+  const run = (patch: Partial<FeedbackRun>) => ({
+    examId: "2019-final", predictedGrade: "H", actualGrade: "DS",
+    evaluation: { bandLean: "solid" },
+    ...patch,
+  }) as unknown as FeedbackRun;
+
+  it("bands an ordinary whole-exam prose submission", () => {
+    const r = run({});
+    expect(isBandComparable(r)).toBe(true);
+    expect(getFormativeBandEstimate(r)).toBe("H");
+    expect(bandSuppressionReason(r)).toBeUndefined();
+  });
+
+  it.each([
+    ["an assignment", { examId: "2014-assignment-03" }, /different assessment/i],
+    ["an outline", { mode: "bullet_points" }, /format rather than the analysis/i],
+    ["a single question", { scope: "single_question" }, /whole exam/i],
+  ])("withholds the band for %s and says why", (_label, patch, reason) => {
+    const r = run(patch as Partial<FeedbackRun>);
+    expect(isBandComparable(r)).toBe(false);
+    expect(getFormativeBandEstimate(r)).toBeUndefined();
+    expect(getFormativeBandScore(r)).toBeUndefined();
+    // And it must not pollute the QA metric with an incommensurable distance.
+    expect(getAveragedCalibrationDistance(r)).toBeUndefined();
+    expect(bandSuppressionReason(r)).toMatch(reason);
+  });
+
+  it("treats a run persisted before scope/mode existed as comparable", () => {
+    // Pre-v4.16.0 the only accepted submission was full-exam prose.
+    const legacy = { examId: "2015-final", predictedGrade: "P" } as unknown as FeedbackRun;
+    expect(isBandComparable(legacy)).toBe(true);
+    expect(getFormativeBandEstimate(legacy)).toBe("P");
   });
 });

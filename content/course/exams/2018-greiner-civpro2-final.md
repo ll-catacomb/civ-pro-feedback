@@ -399,7 +399,7 @@ could be sold, but only at a discounted price of $1.25 per bushel. The Letter de
 150,000 * ($2.00 - $1.25) = $112,500 to Bathilda, and that Florean pay 50,000 * ($2.00 - $1.25) =
 $37,500. Otherwise, the Letter stated, Bathilda and Tonks would sue Florean in court. Kreacher had
 immediately texted a photo of the demand letter to Florean. (Note: to the extent that there is a
-horizontal choice of law issue vis-à-vis the Florean-Bathilda/Tonks relationship, this Letter, if deemed
+horizontal choice of law issue vis-Ã -vis the Florean-Bathilda/Tonks relationship, this Letter, if deemed
 unlawful, would be the last event necessary to constitute a breach.)
 
 You were a lawyer Florean has consulted in the past. Florean called you in a rage. He told you that that
@@ -420,21 +420,21 @@ points, for sale to different companies, across the country. The Hogsmeade Bridg
 disaster.
 Florean wanted to know the following:
 
-    · Could Florean sue Bathilda Corp., Tonks Corp., and Chang Corp. in a single lawsuit in some
+    Â· Could Florean sue Bathilda Corp., Tonks Corp., and Chang Corp. in a single lawsuit in some
          federal court? He wants to request a declaratory judgment of no breach of contract against
          Bathilda and Tonks, and wants to state a claim against Chang Corp. for interfering with the
          contracts with Bathilda and Tonks. Can he do so? (Do not concern yourself with whether, as a
          matter of substantive contract or tort law, any of these theories of relief would succeed.)
 
-    · Assuming (which might not be true) that Florean can sue all three in the same lawsuit in some
+    Â· Assuming (which might not be true) that Florean can sue all three in the same lawsuit in some
          federal court, where (geographically) could he sue, and where would he be most likely to
          succeed?
 
-    · Assuming Florean can sue all of these parties in some federal court, he wants to move for an
+    Â· Assuming Florean can sue all of these parties in some federal court, he wants to move for an
          immediate preliminary injunction preventing Bathilda and Tonks from taking any further action
          about the sale of the corn, such as filing a new lawsuit. Would such a motion succeed?
 
-    · Assuming Florean can sue in some federal court, he wants to request that the court certify a
+    Â· Assuming Florean can sue in some federal court, he wants to request that the court certify a
          class of independent farmers in northwestern Oregon against Chang Corp. for interference with
          their sales contracts for their products. Is the court likely to certify the class? (If you need more
          information here, specify what information you need.)

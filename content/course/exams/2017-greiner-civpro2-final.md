@@ -53,7 +53,7 @@ following. First, in your answer, explain what you believe to be the mistake. Se
 the implications of the mistake. Third, make an assumption that is reasonable given the fact
 pattern and applicable law to resolve the error. Fourth, proceed with the remainder of the exam.
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 1 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -95,13 +95,13 @@ A dismissal for failure to comply with FRCP 11 is not on the merits for claim pr
 Texas state rules of civil procedure include the following rule. TXRCP 11:
 
          (a) Signature. Every complaint or answer must be signed on each and every page by at
-         least one attorney of record ­ or by a party personally if the party is unrepresented.
+         least one attorney of record Â­ or by a party personally if the party is unrepresented.
          Each such page must state the signer's address, e-mail address, and telephone number
          below the signature. The court shall immediately grant a motion to dismiss responding
          to a complaint that fails to comply with this rule, and must immediately grant a default
          judgment against a defendant whose answer fails to comply with this rule. The court
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 2 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -156,7 +156,7 @@ in Houston.
 
 Delaware has only one District, the United States District Court for the District of Delaware.
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 3 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -185,7 +185,7 @@ Bank; your office is in Albany, NY. On August 17, you receive a forwarded copy o
 immediately below. NOTE: The following pages are an exact copy of the complaint as you received it,
 except for the signature in the square brackets, which you should consider to be a real signature.
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 4 of 11
         Law School of Harvard University / 2017-2018
 
@@ -219,7 +219,7 @@ Gringotts Bank, Inc., Defendant
     referred to ratings applicable to the kind of bonds that an investment account of this type would
     buy. More specifically, CSA Lestrange explained, Gringotts Grade AAA Investment Account
 
-               © 2017-2018 by the President and Fellows of Harvard College.
+               Â© 2017-2018 by the President and Fellows of Harvard College.
                                               Page 5 of 11
                               Law School of Harvard University / 2017-2018
 
@@ -248,7 +248,7 @@ Gringotts Bank, Inc., Defendant
     using a cashier's check from the other (non-Gringotts) bank in which she'd previously had a
     savings account.
 
-               © 2017-2018 by the President and Fellows of Harvard College.
+               Â© 2017-2018 by the President and Fellows of Harvard College.
                                               Page 6 of 11
                               Law School of Harvard University / 2017-2018
 
@@ -279,7 +279,7 @@ Gringotts Bank, Inc., Defendant
     with liabilities (including those from environmental lawsuits) far exceeding its assets. The
     Voldemort Corporation's bonds became worthless.
 
-               © 2017-2018 by the President and Fellows of Harvard College.
+               Â© 2017-2018 by the President and Fellows of Harvard College.
                                               Page 7 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -312,7 +312,7 @@ Johnson & Bell, LLP
 Dallas, TX
 (214) 713-0004
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 8 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -362,7 +362,7 @@ Gringotts decides to litigate in the E.D.LA and answers the complaint. The parti
 discovery, and your investigative unit goes to work. The investigation finds out the following:
 Greyback's email went to supervisors in multiple states, and resulted in the opening of Gringotts Grade
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                    Page 9 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -418,7 +418,7 @@ goes to an accelerated trial before a jury. In summary, the trial proceeded as f
          don't think that's a contract form that we use at Gringotts." Lestrange denied having sent or
          received the emails that Greyback testified about, stating, "I can see that those emails were sent
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                   Page 10 of 11
                                    Law School of Harvard University / 2017-2018
 
@@ -461,6 +461,6 @@ If you need more information to answer these questions, specify what it is, and 
 
                                                         End of Exam
 
-                    © 2017-2018 by the President and Fellows of Harvard College.
+                    Â© 2017-2018 by the President and Fellows of Harvard College.
                                                   Page 11 of 11
 

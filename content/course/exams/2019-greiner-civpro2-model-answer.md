@@ -92,16 +92,16 @@ Internet.
 Without the PAD, an HG FRCP56 motion will likely succeed. HG, bearing the BoP at trial, will meet its
 production burden as follows:
 
-    · The two Harry/Riddle exchanges to suggest Riddle's intention to perpetrate the scheme and
+    Â· The two Harry/Riddle exchanges to suggest Riddle's intention to perpetrate the scheme and
          motive therefor;
 
-    · Harry's uncontradicted testimony stating that the video is fake, and to the other events
+    Â· Harry's uncontradicted testimony stating that the video is fake, and to the other events
          described in the complaint;
 
-    · The FluNetwork report, and the striking similarities in length and language between the
+    Â· The FluNetwork report, and the striking similarities in length and language between the
          deepfake video and the video taken in the Droobles' conference room, to suggest how the fake
          was perpetrated; and
-    · Evans' uncontradicted testimony showing Droobles' participation in the scheme. Droobles'
+    Â· Evans' uncontradicted testimony showing Droobles' participation in the scheme. Droobles'
          called in Evans and instructed her to record the meeting on his cell phone. A reasonable jury
          must infer Droobles' emailed the video to Riddle with the note "Keep this quiet!!!!". Ergo,
          Droobles knew what he was doing and why.

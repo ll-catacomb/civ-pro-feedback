@@ -392,14 +392,14 @@ District Court proceeds with the case.
 The parties proceed to discovery. At the close of discovery, Quirrell and you meet to discuss the case.
 The two of you believe that the discovery record will be as described below.
 
-    · Harry Potter's deposition: Harry testified to the facts described in paragraphs 3, 6-8, 10-13, and
+    Â· Harry Potter's deposition: Harry testified to the facts described in paragraphs 3, 6-8, 10-13, and
          15-19 of the complaint.
 
-    · Anonymous email: The parties will stipulate that a copy of the email Harry received, as
+    Â· Anonymous email: The parties will stipulate that a copy of the email Harry received, as
          described in paragraph 16 of the complaint, may be admitted into evidence.
 
-    · Stipulation: The parties stipulated that paragraph 9 of the complaint is true.
-    · Report of FluNetwork Cell Services: The parties will stipulate that a report of FluNetwork Cell
+    Â· Stipulation: The parties stipulated that paragraph 9 of the complaint is true.
+    Â· Report of FluNetwork Cell Services: The parties will stipulate that a report of FluNetwork Cell
 
          Services, a telecommunications services provider, may be entered into evidence. The
          FluNetwork report will state that:
@@ -427,18 +427,18 @@ The two of you believe that the discovery record will be as described below.
                    account was set up with FluNetwork anonymously with payments made by PayPal. It
                    has since been deleted, and the account closed.
 
-    · Deposition transcript of Lily Evans: Pursuant to subpoenas issued to by HG to each of Droobles'
+    Â· Deposition transcript of Lily Evans: Pursuant to subpoenas issued to by HG to each of Droobles'
          employees, Lily Evans, a Droobles employee, testified that she was the person who sent Harry
          the email described in paragraph 16 of the complaint. She testified to the facts described in
          paragraph 16, and that she was the employee who sent the corresponding email to Harry. She
          further testified that she had never met or communicated with Riddle on any other occasion.
 
-    · Deposition transcript of David Droobles: Your client testified at deposition that he was suffering
+    Â· Deposition transcript of David Droobles: Your client testified at deposition that he was suffering
          from a cold, and on cold medicine, on December 27, 2018. He testified that he had slept a great
          deal in the last week of 2018 as a result. He had some memory of meeting with Riddle on the
          evening of the 28th, but could not remember anything else that happened that day. He had no
          memory of the events in the video, nor of communicating with Riddle via email that day.
-    · Deposition transcript of Tom Riddle: Riddle testified that he, also, had been sick on the day of
+    Â· Deposition transcript of Tom Riddle: Riddle testified that he, also, had been sick on the day of
          the 27th, with flu symptoms. He had no memory of meeting with Droobles, nor of interacting
          with his email that day. He did acknowledge the email exchange with Harry described in
          paragraph 11 of the complaint, and agreed that he had sent those emails from his Boston office.
@@ -499,11 +499,11 @@ such as SMJ or IPJ or venue, just the issue of class certification. How do you r
 Question 6 (15 points): This question does not concern the hypothetical above. Consider the
 following ways to increase the availability of preclusion:
 
-    · Altering issue preclusion doctrine so that any issue that a party who lost in a first case could
+    Â· Altering issue preclusion doctrine so that any issue that a party who lost in a first case could
          have raised, but did not, is considered to have been decided against it, and necessary to the
          decision, in a second case;
 
-    · Expanding claim preclusion to apply to any claims that could have been brought in a first case,
+    Â· Expanding claim preclusion to apply to any claims that could have been brought in a first case,
          even (for example) counterclaims that are currently labeled "permissive" in federal court.
 
 Pick one of the two ways listed above. Add to it one other way, not listed, of expanding either issue
