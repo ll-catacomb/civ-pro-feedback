@@ -1,5 +1,5 @@
 import { WITHDRAWN_FIXTURE_IDS } from "@/lib/calibration";
-import { getFinalFeedback, getFormativeBandEstimate } from "@/lib/outcomes";
+import { bandSuppressionReason, getFinalFeedback, getFormativeBandEstimate, isUnreviewedDraft } from "@/lib/outcomes";
 import type { Feedback, FeedbackRun, GradeBand } from "@/lib/types";
 
 // The data the Feedback Quality Report renders. Built from the live run store
@@ -36,11 +36,42 @@ export type ReportFixture = {
   historical: { author: string; text: string; anchor: string }[];
 };
 
+/**
+ * A run with no known grade: the TA-authored bullet outlines and the mock
+ * full-exam submissions used for feedback review. These never carry a
+ * calibrationId, so they are invisible to the fixture cards above, but they are
+ * the only place the reviewers see bullet-mode and single-question output — the
+ * two paths the fixture ladder cannot exercise at all.
+ *
+ * There is no band and no distance here on purpose. See isBandComparable: an
+ * outline, an assignment, or one question cannot be ranked against reference
+ * answers that are all complete prose finals.
+ */
+export type ReportSubmission = {
+  id: string;
+  label: string;
+  examId: string;
+  examTitle: string;
+  form: "bullets" | "draft";
+  scopeLabel: string;
+  estimate: string | null;
+  bandNote: string | null;
+  qa: number | null;
+  unreviewed: boolean;
+  answer: string;
+  feedback: Feedback | null;
+  judgeFindings: { severity: string; problem: string; correction: string }[];
+  promptVersion: string;
+  isLatestVersion: boolean;
+  createdAt: string;
+};
+
 export type ReportModel = {
   latestVersion: string;
   summary: { count: number; exact: number; withinOne: number; meanDistance: number | null; avgQa: number | null };
   trend: ReportVersionStat[];
   fixtures: ReportFixture[];
+  submissions: ReportSubmission[];
 };
 
 function semver(v: string): [number, number, number] {
@@ -118,5 +149,52 @@ export function buildReportModel(runs: FeedbackRun[]): ReportModel {
     avgQa: qas.length ? Math.round(qas.reduce((s, q) => s + q, 0) / qas.length) : null,
   };
 
-  return { latestVersion, summary, trend, fixtures };
+  // The review set: everything submitted through the student path. Keyed by
+  // label+exam rather than fixture id so a re-run replaces its predecessor
+  // instead of stacking a second card for the same submission.
+  const bySubmission = new Map<string, FeedbackRun[]>();
+  for (const r of runs) {
+    if (r.calibrationId || !r.judge) continue;
+    const key = `${r.studentLabel}::${r.examId}`;
+    bySubmission.set(key, [...(bySubmission.get(key) ?? []), r]);
+  }
+  // Submissions run on their own cadence from the calibration ladder, so "is
+  // this the current version" is measured against the newest SUBMISSION version.
+  // Using the graded latest would mark a fresh review round stale whenever the
+  // ladder had not been re-run alongside it.
+  const submissionVersions = [...new Set(
+    [...bySubmission.values()].flat().map((r) => r.promptVersion),
+  )].sort(cmpVer);
+  const latestSubmissionVersion = submissionVersions.at(-1) ?? "";
+  const submissions: ReportSubmission[] = [...bySubmission.values()].map((list) => {
+    const sorted = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sorted.find((r) => r.promptVersion === latestSubmissionVersion) ?? sorted[0];
+  })
+  // Only the current round. Reviewers are asked to comment on output from one
+  // prompt version, and the store still holds one-off smoke tests going back to
+  // v1.0.0 whose labels mean nothing to a teaching fellow. Older runs stay in
+  // the store and in the JSON export; they are simply not the thing under review.
+  .filter((run) => run.promptVersion === latestSubmissionVersion)
+  .map((run) => {
+    return {
+      id: run.id,
+      label: run.studentLabel,
+      examId: run.examId,
+      examTitle: run.examTitle,
+      form: (run.mode === "bullet_points" ? "bullets" : "draft") as ReportSubmission["form"],
+      scopeLabel: run.scope === "single_question" ? (run.questionRef ?? "One question") : "Whole paper",
+      estimate: getFormativeBandEstimate(run) ?? null,
+      bandNote: bandSuppressionReason(run) ?? null,
+      qa: run.judge?.qualityScore ?? null,
+      unreviewed: isUnreviewedDraft(run),
+      answer: run.answer,
+      feedback: getFinalFeedback(run) ?? null,
+      judgeFindings: (run.judge?.findings ?? []).map((f) => ({ severity: f.severity, problem: f.problem, correction: f.correction })),
+      promptVersion: run.promptVersion,
+      isLatestVersion: run.promptVersion === latestSubmissionVersion,
+      createdAt: run.createdAt,
+    };
+  }).sort((a, b) => a.examId.localeCompare(b.examId) || a.label.localeCompare(b.label));
+
+  return { latestVersion, summary, trend, fixtures, submissions };
 }

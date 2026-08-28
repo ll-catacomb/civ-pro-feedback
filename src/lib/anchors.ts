@@ -32,7 +32,24 @@ function truncateWords(text: string, limit: number): string {
 export function gradedAnchorFixtures(
   examId: Exam["id"],
   excludeFixtureId?: string,
-): { band: string; fixtureId: string; sameExam: boolean; answer: string; note: string }[] {
+): {
+  band: string;
+  fixtureId: string;
+  sameExam: boolean;
+  /**
+   * True when a different-year answer is the ONLY reference for its band because
+   * the same-exam one is the answer under review. Such an anchor cannot be
+   * discounted as mere "band texture": it is the sole evidence that this band
+   * exists, and discounting it leaves the band unreachable. The v4.14.0
+   * validation predicted DS zero times in eight runs, and this is the leading
+   * hypothesis — grading a DS fixture excludes the only same-exam DS answer, so
+   * the substitute arrived carrying an instruction not to let it override the
+   * same-exam ordering, which topped out at H.
+   */
+  substituting: boolean;
+  answer: string;
+  note: string;
+}[] {
   // Graders rank within a stack, and bands are curved within a cohort, so a
   // same-exam graded answer is the best anchor for each band. Other years only
   // fill bands the same-exam stack lacks. The answer under review is always
@@ -40,7 +57,7 @@ export function gradedAnchorFixtures(
   const candidates = CALIBRATION_FIXTURES.filter(
     (fixture) => fixture.status === "ready" && fixture.id !== excludeFixtureId,
   );
-  const anchors: { band: string; fixtureId: string; sameExam: boolean; answer: string; note: string }[] = [];
+  const anchors: ReturnType<typeof gradedAnchorFixtures> = [];
   const sameExamCount = candidates.filter((candidate) => candidate.examId === examId).length;
   const excludedBand = excludeFixtureId
     ? CALIBRATION_FIXTURES.find((fixture) => fixture.id === excludeFixtureId)?.actualGrade
@@ -57,14 +74,18 @@ export function gradedAnchorFixtures(
         : undefined);
     if (!fixture) continue;
     const sameExam = fixture.examId === examId;
+    const substituting = !sameExam && band === excludedBand;
     anchors.push({
       band,
       fixtureId: fixture.id,
       sameExam,
+      substituting,
       answer: getCalibrationFixture(fixture.id).answer,
       note: sameExam
         ? `A complete graded answer to THIS same exam. The instructor graded it ${band}.`
-        : `A complete answer to the ${examYear(fixture.examId)} final in this same course (a different cohort, graded on that cohort's curve). The instructor graded it ${band}.`,
+        : substituting
+          ? `A complete answer to the ${examYear(fixture.examId)} final in this same course. The instructor graded it ${band}. This is the ONLY reference available for the ${band} band on this run, and it is a full comparator, not background texture — treat it exactly as you would a same-exam ${band} answer. An answer comparable to it is ${band}. Do not discount it for coming from another year; if you do, ${band} becomes unreachable no matter how strong the answer under review is.`
+          : `A complete answer to the ${examYear(fixture.examId)} final in this same course (a different cohort, graded on that cohort's curve). The instructor graded it ${band}.`,
     });
   }
   return anchors;
@@ -104,7 +125,12 @@ export function buildAnchorPack(examId: Exam["id"], excludeFixtureId?: string): 
     "How to use these reference answers: they respond to DIFFERENT assessments, so use them only to calibrate what each band of real, time-pressured student work looks like — depth, prioritization, and how many errors and omissions each band tolerates. Never use them as doctrinal authority for the exam under review, and never reference or infer any author's identity.",
   ];
   for (const anchor of graded) {
-    sections.push(`## Graded reference answer${anchor.sameExam ? " (same exam)" : " (different year)"} — actual instructor band: ${anchor.band}\n${anchor.note}\n\n${anchor.answer}`);
+    const scope = anchor.sameExam
+      ? " (same exam)"
+      : anchor.substituting
+        ? ` (different year — sole reference for ${anchor.band}, full comparator)`
+        : " (different year)";
+    sections.push(`## Graded reference answer${scope} — actual instructor band: ${anchor.band}\n${anchor.note}\n\n${anchor.answer}`);
   }
   exemplars.forEach((exemplar, index) => {
     sections.push(`## Instructor-selected assignment answer ${index + 1}\nA real student answer to a short timed assignment in this course, circulated by the instructor as among the best in the class. Note that even selected answers contain imperfections.\n\n${exemplar}`);

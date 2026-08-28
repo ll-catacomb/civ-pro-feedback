@@ -21,6 +21,30 @@ describe("anchor pack blindness", () => {
     expect(crossYear.map((anchor) => anchor.band)).toEqual(["H"]);
   });
 
+  // The v4.14.0 validation predicted DS zero times in eight runs, with both
+  // actual-DS answers landing on H. Grading a DS fixture excludes the only
+  // same-exam DS answer, so its substitute arrived labelled "different year" and
+  // carrying an instruction that such references never override a same-exam
+  // ordering — which topped out at H, leaving DS unreachable by construction.
+  it("marks a back-filled anchor as the sole reference for its band", () => {
+    for (const fixtureId of ["2015-ds", "2019-ds", "2015-lp"]) {
+      const examId = `${fixtureId.slice(0, 4)}-final` as "2015-final" | "2019-final";
+      const band = fixtureId.endsWith("ds") ? "DS" : "LP";
+      const anchor = gradedAnchorFixtures(examId, fixtureId).find((candidate) => candidate.band === band);
+      expect(anchor?.substituting).toBe(true);
+      expect(anchor?.note).toContain(`ONLY reference available for the ${band} band`);
+      expect(anchor?.note).toContain("full comparator");
+      expect(buildAnchorPack(examId, fixtureId)).toContain(`sole reference for ${band}`);
+    }
+  });
+
+  it("does not mark a genuine same-exam anchor as substituting", () => {
+    // Grading the H fixture: DS/P/LP are all same-exam, only H is back-filled.
+    const anchors = gradedAnchorFixtures("2015-final", "2015-h");
+    expect(anchors.filter((anchor) => anchor.substituting).map((anchor) => anchor.band)).toEqual(["H"]);
+    expect(anchors.filter((anchor) => anchor.sameExam).every((anchor) => !anchor.substituting)).toBe(true);
+  });
+
   it("gives an excluded LP fixture a cross-year LP floor", () => {
     const anchors = gradedAnchorFixtures("2015-final", "2015-lp");
     const lpAnchor = anchors.find((anchor) => anchor.band === "LP");

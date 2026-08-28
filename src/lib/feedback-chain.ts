@@ -27,6 +27,7 @@ import {
   submissionFitDeveloperPrompt,
   submissionFitJudgeDeveloperPrompt,
   submissionFitJudgeUserPrompt,
+  submissionContext,
   submissionFitUserPrompt,
 } from "@/lib/prompts";
 import { formatSources, retrieveCourseContext } from "@/lib/retrieval";
@@ -42,12 +43,32 @@ import {
   type FeedbackRequestSchema,
   type FeedbackRun,
   type StageTrace,
+  type SubmissionMode,
+  type SubmissionScope,
 } from "@/lib/types";
 
-export type ChainInput = z.infer<typeof FeedbackRequestSchema> & {
+// The schema's `.default()` calls make scope/mode required on the OUTPUT type,
+// which would force every internal caller (calibration runs, tests) to restate
+// them. Take the input type instead and resolve the defaults in one place.
+export type ChainInput = z.input<typeof FeedbackRequestSchema> & {
   source?: "student" | "calibration";
   calibrationId?: string;
 };
+
+export type ResolvedSubmission = {
+  scope: SubmissionScope;
+  mode: SubmissionMode;
+  questionRef?: string;
+};
+
+export function resolveSubmission(input: ChainInput): ResolvedSubmission {
+  const scope = input.scope ?? "full_exam";
+  return {
+    scope,
+    mode: input.mode ?? "full_draft",
+    questionRef: scope === "single_question" ? input.questionRef : undefined,
+  };
+}
 
 export type FeedbackIntake = {
   startedAt: number;
@@ -229,8 +250,14 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
   const exam = getExam(input.examId);
   const traces: StageTrace[] = [];
   const client = createChainClient();
-  const safetyIdentifier = stableSafetyIdentifier(input.studentLabel);
+  const studentLabel = input.studentLabel ?? "Anonymous practice";
+  const safetyIdentifier = stableSafetyIdentifier(studentLabel);
   const localExamMatches = rankExamMatches(input.answer, exam.promptPath);
+  const submission = submissionContext({
+    ...resolveSubmission(input),
+    kind: exam.kind,
+    modelAnswerKind: exam.modelAnswerKind,
+  });
 
   const submissionFit = await parseClaudeStage({
     client,
@@ -239,7 +266,7 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
     model: WORK_MODEL,
     reasoningEffort: "high",
     developerPrompt: submissionFitDeveloperPrompt,
-    userPrompt: submissionFitUserPrompt({ exam: exam.prompt, answer: input.answer }),
+    userPrompt: submissionFitUserPrompt({ exam: exam.prompt, answer: input.answer, submission }),
     safetyIdentifier,
     traces,
   });
@@ -256,6 +283,7 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
       answer: input.answer,
       firstPass: submissionFit,
       localExamMatches: formatExamMatches(localExamMatches),
+      submission,
     }),
     safetyIdentifier,
     traces,
@@ -275,6 +303,7 @@ export async function runFeedbackChain(
   input: ChainInput,
   preparedIntake?: FeedbackIntake,
 ): Promise<FeedbackRun> {
+  const submission = resolveSubmission(input);
   const intake = preparedIntake ?? await runFeedbackIntake(input);
   const {
     startedAt,
@@ -284,6 +313,13 @@ export async function runFeedbackChain(
     submissionFitJudge,
     traces,
   } = intake;
+  // Built after the intake, because the brief needs the resolved item to know
+  // whether its benchmark is an instructor key or a set of peer exemplars.
+  const submissionBrief = submissionContext({
+    ...submission,
+    kind: exam.kind,
+    modelAnswerKind: exam.modelAnswerKind,
+  });
   const client = createChainClient();
 
   const zeroCredit =
@@ -304,8 +340,9 @@ export async function runFeedbackChain(
       calibrationId: input.calibrationId,
       examId: exam.id,
       examTitle: exam.title,
-      studentLabel: input.studentLabel,
+      studentLabel: input.studentLabel ?? "Anonymous practice",
       answer: input.answer,
+      ...submission,
       actualGrade: input.actualGrade,
       promptVersion: PROMPT_VERSION,
       inputHash: hashInput(exam.id, input.answer),
@@ -334,6 +371,7 @@ export async function runFeedbackChain(
       exam: exam.prompt,
       modelAnswer: exam.modelAnswer,
       sources: "Additional course sources are retrieved after the issue map is built. Use the exam and instructor model answer for this stage.",
+      submission: submissionBrief,
     }),
     safetyIdentifier,
     traces,
@@ -423,6 +461,7 @@ export async function runFeedbackChain(
       issueMap,
       sources: formattedSources,
       anchors: buildAnchorPack(exam.id, input.calibrationId),
+      submission: submissionBrief,
     }),
     safetyIdentifier,
     traces,
@@ -435,7 +474,7 @@ export async function runFeedbackChain(
     model: WORK_MODEL,
     reasoningEffort: "medium",
     developerPrompt: coachDeveloperPrompt,
-    userPrompt: coachUserPrompt({ answer: input.answer, issueMap, evaluation, sources: formattedSources }),
+    userPrompt: coachUserPrompt({ answer: input.answer, issueMap, evaluation, sources: formattedSources, submission: submissionBrief }),
     safetyIdentifier,
     traces,
   });
@@ -455,6 +494,7 @@ export async function runFeedbackChain(
       evaluation,
       draft: draftFeedback,
       sources: formattedSources,
+      submission: submissionBrief,
     }),
     safetyIdentifier,
     traces,
@@ -467,11 +507,16 @@ export async function runFeedbackChain(
     calibrationId: input.calibrationId,
     examId: exam.id,
     examTitle: exam.title,
-    studentLabel: input.studentLabel,
+    studentLabel: input.studentLabel ?? "Anonymous practice",
     answer: input.answer,
+    ...submission,
     actualGrade: input.actualGrade,
     predictedGrade: evaluation.provisionalBand,
-    calibrationDistance: input.actualGrade
+    // Only where the band is comparable: an outline, a single question, or an
+    // assignment is ranked against complete prose finals, so scoring the gap
+    // would put a meaningless number into the QA record.
+    calibrationDistance: input.actualGrade && submission.scope === "full_exam"
+      && submission.mode === "full_draft" && exam.kind === "final"
       ? gradeDistance(evaluation.provisionalBand, input.actualGrade)
       : undefined,
     promptVersion: PROMPT_VERSION,

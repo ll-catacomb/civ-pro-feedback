@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle, ArrowRight, Check, ChevronDown, CircleCheck, FileText,
+  AlertTriangle, ArrowRight, ChevronDown, CircleCheck, FileText,
   LoaderCircle, RotateCcw, ShieldCheck, Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -13,8 +13,10 @@ import {
   getBandEstimateExplanation,
   getFinalFeedback,
   getFormativeBandEstimate,
+  bandSuppressionReason,
+  isUnreviewedDraft,
 } from "@/lib/outcomes";
-import type { Exam, Feedback, FeedbackRun } from "@/lib/types";
+import type { Exam, Feedback, FeedbackRun, SubmissionMode, SubmissionScope } from "@/lib/types";
 
 function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
   if (!ids.length) return null;
@@ -47,6 +49,46 @@ function ChainReport({ title, feedback }: { title: string; feedback: Feedback })
   );
 }
 
+/**
+ * The exam's own question labels, in order, for the single-question picker.
+ * Mirrors countQuestions in exams.ts: six label formats across the corpus, plus
+ * PDF form feeds before a label that opens a page. Parents whose subparts are
+ * separately scored are dropped, so the student picks the thing that is graded.
+ */
+function listQuestionLabels(prompt: string): string[] {
+  const labels: string[] = [];
+  for (const match of prompt.matchAll(/^[^\S\r\n]*(?:#{1,6}[^\S\r\n]*)?(?:\*\*)?[^\S\r\n]*Question[^\S\r\n]+(\d+)[^\S\r\n]*(\([a-z]\))?/gim)) {
+    const label = `Question ${match[1]}${match[2] ? match[2].toLowerCase() : ""}`;
+    if (!labels.includes(label)) labels.push(label);
+  }
+  const parents = new Set(
+    labels.filter((label) => label.endsWith(")")).map((label) => label.replace(/\(.*/, "").trim()),
+  );
+  return labels.filter((label) => !parents.has(label));
+}
+
+type QuestionScoped = { questionRef?: string; crossCutting?: boolean };
+
+/**
+ * Groups feedback cards by the exam question they concern, preserving the order
+ * the chain emitted (exam order as of v4.8.0). Cross-cutting cards and anything
+ * from a pre-v4.8.0 run without a questionRef fall into a trailing group.
+ */
+function groupByQuestion<T extends QuestionScoped>(items: T[]): { heading: string; items: T[] }[] {
+  const groups: { heading: string; items: T[] }[] = [];
+  for (const item of items) {
+    const heading = !item.crossCutting && item.questionRef ? item.questionRef : "Across the whole exam";
+    const existing = groups.find((group) => group.heading === heading);
+    if (existing) existing.items.push(item);
+    else groups.push({ heading, items: [item] });
+  }
+  // A trailing catch-all reads as a footnote; leading, it buries the questions.
+  return [
+    ...groups.filter((group) => group.heading !== "Across the whole exam"),
+    ...groups.filter((group) => group.heading === "Across the whole exam"),
+  ];
+}
+
 /** "hybrid" only appears on runs persisted before v4.2.0's embedding removal. */
 function retrievalMethodLabel(run: FeedbackRun): string {
   const methods = new Set(run.sources.map((source) => source.retrievalMethod));
@@ -72,6 +114,13 @@ function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => voi
   }
   const judge = run.judge;
   const dualDecision = run.dualDecision;
+  const improvementGroups = groupByQuestion(feedback.improvements);
+  // Only treat the example as placed if its ref actually matches a rendered
+  // group; otherwise a stray ref would drop the example from the page entirely.
+  const exampleIsInline = improvementGroups.some(
+    (group) => group.heading === feedback.exampleRevisionRef,
+  );
+  const unreviewed = isUnreviewedDraft(run);
   const manualReviewMessage = dualDecision && !dualDecision.bandsAgreed
     ? "The two cross-model judges selected different bands. Treat this feedback as provisional pending instructor review."
     : "The exam-responsiveness checks disagreed. Treat this feedback as provisional pending instructor review.";
@@ -79,6 +128,16 @@ function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => voi
     <section className="result-shell" aria-live="polite">
       {outcome.creditStatus === "manual_review" && (
         <div className="review-warning"><AlertTriangle size={18} /><span>{manualReviewMessage}</span></div>
+      )}
+      {unreviewed && (
+        <div className="review-warning">
+          <AlertTriangle size={18} />
+          <span>
+            This feedback did not clear the final accuracy check, so you are seeing the
+            draft. It may contain errors the review pass would have caught. Treat it as
+            provisional and check anything doctrinal against the course materials.
+          </span>
+        </div>
       )}
       <div className="result-heading">
         <div>
@@ -89,7 +148,7 @@ function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => voi
         <div className={`quality-seal ${dualDecision?.bandsAgreed || (!dualDecision && judge.approved) ? "is-approved" : "is-revised"}`}>
           <ShieldCheck size={22} />
           <span><strong>{dualDecision ? "Cross-model audited" : "Audited"}</strong></span>
-          <small>{dualDecision ? (dualDecision.bandsAgreed ? "Judges agreed" : "Review required") : judge.approved ? "Feedback approved" : "Feedback revised"}</small>
+          <small>{unreviewed ? "Unreviewed draft" : dualDecision ? (dualDecision.bandsAgreed ? "Judges agreed" : "Review required") : judge.approved ? "Feedback approved" : "Feedback revised"}</small>
         </div>
       </div>
 
@@ -97,50 +156,75 @@ function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => voi
         <div className="result-main">
           <section className="feedback-section">
             <div className="section-kicker"><CircleCheck size={18} /> What is working</div>
-            <div className="feedback-stack">
-              {feedback.strengths.map((strength, index) => (
-                <article className="feedback-card strength-card" key={`${strength.label}-${index}`}>
-                  <h3>{strength.label}</h3>
-                  <p>{strength.detail}</p>
-                  {strength.answerExcerpt && <blockquote>“{strength.answerExcerpt}”</blockquote>}
-                  <SourceBadges ids={strength.sourceIds} run={run} />
-                </article>
-              ))}
-            </div>
+            {groupByQuestion(feedback.strengths).map((group) => (
+              <div className="question-group" key={group.heading}>
+                <h4 className="question-heading">{group.heading}</h4>
+                <div className="feedback-stack">
+                  {group.items.map((strength, index) => (
+                    <article className="feedback-card strength-card" key={`${strength.label}-${index}`}>
+                      <h3>{strength.label}</h3>
+                      <p>{strength.detail}</p>
+                      {strength.answerExcerpt && <blockquote>“{strength.answerExcerpt}”</blockquote>}
+                      <SourceBadges ids={strength.sourceIds} run={run} />
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
 
           <section className="feedback-section">
-            <div className="section-kicker"><Sparkles size={18} /> Highest-value improvements</div>
-            <div className="feedback-stack">
-              {feedback.improvements.map((improvement, index) => (
-                <article className="feedback-card improvement-card" key={`${improvement.label}-${index}`}>
-                  <div className="card-title-row">
-                    <span className={`priority priority--${improvement.priority}`}>{improvement.priority}</span>
-                    <h3>{improvement.label}</h3>
+            <div className="section-kicker"><Sparkles size={18} /> What to work on</div>
+            {improvementGroups.map((group) => (
+              <div className="question-group" key={group.heading}>
+                <h4 className="question-heading">{group.heading}</h4>
+                <div className="feedback-stack">
+                  {group.items.map((improvement, index) => (
+                    <article className="feedback-card improvement-card" key={`${improvement.label}-${index}`}>
+                      <div className="card-title-row">
+                        <span className={`priority priority--${improvement.priority}`}>{improvement.priority}</span>
+                        <h3>{improvement.label}</h3>
+                      </div>
+                      <dl className="coaching-grid">
+                        <div><dt>What happened</dt><dd>{improvement.whatHappened}</dd></div>
+                        <div><dt>Why it matters</dt><dd>{improvement.whyItMatters}</dd></div>
+                        <div><dt>Try this next</dt><dd>{improvement.howToImprove}</dd></div>
+                      </dl>
+                      <SourceBadges ids={improvement.sourceIds} run={run} />
+                    </article>
+                  ))}
+                </div>
+                {feedback.exampleRevisionRef === group.heading && (
+                  <div className="example-revision inline-example">
+                    <strong>Example of a stronger move</strong>
+                    <p>{feedback.exampleRevision}</p>
                   </div>
-                  <dl className="coaching-grid">
-                    <div><dt>What happened</dt><dd>{improvement.whatHappened}</dd></div>
-                    <div><dt>Why it matters</dt><dd>{improvement.whyItMatters}</dd></div>
-                    <div><dt>Try this next</dt><dd>{improvement.howToImprove}</dd></div>
-                  </dl>
-                  <SourceBadges ids={improvement.sourceIds} run={run} />
-                </article>
-              ))}
-            </div>
+                )}
+              </div>
+            ))}
           </section>
 
           <section className="revision-panel">
             <span className="eyebrow">Revision plan</span>
             <ol>{feedback.revisionPlan.map((step, index) => <li key={index}>{step}</li>)}</ol>
-            <div className="example-revision">
-              <strong>Example of a stronger move</strong>
-              <p>{feedback.exampleRevision}</p>
-            </div>
+            {/* Shown here only when it was not already placed beside its question. */}
+            {!exampleIsInline && (
+              <div className="example-revision">
+                <strong>Example of a stronger move</strong>
+                <p>{feedback.exampleRevision}</p>
+              </div>
+            )}
             <p className="closing-note">{feedback.closing}</p>
           </section>
         </div>
 
         <aside className="evidence-rail">
+          {bandSuppressionReason(run) && (
+            <div className="rail-card">
+              <span className="eyebrow">No band for this submission</span>
+              <p>{bandSuppressionReason(run)} The feedback below is unaffected.</p>
+            </div>
+          )}
           {getFormativeBandEstimate(run) && (
             <div className="rail-card">
               <span className="eyebrow">Estimated band</span>
@@ -240,12 +324,28 @@ function WaitingView({ exam }: { exam: Exam }) {
 
 export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
   const [selectedId, setSelectedId] = useState(exams[0].id);
+  const [scope, setScope] = useState<SubmissionScope>("full_exam");
+  const [mode, setMode] = useState<SubmissionMode>("full_draft");
+  const [questionRef, setQuestionRef] = useState("");
   const [answer, setAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [run, setRun] = useState<FeedbackRun | null>(null);
   const selectedExam = useMemo(() => exams.find((exam) => exam.id === selectedId) ?? exams[0], [exams, selectedId]);
+  const questionOptions = useMemo(() => listQuestionLabels(selectedExam.prompt), [selectedExam]);
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  // A question chosen on one exam rarely exists on another, so reset rather
+  // than submit a stale label the new paper does not have.
+  const chooseExam = (id: string) => {
+    setSelectedId(id);
+    setQuestionRef("");
+    // An assignment poses a single question, so its scope picker is hidden. Reset
+    // the scope too, or a "one question" choice made on a final would survive the
+    // switch and be submitted against an item that has no questions to name.
+    if (exams.find((exam) => exam.id === id)?.kind === "assignment") setScope("full_exam");
+  };
+  const needsQuestion = scope === "single_question" && !questionRef;
+  const tooShort = answer.trim().length < 120;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -256,7 +356,14 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: selectedId, answer, studentLabel: "Anonymous practice" }),
+        body: JSON.stringify({
+          examId: selectedId,
+          answer,
+          studentLabel: "Anonymous practice",
+          scope,
+          mode,
+          ...(scope === "single_question" ? { questionRef } : {}),
+        }),
       });
       // The response may not be JSON: a hosting timeout returns a plain-text
       // error page, which would otherwise throw a cryptic JSON parse error.
@@ -283,32 +390,94 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
     <section className="practice-shell" id="practice">
       <form className="practice-form" onSubmit={submit}>
         <div className="practice-field">
-          <label className="field-label">Which exam are you practicing?</label>
-          <div className="exam-options">
-            {exams.map((exam) => (
-              <button className={`exam-option ${selectedId === exam.id ? "is-selected" : ""}`} key={exam.id} type="button" onClick={() => setSelectedId(exam.id)}>
-                <span>{exam.year}</span><strong>{exam.questionCount} questions</strong>
-                {selectedId === exam.id && <Check size={17} />}
-              </button>
-            ))}
-          </div>
+          <label className="field-label" htmlFor="exam">Which exam are you practicing?</label>
+          <select id="exam" className="practice-select" value={selectedId} onChange={(event) => chooseExam(event.target.value)}>
+            <optgroup label="Final exams">
+              {exams.filter((exam) => exam.kind === "final").map((exam) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.year} final — {exam.questionCount} question{exam.questionCount === 1 ? "" : "s"}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Graded assignments">
+              {exams.filter((exam) => exam.kind === "assignment").map((exam) => (
+                <option key={exam.id} value={exam.id}>{exam.shortDescription}</option>
+              ))}
+            </optgroup>
+          </select>
           <details className="exam-document">
-            <summary><FileText size={15} /> Read the {selectedExam.year} exam <ChevronDown size={16} /></summary>
+            <summary><FileText size={15} /> Read the {selectedExam.kind === "assignment" ? "assignment" : `${selectedExam.year} exam`} <ChevronDown size={16} /></summary>
             <div className="markdown-document"><ReactMarkdown>{selectedExam.prompt}</ReactMarkdown></div>
           </details>
         </div>
 
+        <div className="practice-row">
+          {selectedExam.kind === "final" && (
+          <div className="practice-field">
+            <label className="field-label" htmlFor="scope">How much are you turning in?</label>
+            <select
+              id="scope"
+              className="practice-select"
+              value={scope}
+              onChange={(event) => setScope(event.target.value as SubmissionScope)}
+            >
+              <option value="full_exam">The whole exam</option>
+              <option value="single_question">One question</option>
+            </select>
+          </div>
+          )}
+
+          {selectedExam.kind === "final" && scope === "single_question" && (
+            <div className="practice-field">
+              <label className="field-label" htmlFor="question">Which question?</label>
+              <select
+                id="question"
+                className="practice-select"
+                value={questionRef}
+                onChange={(event) => setQuestionRef(event.target.value)}
+              >
+                <option value="">Choose a question…</option>
+                {questionOptions.map((label) => <option key={label} value={label}>{label}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="practice-field">
+            <label className="field-label" htmlFor="mode">What form is it in?</label>
+            <select
+              id="mode"
+              className="practice-select"
+              value={mode}
+              onChange={(event) => setMode(event.target.value as SubmissionMode)}
+            >
+              <option value="full_draft">A written-out draft</option>
+              <option value="bullet_points">Bullet points or an outline</option>
+            </select>
+          </div>
+        </div>
+
+        {mode === "bullet_points" && (
+          <p className="mode-note">
+            Outlines are graded on issue-spotting, structure, and whether the reasoning is
+            there — not on prose. You will not be marked down for writing in fragments.
+          </p>
+        )}
+
         <div className="practice-field">
           <div className="answer-heading">
-            <label className="field-label" htmlFor="answer">Paste your answer</label>
+            <label className="field-label" htmlFor="answer">
+              {scope === "single_question" && questionRef ? `Paste your answer to ${questionRef}` : "Paste your answer"}
+            </label>
             <span className="word-count">{wordCount.toLocaleString()} words</span>
           </div>
-          <textarea id="answer" className="answer-textarea" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Paste your full exam answer here…" minLength={120} required />
+          <textarea id="answer" className="answer-textarea" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={scope === "single_question"
+            ? `Paste your answer to ${questionRef || "the question"} here…`
+            : "Paste your full exam answer here…"} minLength={120} required />
         </div>
 
         {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
         <div className="practice-submit">
-          <button className="primary-button" type="submit" disabled={answer.trim().length < 120}>Get feedback <ArrowRight size={18} /></button>
+          <button className="primary-button" type="submit" disabled={tooShort || needsQuestion}>Get feedback <ArrowRight size={18} /></button>
           <span className="submit-note">Takes about 10–15 minutes. Formative feedback and an estimated band — not an official grade.</span>
         </div>
       </form>

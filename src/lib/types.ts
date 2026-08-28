@@ -181,6 +181,19 @@ export const BandAssessmentSchema = z.object({
 });
 export type BandAssessment = z.infer<typeof BandAssessmentSchema>;
 
+// `questionRef` binds a card to one exam question so feedback can be presented
+// question by question instead of as a priority gradient. Reviewers asked for
+// this in both the 2015 P and 2015 DS rounds: students work practice exams one
+// question at a time, and v4.6.0 output interleaved questions (Q4, Q2, Q4, Q4,
+// Q4, Q1, Q3, craft, Q2) with only 2 of 9 cards naming their question at all.
+// Optional so runs persisted before v4.8.0 still validate; current prompts
+// always emit it. Use the exam's own label ("Question 2", "Question 4(b)").
+// `crossCutting` is the escape hatch for genuine whole-exam patterns.
+const QuestionRefSchema = z.object({
+  questionRef: z.string().optional(),
+  crossCutting: z.boolean().optional(),
+});
+
 export const FeedbackSchema = z.object({
   headline: z.string(),
   overview: z.string(),
@@ -190,7 +203,7 @@ export const FeedbackSchema = z.object({
       detail: z.string(),
       answerExcerpt: z.string(),
       sourceIds: z.array(z.string()),
-    }),
+    }).extend(QuestionRefSchema.shape),
   ),
   improvements: z.array(
     z.object({
@@ -200,10 +213,14 @@ export const FeedbackSchema = z.object({
       whyItMatters: z.string(),
       howToImprove: z.string(),
       sourceIds: z.array(z.string()),
-    }),
+    }).extend(QuestionRefSchema.shape),
   ),
   revisionPlan: z.array(z.string()),
   exampleRevision: z.string(),
+  // The questionRef whose improvements this example rewrites, so the UI can show
+  // it beside that question instead of stranding it at the end where it reads as
+  // a summary. Optional: pre-v4.11.0 runs have no ref and fall back to the tail.
+  exampleRevisionRef: z.string().optional(),
   closing: z.string(),
 });
 export type Feedback = z.infer<typeof FeedbackSchema>;
@@ -276,12 +293,37 @@ export const DualDecisionSchema = z.object({
 });
 export type DualDecision = z.infer<typeof DualDecisionSchema>;
 
+/**
+ * How much of the exam the student is turning in. Reviewers asked for both:
+ * students work practice exams one question at a time, and a single-question
+ * submission must not be graded as if it were a whole-exam attempt.
+ */
+export const SubmissionScopeSchema = z.enum(["full_exam", "single_question"]);
+export type SubmissionScope = z.infer<typeof SubmissionScopeSchema>;
+
+/**
+ * What form the work is in. A bullet outline is a legitimate way to practice
+ * issue-spotting and structure under time pressure, and must not be marked down
+ * for lacking prose it was never meant to have.
+ */
+export const SubmissionModeSchema = z.enum(["full_draft", "bullet_points"]);
+export type SubmissionMode = z.infer<typeof SubmissionModeSchema>;
+
 export const FeedbackRequestSchema = z.object({
-  examId: z.enum(["2015-final", "2019-final"]),
+  // Validated against the discovered registry in the route, not by the schema:
+  // the practicable set is derived from content/course/exams at runtime.
+  examId: z.string().min(1),
   answer: z.string().min(120, "Please submit at least 120 characters."),
   studentLabel: z.string().trim().max(80).optional().default("Anonymous practice"),
   actualGrade: GradeBandSchema.optional(),
-});
+  scope: SubmissionScopeSchema.optional().default("full_exam"),
+  mode: SubmissionModeSchema.optional().default("full_draft"),
+  // Required when scope is single_question; the exam's own label, e.g. "Question 3".
+  questionRef: z.string().trim().max(40).optional(),
+}).refine(
+  (value) => value.scope !== "single_question" || Boolean(value.questionRef),
+  { message: "Choose which question you are answering.", path: ["questionRef"] },
+);
 
 export const StageTraceSchema = z.object({
   name: z.string(),
@@ -303,6 +345,11 @@ export const FeedbackRunSchema = z.object({
   examTitle: z.string(),
   studentLabel: z.string(),
   answer: z.string(),
+  // Optional so runs persisted before v4.16.0 still validate; absent means a
+  // full-exam prose submission, which is all the chain accepted before then.
+  scope: SubmissionScopeSchema.optional(),
+  mode: SubmissionModeSchema.optional(),
+  questionRef: z.string().optional(),
   actualGrade: GradeBandSchema.optional(),
   predictedGrade: GradeBandSchema.optional(),
   calibrationDistance: z.number().int().optional(),
@@ -335,8 +382,30 @@ export const FeedbackRunSchema = z.object({
 });
 export type FeedbackRun = z.infer<typeof FeedbackRunSchema>;
 
+/**
+ * A final exam, or one of the shorter graded assignments. They differ in ways
+ * the chain has to know about — an assignment poses a single question under an
+ * ~850-word limit, and its "model answers" are exemplary STUDENT papers rather
+ * than an instructor's key — so the kind travels with the item.
+ */
+export type PracticeItemKind = "final" | "assignment";
+
+/**
+ * What the supplied benchmark actually is. `instructor_key` was written by the
+ * instructor without time pressure and sits above full credit. `peer_exemplars`
+ * are real student answers produced under the same limit the student is working
+ * to, so they represent achievable, not aspirational, work. Grading a student
+ * against the wrong one distorts the comparison in opposite directions.
+ */
+export type ModelAnswerKind = "instructor_key" | "peer_exemplars";
+
 export type Exam = {
-  id: "2015-final" | "2019-final";
+  // `<year>-final` or `<year>-assignment-<NN>`. Open rather than a literal union
+  // since v4.16.0: items are discovered from the corpus, so adding one is a
+  // content change rather than a code change. Validate with isKnownExamId.
+  id: string;
+  kind: PracticeItemKind;
+  modelAnswerKind: ModelAnswerKind;
   year: number;
   title: string;
   shortDescription: string;

@@ -14,7 +14,7 @@ import {
   parseClaudeStage,
   stableSafetyIdentifier,
 } from "@/lib/feedback-chain";
-import { evaluationDeveloperPrompt, evaluationUserPrompt, PROMPT_VERSION } from "@/lib/prompts";
+import { evaluationDeveloperPrompt, evaluationUserPrompt, PROMPT_VERSION, submissionContext } from "@/lib/prompts";
 import { formatSources } from "@/lib/retrieval";
 import { listRuns } from "@/lib/store";
 import { EvaluationSchema, type GradeBand, type StageTrace } from "@/lib/types";
@@ -157,7 +157,8 @@ export async function runEvaluatorSweep(options: EvaluatorSweepOptions): Promise
           answer,
           issueMap: priorRun.issueMap,
           sources: formatSources(priorRun.sources),
-          anchors: buildAnchorPack(fixture.examId, fixture.id),
+          submission: submissionContext({ scope: "full_exam", mode: "full_draft" }),
+      anchors: buildAnchorPack(fixture.examId, fixture.id),
         }),
         safetyIdentifier: stableSafetyIdentifier(fixture.label),
         traces,

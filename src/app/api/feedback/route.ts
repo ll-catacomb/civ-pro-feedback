@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getExams, isKnownExamId } from "@/lib/exams";
 import { FeedbackConfigurationError, FeedbackStageError, runFeedbackChain } from "@/lib/feedback-chain";
 import { saveFailure, saveRun } from "@/lib/store";
 import { FeedbackRequestSchema } from "@/lib/types";
@@ -11,7 +12,21 @@ export async function POST(request: Request) {
   let failureContext: { examId: string; studentLabel: string; answer: string } | undefined;
   try {
     const input = FeedbackRequestSchema.parse(await request.json());
-    failureContext = input;
+    // examId is a plain string in the schema because the practicable set is
+    // discovered from the corpus at runtime; the registry is the validator.
+    if (!isKnownExamId(input.examId)) {
+      // Summarise rather than list: there are 16 finals and 58 assignments, and
+      // enumerating every id (or every year, with duplicates) helps nobody.
+      const items = getExams();
+      const finalYears = items.filter((item) => item.kind === "final").map((item) => item.year);
+      return NextResponse.json(
+        {
+          error: `"${input.examId}" is not available for practice. Final exams: ${Math.min(...finalYears)}–${Math.max(...finalYears)}. Graded assignments: ${items.filter((item) => item.kind === "assignment").length} across the course. Pick one from the dropdown.`,
+        },
+        { status: 400 },
+      );
+    }
+    failureContext = { ...input, studentLabel: input.studentLabel };
     const run = await runFeedbackChain({ ...input, source: "student" });
     await saveRun(run);
     return NextResponse.json({ run });

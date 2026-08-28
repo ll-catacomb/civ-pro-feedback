@@ -49,7 +49,7 @@ Must be electronically submitted by: 8 hours from download or by 4:30pm EST, whi
 
   7. Do not put your name, or otherwise identify yourself, on your response.
 
-                        © 2022-2023 by the President and Fellows of Harvard College.
+                        Â© 2022-2023 by the President and Fellows of Harvard College.
                                                  Page 1 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -93,7 +93,7 @@ procedure.
          another statute) should be used), in any lawsuit filed in a federal district court after the
          effective date of this rule, the period of limitations shall be three years.
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 2 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -141,7 +141,7 @@ plaintiff, so the tort occurs where the item was located at the time of the thef
 
 All states relevant to this exam have a tort cause of action for negligence. The elements of this
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 3 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -191,7 +191,7 @@ specialized in selling cheap and un-hackable data storage. Sylvania was the firs
 quantum computing to encrypt its information on its servers, so anyone hacking into its systems
 except by way of a user account would obtain only gobbledygook. Users of Sylvania's data
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 4 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -241,7 +241,7 @@ the computer code to Groucho on an external hard drive. After making the purchas
 returned to his hotel in Pierre. Groucho had heard of Sylvania through a friend while traveling in
 Europe. Using his laptop computer from his hotel room, he opened a Sylvania account on
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 5 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -290,7 +290,7 @@ the federal court rule? (Note: you need not discuss in your response whether the
 court may transfer even if it did not have to, nor to which district the court would transfer
 if it chose to do so, nor what would happen if the court did transfer). Explain your answer.
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 6 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -335,7 +335,7 @@ that Groucho's own negligence was a causal factor in the theft/loss of "Duck in 
 therefore, Groucho was barred from recovering anything from Sylvania. For the purposes of
 litigating the motion, the parties stipulated that the court would assume that the facts described
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 7 of 9
                                  Law School of Harvard University / 2022-2023
 
@@ -352,12 +352,12 @@ and independent basis for its motion was that Groucho had been negligent in fail
 ground for the motion. Sylvania attached the following to its Memorandum in Support of
 Motion for Summary Judgment:
 
-    · An affidavit from one if its engineers stating that at the time of the theft/loss of "Duck in Soup,"
+    Â· An affidavit from one if its engineers stating that at the time of the theft/loss of "Duck in Soup,"
               o Groucho's username for his Sylvania account was "Groucho" and his password was
                    "Groucho", and
               o Grouch had not enabled 2FA.
 
-    · A transcript of part of Chico's deposition, at which Chico testified that at his house, on the
+    Â· A transcript of part of Chico's deposition, at which Chico testified that at his house, on the
          evening in which Groucho had encouraged Zeppo and Chico to view "Duck in Soup," when
          Grouch was logging into his Sylvania account, he (Groucho) had pulled a full-size piece of paper
          out of his pocket. The piece of paper said, "username = Groucho, password = Groucho" in large
@@ -385,7 +385,7 @@ this motion, but I'm too busy right now. In addition, I find that there is no ju
 this decision, so I will direct the clerk to enter final judgment in favor of Sylvania." The next
 day, the clerk obliged, entering an order to enter final judgment in favor of Sylvania. At
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 8 of 9
                                  Law School of Harvard University / 2022-2023
 Groucho's request, you filed a timely notice of appeal.
@@ -412,6 +412,6 @@ favor of Sylvania?
 
                                                 END OF EXAM
 
-                          © 2022-2023 by the President and Fellows of Harvard College.
+                          Â© 2022-2023 by the President and Fellows of Harvard College.
                                                     Page 9 of 9
 
