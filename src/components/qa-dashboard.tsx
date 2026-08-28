@@ -6,9 +6,22 @@ import {
   LoaderCircle, Maximize2, Minimize2, Play, ShieldCheck,
 } from "lucide-react";
 
+import { CopyLink } from "@/components/copy-link";
 import { runWithConcurrency } from "@/lib/concurrency";
+import { slugify, useOpenPanels } from "@/lib/deep-link";
 import type { ReportFixture, ReportModel, ReportSubmission } from "@/lib/report-model";
 import type { CalibrationFixture, Feedback } from "@/lib/types";
+
+/** The query parameter that carries which cards are open. See deep-link.ts. */
+const OPEN_PARAM = "open";
+
+/** Element ids for the two card families, namespaced so they cannot collide. */
+function caseSlug(fixtureId: string): string {
+  return `case-${slugify(fixtureId)}`;
+}
+function itemSlug(sub: { examId: string; label: string }): string {
+  return `item-${slugify(sub.examId, sub.label)}`;
+}
 
 function pct(n: number, d: number): string {
   return d ? `${Math.round((n / d) * 100)}%` : "—";
@@ -103,19 +116,23 @@ function FeedbackBody({ fb }: { fb: Feedback | null }) {
  * the graded reference stack cannot rank (see isBandComparable).
  */
 function ReviewCard({ sub, open, onToggle }: { sub: ReportSubmission; open: boolean; onToggle: () => void }) {
+  const slug = itemSlug(sub);
   return (
-    <div className={`sub-card ${open ? "is-open" : ""}`}>
-      <button className="sub-card__head" onClick={onToggle} aria-expanded={open}>
-        <span className="sub-card__title"><FileText size={16} /> {sub.label}</span>
-        <span className="sub-card__meta">
-          <span className="sub-stat"><small>Item</small><b>{sub.examId}</b></span>
-          <span className={`form-chip form-chip--${sub.form}`}>{sub.form === "bullets" ? "Bullets" : "Full draft"}</span>
-          <span className="sub-stat"><small>Scope</small><b>{sub.scopeLabel}</b></span>
-          {sub.estimate && <span className="sub-stat"><small>Band</small><BandChip band={sub.estimate} /></span>}
-          <span className="sub-stat"><small>Feedback QA</small><b>{sub.qa ?? "—"}</b></span>
-        </span>
-        <ChevronDown className="sub-card__chev" size={18} />
-      </button>
+    <div className={`sub-card ${open ? "is-open" : ""}`} id={slug}>
+      <div className="sub-card__bar">
+        <button className="sub-card__head" onClick={onToggle} aria-expanded={open}>
+          <span className="sub-card__title"><FileText size={16} /> {sub.label}</span>
+          <span className="sub-card__meta">
+            <span className="sub-stat"><small>Item</small><b>{sub.examId}</b></span>
+            <span className={`form-chip form-chip--${sub.form}`}>{sub.form === "bullets" ? "Bullets" : "Full draft"}</span>
+            <span className="sub-stat"><small>Scope</small><b>{sub.scopeLabel}</b></span>
+            {sub.estimate && <span className="sub-stat"><small>Band</small><BandChip band={sub.estimate} /></span>}
+            <span className="sub-stat"><small>Feedback QA</small><b>{sub.qa ?? "—"}</b></span>
+          </span>
+          <ChevronDown className="sub-card__chev" size={18} />
+        </button>
+        <CopyLink param={OPEN_PARAM} slug={slug} title={`Copy a link that opens ${sub.label}`} />
+      </div>
       {open && (
         <div className="sub-card__body">
           {sub.unreviewed && (
@@ -157,18 +174,22 @@ function ReviewCard({ sub, open, onToggle }: { sub: ReportSubmission; open: bool
 function SubmissionCard({ fx, open, onToggle }: { fx: ReportFixture; open: boolean; onToggle: () => void }) {
   const result = resultLabel(fx.distance);
   const fb = fx.feedback;
+  const slug = caseSlug(fx.fixtureId);
   return (
-    <div className={`sub-card ${open ? "is-open" : ""}`}>
-      <button className="sub-card__head" onClick={onToggle} aria-expanded={open}>
-        <span className="sub-card__title"><FileText size={16} /> {fx.label}</span>
-        <span className="sub-card__meta">
-          <span className="sub-stat"><small>Instructor</small><BandChip band={fx.actual} /></span>
-          <span className="sub-stat"><small>System</small><BandChip band={fx.estimate ?? fx.predicted} /></span>
-          <span className={`sub-result sub-result--${result.tone}`}>{result.text}</span>
-          <span className="sub-stat"><small>Feedback QA</small><b>{fx.qa ?? "—"}</b></span>
-        </span>
-        <ChevronDown className="sub-card__chev" size={18} />
-      </button>
+    <div className={`sub-card ${open ? "is-open" : ""}`} id={slug}>
+      <div className="sub-card__bar">
+        <button className="sub-card__head" onClick={onToggle} aria-expanded={open}>
+          <span className="sub-card__title"><FileText size={16} /> {fx.label}</span>
+          <span className="sub-card__meta">
+            <span className="sub-stat"><small>Instructor</small><BandChip band={fx.actual} /></span>
+            <span className="sub-stat"><small>System</small><BandChip band={fx.estimate ?? fx.predicted} /></span>
+            <span className={`sub-result sub-result--${result.tone}`}>{result.text}</span>
+            <span className="sub-stat"><small>Feedback QA</small><b>{fx.qa ?? "—"}</b></span>
+          </span>
+          <ChevronDown className="sub-card__chev" size={18} />
+        </button>
+        <CopyLink param={OPEN_PARAM} slug={slug} title={`Copy a link that opens ${fx.label}`} />
+      </div>
 
       {open && (
         <div className="sub-card__body">
@@ -215,8 +236,9 @@ function SubmissionCard({ fx, open, onToggle }: { fx: ReportFixture; open: boole
 }
 
 export function QaReport({ report, interactive, fixtures }: { report: ReportModel; interactive: boolean; fixtures: CalibrationFixture[] }) {
-  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
-  const [openSubs, setOpenSubs] = useState<Set<string>>(new Set());
+  // One shared set for both card families, mirrored into ?open= so the address
+  // bar always describes what is on screen and can be copied as-is.
+  const { open, setOpen, toggle } = useOpenPanels(OPEN_PARAM);
   const [busy, setBusy] = useState<null | { done: number; total: number }>(null);
   const [error, setError] = useState("");
 
@@ -224,17 +246,15 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
   const version = report.latestVersion.replace("civpro-feedback-", "");
   const first = report.trend[0];
   const improved = first && s.meanDistance !== null && first.meanDistance !== null && s.meanDistance < first.meanDistance;
-  const allOpen = report.fixtures.length > 0 && openIds.size === report.fixtures.length;
+  const caseSlugs = report.fixtures.map((f) => caseSlug(f.fixtureId));
+  const allOpen = caseSlugs.length > 0 && caseSlugs.every((slug) => open.has(slug));
 
-  function toggle(id: string) {
-    setOpenIds((cur) => {
-      const next = new Set(cur);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  // Expand/collapse all is scoped to the graded cases, so it must add and remove
+  // only those slugs — an open review item below is left exactly as it was.
+  function expandAll() { setOpen((cur) => new Set([...cur, ...caseSlugs])); }
+  function collapseAll() {
+    setOpen((cur) => new Set([...cur].filter((slug) => !caseSlugs.includes(slug))));
   }
-  function expandAll() { setOpenIds(new Set(report.fixtures.map((f) => f.fixtureId))); }
-  function collapseAll() { setOpenIds(new Set()); }
 
   async function runAll() {
     const ready = fixtures.filter((f) => f.status === "ready");
@@ -279,9 +299,18 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
         )}
       </header>
 
+      {/* Each destination is its own address, so a link can be sent to the part
+          of the report a reviewer is actually being asked to read. */}
+      <nav className="report-jump" aria-label="Report sections">
+        <a href="#scorecard">Scorecard</a>
+        {report.trend.length > 1 && <a href="#track-record">Track record</a>}
+        <a href="#cases">Case by case</a>
+        {report.submissions.length > 0 && <a href="#review">Review round</a>}
+      </nav>
+
       {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
 
-      <section className="report-section">
+      <section className="report-section" id="scorecard">
         <div className="report-metrics">
           <div className="report-metric"><span>Exact band</span><strong>{pct(s.exact, s.count)}</strong><small>{s.exact} of {s.count} answers</small></div>
           <div className="report-metric"><span>Within one band</span><strong>{pct(s.withinOne, s.count)}</strong><small>{s.withinOne} of {s.count} answers</small></div>
@@ -307,7 +336,7 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
       </section>
 
       {report.trend.length > 1 && (
-        <section className="report-section">
+        <section className="report-section" id="track-record">
           <div className="report-section__head"><span className="eyebrow">Track record</span><h2>Improvement across prompt versions</h2><p>Each version was re-scored blind against the same answers. Distance is whole-band; lower is better.</p></div>
           <div className="report-trend">
             <div className="trend-row trend-head"><span>Version</span><span>Answers</span><span>Exact</span><span>Within 1</span><span>Mean distance</span></div>
@@ -324,7 +353,7 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
         </section>
       )}
 
-      <section className="report-section">
+      <section className="report-section" id="cases">
         <div className="report-section__head report-section__head--row">
           <div><span className="eyebrow">Case by case</span><h2>Every submission and its feedback</h2></div>
           <button className="text-toggle" type="button" onClick={allOpen ? collapseAll : expandAll}>
@@ -333,14 +362,19 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
         </div>
         <div className="sub-cards">
           {report.fixtures.map((f) => (
-            <SubmissionCard key={f.fixtureId} fx={f} open={openIds.has(f.fixtureId)} onToggle={() => toggle(f.fixtureId)} />
+            <SubmissionCard
+              key={f.fixtureId}
+              fx={f}
+              open={open.has(caseSlug(f.fixtureId))}
+              onToggle={() => toggle(caseSlug(f.fixtureId))}
+            />
           ))}
         </div>
         <p className="formative-note">Formative estimates for study and calibration — not official grades. The grade shown is produced before any real grade is joined to the run.</p>
       </section>
 
       {report.submissions.length > 0 && (
-        <section className="report-section">
+        <section className="report-section" id="review">
           <div className="report-section__head">
             <span className="eyebrow">Review round</span>
             <h2>Bullet-point and mock full-exam submissions</h2>
@@ -351,18 +385,19 @@ export function QaReport({ report, interactive, fixtures }: { report: ReportMode
               No band is shown where the graded reference answers are not a
               like-for-like comparison. Showing the current prompt version only.
             </p>
+            <p className="report-hint">
+              Every card below has its own address. Use <strong>Link</strong> on a
+              card to copy a URL that opens exactly that submission — that is the
+              link to send a reviewer their assigned item.
+            </p>
           </div>
           <div className="sub-cards">
             {report.submissions.map((sub) => (
               <ReviewCard
                 key={sub.id}
                 sub={sub}
-                open={openSubs.has(sub.id)}
-                onToggle={() => setOpenSubs((cur) => {
-                  const next = new Set(cur);
-                  if (next.has(sub.id)) next.delete(sub.id); else next.add(sub.id);
-                  return next;
-                })}
+                open={open.has(itemSlug(sub))}
+                onToggle={() => toggle(itemSlug(sub))}
               />
             ))}
           </div>

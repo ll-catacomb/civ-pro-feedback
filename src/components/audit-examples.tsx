@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { AlertTriangle, BookOpen, CheckCircle2, ChevronDown, MessageSquareText, ShieldCheck } from "lucide-react";
 
 import { AUDIT_EXAMPLES, type AuditExample } from "@/lib/audit-content";
+import { useTabParam } from "@/lib/deep-link";
+
+const EXAMPLE_KEYS = ["accurate", "wrong"] as const;
 
 function bandLabel(band: string, lean: AuditExample["lean"]): string {
   return `${band}${lean === "high" ? "+" : lean === "low" ? "−" : ""}`;
@@ -125,7 +127,9 @@ function ExamplePanel({ example }: { example: AuditExample }) {
 }
 
 export function AuditExamples() {
-  const [active, setActive] = useState<AuditExample["key"]>("accurate");
+  // ?example=wrong addresses the second tab, so the worst-miss case can be
+  // linked to directly instead of described as "the other tab".
+  const [active, setActive] = useTabParam("example", EXAMPLE_KEYS, "accurate");
   const example = AUDIT_EXAMPLES.find((ex) => ex.key === active) ?? AUDIT_EXAMPLES[0];
   return (
     <div className="audit-examples">
