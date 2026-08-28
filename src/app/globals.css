@@ -340,6 +340,15 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .report-ops { display: flex; flex-direction: column; gap: 8px; min-width: 168px; }
 .report-ops__label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 
+/* Deep links land under the 76px sticky header without this offset. */
+.report-section, .sub-card { scroll-margin-top: 92px; }
+
+.report-jump { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 0 0; }
+.report-jump a { padding: 6px 12px; border: 1px solid var(--line); background: var(--white); font-size: 12px; letter-spacing: .01em; color: var(--muted); text-decoration: none; transition: .15s ease; }
+.report-jump a:hover { color: var(--ink); border-color: var(--ink); }
+
+.report-hint { margin-top: 10px; padding-left: 11px; border-left: 2px solid var(--line); font-size: 13px; }
+
 .report-section { padding: 44px 0; border-bottom: 1px solid var(--line); }
 .report-section:last-child { border-bottom: 0; }
 .report-section__head { max-width: 760px; margin-bottom: 22px; }
@@ -383,7 +392,14 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .sub-cards { display: flex; flex-direction: column; gap: 10px; }
 .sub-card { border: 1px solid var(--line); background: var(--white); }
 .sub-card.is-open { box-shadow: var(--shadow); }
-.sub-card__head { width: 100%; display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: none; border: 0; cursor: pointer; text-align: left; }
+.sub-card__bar { display: flex; align-items: center; }
+.sub-card__head { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: none; border: 0; cursor: pointer; text-align: left; }
+.copy-link { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; margin-right: 14px; padding: 5px 9px; border: 1px solid transparent; background: none; color: var(--muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; opacity: 0; transition: .15s ease; }
+.sub-card:hover .copy-link, .copy-link:focus-visible, .copy-link.is-copied { opacity: 1; }
+.copy-link:hover { color: var(--ink); border-color: var(--line); }
+.copy-link.is-copied { color: var(--success); }
+/* Touch devices never fire :hover, so the control would be unreachable. */
+@media (hover: none) { .copy-link { opacity: 1; } }
 .sub-card__title { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; font-size: 15px; min-width: 200px; }
 .sub-card__meta { display: flex; align-items: center; gap: 24px; margin-left: auto; }
 .sub-stat { display: flex; flex-direction: column; gap: 3px; }
