@@ -7,19 +7,19 @@ import { buildAnchorPack } from "@/lib/anchors";
 import { CALIBRATION_FIXTURES, getCalibrationFixture, gradeDistance } from "@/lib/calibration";
 import { runWithConcurrency } from "@/lib/concurrency";
 import { getExam } from "@/lib/exams";
+import { FEEDBACK_MODELS } from "@/lib/feedback-models";
 import {
   chainConfigured,
   createChainClient,
   FeedbackConfigurationError,
   parseClaudeStage,
-  stableSafetyIdentifier,
 } from "@/lib/feedback-chain";
 import { evaluationDeveloperPrompt, evaluationUserPrompt, PROMPT_VERSION, submissionContext } from "@/lib/prompts";
 import { formatSources } from "@/lib/retrieval";
 import { listRuns } from "@/lib/store";
 import { EvaluationSchema, type GradeBand, type StageTrace } from "@/lib/types";
 
-const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-5";
+const EVALUATOR_MODEL = FEEDBACK_MODELS.evaluator;
 const SWEEP_CONCURRENCY = 2;
 
 export type SweepScope = "smoke" | "full";
@@ -110,7 +110,7 @@ async function persistSweep(sweep: EvaluatorSweep): Promise<void> {
  */
 export async function runEvaluatorSweep(options: EvaluatorSweepOptions): Promise<EvaluatorSweep> {
   if (!chainConfigured()) {
-    throw new FeedbackConfigurationError("ANTHROPIC_API_KEY is not configured.");
+    throw new FeedbackConfigurationError("HUIT_BEDROCK_API_KEY is not configured.");
   }
   const runs = await listRuns();
   const client = createChainClient();
@@ -148,7 +148,7 @@ export async function runEvaluatorSweep(options: EvaluatorSweepOptions): Promise
         client,
         schema: EvaluationSchema,
         stageName: `sweep_${fixture.id}`,
-        model: WORK_MODEL,
+        model: EVALUATOR_MODEL,
         reasoningEffort: "high",
         developerPrompt: evaluationDeveloperPrompt,
         userPrompt: evaluationUserPrompt({
@@ -160,7 +160,6 @@ export async function runEvaluatorSweep(options: EvaluatorSweepOptions): Promise
           submission: submissionContext({ scope: "full_exam", mode: "full_draft" }),
       anchors: buildAnchorPack(fixture.examId, fixture.id),
         }),
-        safetyIdentifier: stableSafetyIdentifier(fixture.label),
         traces,
       });
       result.band = evaluation.provisionalBand;

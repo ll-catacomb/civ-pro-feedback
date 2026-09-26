@@ -1,55 +1,118 @@
 # Architecture
 
-## Request flow
+## Production request flow
 
 ```text
-student answer
-    |
-    +--> 0a. exam-responsiveness assessment
-    |
-    +--> 0b. independent responsiveness judge + local exam fingerprint
-    |        |
-    |        +--> clearly different exam: 0 credit; stop substantive grading
-    |
-    +--> responsive answer: single Claude chain
-             |
-             +--> issue map, query expansion, retrieval + rerank,
-                  blind evaluation with anchor pack (bands here),
-                  coaching draft, skeptical judge
+Google sign-in
+  -> roster claim under Apps Script lock
+  -> signed Auth.js session (student pseudonym or staff role)
+
+student submission
+  -> validate session and input
+  -> Apps Script atomically reserves one attempt + stores answer in Sheets
+  -> start durable Vercel Workflow; return HTTP 202
+  -> browser polls submission status and may safely close/reopen
+
+Vercel Workflow
+  -> responsiveness assessment
+  -> independent responsiveness judgment
+  -> issue map
+  -> retrieval query expansion
+  -> lexical course-corpus retrieval
+  -> evidence reranking
+  -> blind evaluation against calibration anchors
+  -> coaching draft
+  -> skeptical final judge
+  -> store final feedback; atomically consume attempt
+
+on workflow failure
+  -> store support reference
+  -> refund reservation; do not consume attempt
 ```
 
-Every stage runs on the Claude API, and a single `ANTHROPIC_API_KEY` is the only credential the project needs (v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline; calibration showed the cross-model judging layer added cost without improving band accuracy, and the historical dual-run fields remain readable in the store and UI. v4.2.0 removed the last OpenAI call — see Corpus below). The blind evaluation's provisional band is the run's band recommendation.
+The workflow is divided into durable stages, with model calls isolated rather
+than held inside one long HTTP request. This is the reason the production app can
+run on Vercel despite a complete feedback chain taking much longer than a normal
+serverless request. The status page explains the six student-facing phases while
+the internal workflow retains finer-grained checkpoints for recovery and QA.
 
-Banding happens inside the blind evaluation — the stage audits have measured as the pipeline's most accurate component. There is no separate band-calibration stage; audits showed it systematically degraded the evaluator's holistic judgment by regrading the same defect list. Banding is comparative rather than absolute: the evaluation receives an anchor pack of instructor-graded answers (same-exam answers preferred, other years only to fill thin bands, always excluding the answer under review so its own grade never enters its run) plus one or two same-year assignment answers the instructor circulated as the best in the class, and the prompt requires explicit pairwise stronger/comparable/weaker verdicts against each graded reference. Anchors calibrate the texture of each band; the prompt forbids using them as doctrinal authority. An evaluator-only calibration sweep (POST /api/calibrations/evaluator-sweep, or the dashboard controls) re-runs the blind evaluator against either a four-fixture, one-per-band smoke set or the full benchmark using stored issue maps and evidence packets, so band-prompt experiments can be screened for at most four to eight paid calls. Every sweep is stored separately from ordinary run metrics. Issue-map weights preserve the exam's stated points exactly rather than normalizing to 100, and each evaluation records concise upper- and lower-boundary explanations with its band.
+## Identity and authorization
 
-All stages use the Anthropic Messages API with adaptive thinking and Zod-backed structured-output contracts. The full local record includes both responsiveness checks, assessment outcome, every stage artifact, final judged feedback, the evidence packet, model names, token counts, timing, input hash, and prompt version. Runs persisted by the pre-v4 dual pipeline retain their extra fields (`claudeChain`, `crossJudges`, `dualDecision`) and still render in the QA lab.
+Google OAuth establishes the institutional account. On first student sign-in,
+the signed Apps Script gate matches the normalized email to an active Enrollment
+row and binds that row to Google's stable subject identifier. Later requests use
+the subject identifier and pseudonym stored in the signed session; student email
+is not exposed to the student application session.
 
-The responsiveness gate is conservative: both model passes must independently assign a zero and the second pass must have at least 0.9 confidence before substantive grading stops. A disagreement is marked for manual review. Internal feedback-QA scores are never presented as student grades.
+Staff access is separate: `STAFF_EMAILS` is an explicit allowlist inside the
+configured Workspace domain. Staff-only page and API guards protect calibration,
+run details, audit views, and exports. The unauthenticated legacy practice route
+is disabled in production.
 
-## Corpus
+## Attempt integrity
 
-- `content/course/`: a snapshot of 451 cleaned Markdown files from `civil-procedure-materials`.
-- `content/calibration/`: anonymized text extracted from the supplied historical answers.
-- `src/lib/exams.ts`: the two official exam/model-answer pairs used by the UI.
-- `src/lib/exam-match.ts`: a deterministic, IDF-weighted comparison against historical exam prompts that supplies advisory evidence to the independent responsiveness judge.
-- `src/lib/retrieval.ts`: ranks non-exam course material by BM25 over the corpus, which it chunks and indexes in memory at first use. There is no build step and no persisted index, so changed course materials take effect on restart. Query terms are weighted by provenance — issue map above expansion vocabulary above the student's own wording — each document is capped at two excerpts, and historical exams are excluded because the selected exam and model answer are supplied directly and unrelated exams can contaminate feedback.
+Apps Script is the single serialized writer for identity claims, reservations,
+progress, completion, and refunds. A script-wide `LockService` lock prevents two
+requests from both claiming the last attempt. Calls from Next.js have a
+short-lived HMAC signature, timestamp, and single-use nonce. Submission request
+keys make double-clicks idempotent, and each student may have only one active
+reservation.
 
-Retrieval occurs after the model has built the weighted issue map, so the query reflects the doctrines and analytical tasks actually posed by the selected exam. Because the Claude API has no embeddings endpoint, the semantic half of retrieval is a model stage rather than a vector store: v4.2.0 replaced the OpenAI embedding index with a low-reasoning query-expansion stage that names, per criterion, the vocabulary a course outline would use for that doctrine — doctrine names, case names, and bare statute numbers — which BM25 then matches against the corpus. The prompt forbids inventing authorities absent from the issue map and answer, and the stage is non-fatal: if it fails, retrieval runs on issue-map and answer terms alone and the run is labeled `lexical_fallback` in the UI and the store. The system retrieves a broad pool of 48 candidates, and a low-reasoning model reranks them into a curated evidence packet of up to 24 excerpts. That larger packet is supplied to the blind doctrinal evaluation, coaching pass, and final skeptical judge. The final run preserves the retrieval method, lexical score, rerank relevance, and exact cited text for QA; `semanticScore` and the `hybrid` method appear only on runs persisted before v4.2.0.
+By default a student receives five attempts. An attempt becomes consumed only
+after final feedback is stored successfully. Queueing and workflow failures
+refund the reservation.
 
-The corpus is copied into this repository so the app is reproducible and does not depend on a sibling repository at runtime.
+## Feedback chain and corpus
+
+The responsiveness gate is conservative: two model passes must independently
+identify a clearly different exam before substantive grading stops. Responsive
+answers proceed through issue mapping, query expansion, retrieval and reranking,
+blind evaluation, coaching, and a skeptical final review. Every model stage uses
+Claude's native Bedrock Messages request format through the HUIT API Gateway,
+with adaptive thinking and JSON-schema output validated again by Zod.
+
+Banding occurs in the blind evaluation against instructor-graded reference
+answers. References calibrate quality but are forbidden as doctrinal authority,
+and a calibration answer never sees its own grade. Internal feedback-QA scores
+are not presented as official student grades.
+
+The course corpus lives under `content/course/`. Retrieval builds a weighted
+BM25 pool in memory from issue-map, expansion, and student-answer terms, then a
+model reranker selects the evidence packet. There is no vector database or
+persisted index.
 
 ## Storage
 
-The MVP uses an atomic local JSON store at `.data/runs.json`. Failed attempts are retained separately in `.data/failures.json` with the submitted answer, failing stage, and a reference shown in the UI. This makes local QA immediate and prevents an intermittent model or timeout error from erasing the attempted submission. `/api/export/json` downloads the complete successful-run archive, while `/api/export` produces a flattened Airtable-ready CSV. Set `FEEDBACK_DATA_DIR` to place the store elsewhere.
+Production uses two private Google workbooks:
 
-Before multi-user deployment, replace this adapter with an authenticated database or Airtable integration. The public routes currently have no authentication or rate limiting, and the local filesystem is not durable on typical serverless hosts.
+- **Identity workbook / `Enrollment`:** institutional email, Google subject,
+  internal student ID, pseudonym, account status, attempt limit and counts,
+  active reservation, and login timestamps.
+- **Feedback workbook / `Submissions` and `Content`:** pseudonym, submission and
+  idempotency IDs, progress, attempt number, exam metadata, prompt version,
+  student-answer chunks, workflow artifacts, final feedback, and error details.
+
+This split allows access to feedback QA without automatically revealing the
+email-to-pseudonym mapping. Vercel Workflow also retains execution state and logs
+needed to resume steps; it is not the student record of authority.
+
+The local JSON run store remains for historical calibration and staff QA data.
+It is not used to enforce production student attempts. Committed snapshots allow
+read-only historical reporting when no local run store exists.
 
 ## Privacy boundary
 
-- The API key stays server-side.
-- A salted hash, rather than the response label, is used as the safety identifier.
-- Historical student identifiers and exam-system metadata were removed from calibration Markdown.
-- Student answers are sent only to the Claude API. No other outside service receives them.
-- `.data` (the run archive), `.env*`, and temporary extraction artifacts are ignored by Git.
+- API, OAuth, service-account, and gate secrets remain server-side.
+- HUIT's API Gateway and AWS Bedrock receive the exam response and contextual
+  material needed to generate feedback. The configured US cross-region profile
+  keeps inference processing in US AWS regions.
+- Google stores enrollment, submissions, progress, and results in the two
+  course-owned workbooks.
+- Vercel executes and logs the durable workflow; operational logs should avoid
+  student email and raw-answer logging.
+- Historical calibration documents have student identifiers and exam-system
+  metadata removed.
 
-This is a formative-learning tool, not an official grading system. Model and judge scores must be reviewed against human evidence.
+This is a formative-learning tool, not an official grading system. Access,
+retention, student disclosure, and incident handling should follow institutional
+privacy guidance.

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireStaffApi } from "@/lib/access-control";
 import { analyzeCalibrationRun, CALIBRATION_ANALYSIS_VERSION } from "@/lib/calibration-analysis";
 import { getCalibrationFixture } from "@/lib/calibration";
 import { FeedbackConfigurationError, FeedbackStageError, runFeedbackChain } from "@/lib/feedback-chain";
@@ -12,6 +13,8 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireStaffApi();
+  if (denied) return denied;
   let failureContext: { examId: string; studentLabel: string; answer: string } | undefined;
   try {
     const { id } = await context.params;

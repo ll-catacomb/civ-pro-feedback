@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowRight, ChevronDown, CircleCheck, FileText,
   LoaderCircle, RotateCcw, ShieldCheck, Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-import { GavelGame } from "@/components/gavel-game";
+import { STUDENT_PROGRESS_STEPS } from "@/lib/feedback-progress";
 import {
   getAssessmentOutcome,
   getBandEstimateExplanation,
@@ -97,7 +97,7 @@ function retrievalMethodLabel(run: FeedbackRun): string {
   return "Issue-map keyword search (query expansion unavailable).";
 }
 
-function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => void }) {
+export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => void }) {
   const outcome = getAssessmentOutcome(run);
   const retrievalLabel = retrievalMethodLabel(run);
   if (outcome.creditStatus === "zero_nonresponsive") {
@@ -307,22 +307,80 @@ function ZeroCreditResult({ run, onReset }: { run: FeedbackRun; onReset: () => v
   );
 }
 
-function WaitingView({ exam }: { exam: Exam }) {
+export type ProgressDisplay = { label: string; detail: string; position: number };
+
+export function WaitingView({ examLabel, progress, durable }: { examLabel: string; progress?: ProgressDisplay; durable: boolean }) {
+  const currentPosition = progress?.position ?? 0;
   return (
     <section className="waiting-shell" aria-live="polite">
       <div className="waiting-head">
         <LoaderCircle className="spin" size={20} />
         <div>
-          <strong>Grading your {exam.year} practice answer…</strong>
-          <span>This usually takes about 10–15 minutes. Keep this tab open — your feedback appears here on its own when it&rsquo;s ready.</span>
+          <strong>{progress?.label ?? `Grading your ${examLabel} practice answer…`}</strong>
+          <span>{progress?.detail ?? "Your response has been received and is waiting to begin."}</span>
         </div>
       </div>
-      <GavelGame />
+      <p className="waiting-note">
+        This usually takes about 10–15 minutes. {durable
+          ? "You can close this tab and return to My feedback later."
+          : "Keep this tab open so the result can appear when it is ready."}
+      </p>
+      <div className="feedback-pipeline">
+        <div className="feedback-pipeline__heading">
+          <strong>How your feedback is being built</strong>
+          <span>Each completed stage is saved before the next one begins.</span>
+        </div>
+        <ol aria-label="Feedback generation stages">
+          {STUDENT_PROGRESS_STEPS.map((step) => {
+            const state = step.position < currentPosition
+              ? "complete"
+              : step.position === currentPosition
+                ? "active"
+                : "upcoming";
+            return (
+              <li
+                className={`feedback-pipeline__step is-${state}`}
+                key={step.position}
+                aria-current={state === "active" ? "step" : undefined}
+              >
+                <span className="feedback-pipeline__marker" aria-hidden="true">
+                  {state === "complete"
+                    ? <CircleCheck size={18} />
+                    : state === "active"
+                      ? <LoaderCircle className="spin" size={18} />
+                      : step.position}
+                </span>
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.detail}</p>
+                  <span className="sr-only">
+                    {state === "complete" ? "Completed" : state === "active" ? "In progress" : "Not started"}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </section>
   );
 }
 
-export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
+type StudentContext = {
+  pseudonym: string;
+  attemptsRemaining: number;
+  maxAttempts: number;
+};
+
+export function PracticeWorkspace({
+  exams,
+  studentContext,
+  submissionEndpoint = "/api/feedback",
+}: {
+  exams: Exam[];
+  studentContext?: StudentContext;
+  submissionEndpoint?: string;
+}) {
   const [selectedId, setSelectedId] = useState(exams[0].id);
   const [scope, setScope] = useState<SubmissionScope>("full_exam");
   const [mode, setMode] = useState<SubmissionMode>("full_draft");
@@ -331,6 +389,8 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [run, setRun] = useState<FeedbackRun | null>(null);
+  const [progress, setProgress] = useState<ProgressDisplay>();
+  const submittingRef = useRef(false);
   const selectedExam = useMemo(() => exams.find((exam) => exam.id === selectedId) ?? exams[0], [exams, selectedId]);
   const questionOptions = useMemo(() => listQuestionLabels(selectedExam.prompt), [selectedExam]);
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
@@ -349,17 +409,24 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setIsSubmitting(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     try {
-      const response = await fetch("/api/feedback", {
+      const response = await fetch(submissionEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
         body: JSON.stringify({
           examId: selectedId,
           answer,
-          studentLabel: "Anonymous practice",
+          // The authenticated API will derive this from the server session.
+          // It remains a prop only for the synthetic portal and legacy route.
+          studentLabel: studentContext?.pseudonym ?? "Anonymous practice",
           scope,
           mode,
           ...(scope === "single_question" ? { questionRef } : {}),
@@ -368,8 +435,14 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
       // The response may not be JSON: a hosting timeout returns a plain-text
       // error page, which would otherwise throw a cryptic JSON parse error.
       const raw = await response.text();
-      let payload: { run?: FeedbackRun; error?: string } | null = null;
+      let payload: { run?: FeedbackRun; error?: string; submissionId?: string } | null = null;
       try { payload = raw ? JSON.parse(raw) : null; } catch { payload = null; }
+      if (response.ok && payload?.submissionId && !payload.run) {
+        const completed = await waitForSubmission(payload.submissionId);
+        setRun(completed);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
       if (!response.ok || !payload?.run) {
         if (payload?.error) throw new Error(payload.error);
         throw new Error("This hosted preview stopped the request before grading finished — a full run takes about 10–15 minutes, longer than the server allows. Your answer was not graded. Please let the course team know.");
@@ -379,15 +452,49 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Feedback failed.");
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }
 
+  async function waitForSubmission(submissionId: string): Promise<FeedbackRun> {
+    setProgress({ label: "Waiting to begin", detail: "Your response is safely queued.", position: 0 });
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 10_000));
+      const response = await fetch(`/api/student/submissions/${encodeURIComponent(submissionId)}`, {
+        cache: "no-store",
+      });
+      const raw = await response.text();
+      let payload: {
+        status?: string;
+        progress?: ProgressDisplay;
+        run?: FeedbackRun;
+        error?: string;
+        errorReference?: string;
+      } | null = null;
+      try { payload = raw ? JSON.parse(raw) : null; } catch { payload = null; }
+      if (response.status === 503) continue;
+      if (!response.ok || !payload) throw new Error(payload?.error ?? "Could not check feedback progress.");
+      if (payload.progress) setProgress(payload.progress);
+      if (payload.status === "completed" && payload.run) return payload.run;
+      if (payload.status === "failed" || payload.status === "refunded") {
+        throw new Error(`The feedback run could not complete, so your attempt was refunded.${payload.errorReference ? ` Error reference: ${payload.errorReference}.` : ""}`);
+      }
+    }
+    throw new Error("Feedback is still processing. You can return to My feedback later without losing your submission.");
+  }
+
   if (run) return <FeedbackResult run={run} onReset={() => { setRun(null); setAnswer(""); }} />;
-  if (isSubmitting) return <WaitingView exam={selectedExam} />;
+  if (isSubmitting) return <WaitingView examLabel={String(selectedExam.year)} progress={progress} durable={submissionEndpoint.startsWith("/api/student/")} />;
 
   return (
     <section className="practice-shell" id="practice">
+      {studentContext && (
+        <div className="practice-attempt-line">
+          <strong>{studentContext.attemptsRemaining} of {studentContext.maxAttempts} attempts remaining</strong>
+          <span>A system failure will not use an attempt.</span>
+        </div>
+      )}
       <form className="practice-form" onSubmit={submit}>
         <div className="practice-field">
           <label className="field-label" htmlFor="exam">Which exam are you practicing?</label>
@@ -477,7 +584,7 @@ export function PracticeWorkspace({ exams }: { exams: Exam[] }) {
 
         {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
         <div className="practice-submit">
-          <button className="primary-button" type="submit" disabled={tooShort || needsQuestion}>Get feedback <ArrowRight size={18} /></button>
+          <button className="primary-button" type="submit" disabled={tooShort || needsQuestion || studentContext?.attemptsRemaining === 0}>Get feedback <ArrowRight size={18} /></button>
           <span className="submit-note">Takes about 10–15 minutes. Formative feedback and an estimated band — not an official grade.</span>
         </div>
       </form>

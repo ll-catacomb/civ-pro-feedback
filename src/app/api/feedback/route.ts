@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { legacyPracticeEnabled } from "@/lib/access-control";
 import { getExams, isKnownExamId } from "@/lib/exams";
 import { FeedbackConfigurationError, FeedbackStageError, runFeedbackChain } from "@/lib/feedback-chain";
 import { saveFailure, saveRun } from "@/lib/store";
@@ -9,6 +10,9 @@ export const runtime = "nodejs";
 export const maxDuration = 600;
 
 export async function POST(request: Request) {
+  if (!legacyPracticeEnabled()) {
+    return NextResponse.json({ error: "This endpoint is unavailable." }, { status: 404 });
+  }
   let failureContext: { examId: string; studentLabel: string; answer: string } | undefined;
   try {
     const input = FeedbackRequestSchema.parse(await request.json());

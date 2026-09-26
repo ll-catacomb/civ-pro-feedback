@@ -1,5 +1,6 @@
 import { QaReport } from "@/components/qa-dashboard";
 import { SiteHeader } from "@/components/site-header";
+import { requireStaffPage } from "@/lib/access-control";
 import { CALIBRATION_FIXTURES } from "@/lib/calibration";
 import { buildReportModel, type ReportModel } from "@/lib/report-model";
 import reportSnapshot from "@/lib/report-snapshot.json";
@@ -8,6 +9,7 @@ import { listRuns } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  await requireStaffPage();
   // Live run store locally; committed snapshot when deployed (the .data store
   // is git-ignored, so a link shared with reviewers reads from the snapshot).
   const runs = await listRuns();

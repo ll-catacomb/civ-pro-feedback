@@ -1,3 +1,4 @@
+import { requireStaffApi } from "@/lib/access-control";
 import { listRuns } from "@/lib/store";
 import {
   getAssessmentOutcome,
@@ -16,6 +17,8 @@ function csvCell(value: unknown): string {
 }
 
 export async function GET() {
+  const denied = await requireStaffApi();
+  if (denied) return denied;
   const runs = await listRuns();
   const headers = [
     "run_id",

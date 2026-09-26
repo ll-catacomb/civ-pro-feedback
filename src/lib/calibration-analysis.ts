@@ -2,6 +2,7 @@ import "server-only";
 
 import { createChainClient, parseClaudeStage } from "@/lib/feedback-chain";
 import { getExam } from "@/lib/exams";
+import { FEEDBACK_MODELS } from "@/lib/feedback-models";
 import { calibrationAnalysisDeveloperPrompt } from "@/lib/prompts";
 import {
   CalibrationAnalysisSchema,
@@ -11,7 +12,7 @@ import {
   type StageTrace,
 } from "@/lib/types";
 
-const CALIBRATION_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-5";
+const CALIBRATION_MODEL = FEEDBACK_MODELS.judge;
 export const CALIBRATION_ANALYSIS_VERSION = "calibration-analysis-v2.0.0";
 
 function gradeAgreement(run: FeedbackRun): CalibrationAnalysis["gradeAgreement"] {

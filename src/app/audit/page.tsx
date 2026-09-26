@@ -2,6 +2,7 @@ import { ArrowDown, ChevronDown, Database, FileCode2, Layers, Lock, ShieldCheck,
 
 import { AuditExamples } from "@/components/audit-examples";
 import { SiteHeader } from "@/components/site-header";
+import { requireStaffPage } from "@/lib/access-control";
 import { AUDIT_PROMPT_VERSION, CHAIN_STAGES, CHANGE_SURFACES } from "@/lib/audit-content";
 import { computeRunStats, type RunStats } from "@/lib/run-stats";
 import runStatsSnapshot from "@/lib/run-stats-snapshot.json";
@@ -16,6 +17,7 @@ export const dynamic = "force-dynamic";
 const LEVER_ICONS = [Layers, SlidersHorizontal];
 
 export default async function AuditPage() {
+  await requireStaffPage();
   // Live run log locally; committed snapshot when deployed (the .data run store
   // is git-ignored because it holds student answers, so it never ships).
   const liveRuns = await listRuns();

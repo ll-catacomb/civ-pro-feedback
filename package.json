@@ -3,16 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run test",
+    "sheets:setup": "node scripts/setup-google-sheets.mjs",
+    "huit:check": "node scripts/check-huit-bedrock.mjs",
+    "launch:check": "node scripts/check-launch.mjs",
     "snapshot:runs": "node scripts/build-run-stats-snapshot.mjs",
     "snapshot:report": "node scripts/build-report-snapshot.mjs",
     "snapshot": "npm run snapshot:runs && npm run snapshot:report"
@@ -20,12 +23,15 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
     "clsx": "^2.1.1",
+    "google-auth-library": "^10.5.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.24.0",
-    "next": "16.2.10",
+    "next": "16.3.6",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
+    "workflow": "^4.8.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -34,9 +40,18 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "baseline-browser-mapping": "^2.11.0",
+    "brace-expansion@<2": "^1.1.18",
+    "brace-expansion@>=4": "^5.0.9",
+    "browserslist": "^4.28.7",
+    "js-yaml": "^3.15.2",
+    "nanoid": "^5.1.6",
+    "undici": "^7.29.0"
   }
 }

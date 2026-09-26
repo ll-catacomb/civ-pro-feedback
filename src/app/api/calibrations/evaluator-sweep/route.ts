@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { requireStaffApi } from "@/lib/access-control";
 import { runEvaluatorSweep } from "@/lib/evaluator-sweep";
 import { FeedbackConfigurationError } from "@/lib/feedback-chain";
 
@@ -13,6 +14,8 @@ const EvaluatorSweepRequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const denied = await requireStaffApi();
+  if (denied) return denied;
   try {
     const input = EvaluatorSweepRequestSchema.parse(await request.json());
     const sweep = await runEvaluatorSweep(input);

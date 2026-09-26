@@ -2,7 +2,8 @@ import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
 
-import Anthropic from "@anthropic-ai/sdk";
+// Schema conversion only. Network requests go through HuitBedrockClient; the
+// Anthropic helper narrows Zod's JSON Schema to Claude's supported subset.
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 
@@ -10,6 +11,13 @@ import { buildAnchorPack } from "@/lib/anchors";
 import { gradeDistance } from "@/lib/calibration";
 import { formatExamMatches, rankExamMatches } from "@/lib/exam-match";
 import { getExam } from "@/lib/exams";
+import { FEEDBACK_MODELS } from "@/lib/feedback-models";
+import type { FeedbackProgressStage } from "@/lib/feedback-progress";
+import {
+  HuitBedrockClient,
+  HuitBedrockError,
+  huitBedrockConfigured,
+} from "@/lib/huit-bedrock";
 import {
   coachDeveloperPrompt,
   coachUserPrompt,
@@ -40,9 +48,16 @@ import {
   SourceRerankSchema,
   SubmissionFitAssessmentSchema,
   SubmissionFitJudgeSchema,
+  type Evaluation,
+  type Feedback,
   type FeedbackRequestSchema,
   type FeedbackRun,
+  type IssueMap,
+  type JudgeResult,
+  type RetrievedSource,
   type StageTrace,
+  type SubmissionFitAssessment,
+  type SubmissionFitJudge,
   type SubmissionMode,
   type SubmissionScope,
 } from "@/lib/types";
@@ -73,18 +88,28 @@ export function resolveSubmission(input: ChainInput): ResolvedSubmission {
 export type FeedbackIntake = {
   startedAt: number;
   exam: ReturnType<typeof getExam>;
-  safetyIdentifier: string;
   submissionFit: z.infer<typeof SubmissionFitAssessmentSchema>;
   submissionFitJudge: z.infer<typeof SubmissionFitJudgeSchema>;
   traces: StageTrace[];
 };
 
+export type FeedbackChainOptions = {
+  onProgress?: (stage: FeedbackProgressStage) => void | Promise<void>;
+};
+
+async function reportProgress(options: FeedbackChainOptions | undefined, stage: FeedbackProgressStage) {
+  await options?.onProgress?.(stage);
+}
+
 type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
 
-const WORK_MODEL = process.env.ANTHROPIC_WORK_MODEL ?? "claude-opus-5";
-const JUDGE_MODEL = process.env.ANTHROPIC_JUDGE_MODEL ?? "claude-opus-5";
-// Used only when a safety classifier declines a request; see attemptClaudeStage.
-const FALLBACK_MODEL = process.env.ANTHROPIC_FALLBACK_MODEL ?? "claude-opus-4-8";
+const {
+  fast: FAST_MODEL,
+  work: WORK_MODEL,
+  evaluator: EVALUATOR_MODEL,
+  judge: JUDGE_MODEL,
+} = FEEDBACK_MODELS;
+const MAX_OUTPUT_TOKENS = 64_000;
 const RETRIEVAL_CANDIDATE_LIMIT = 48;
 const FINAL_SOURCE_LIMIT = 24;
 
@@ -109,80 +134,426 @@ export class FeedbackStageError extends Error {
   }
 }
 
-export function stableSafetyIdentifier(label: string): string {
-  return createHash("sha256")
-    .update(`${process.env.SAFETY_IDENTIFIER_SALT ?? "civpro-local"}:${label}`)
-    .digest("hex")
-    .slice(0, 48);
-}
-
-function hashInput(examId: string, answer: string): string {
+export function hashInput(examId: string, answer: string): string {
   return createHash("sha256")
     .update(`${PROMPT_VERSION}\n${examId}\n${answer}`)
     .digest("hex");
 }
 
+export type FeedbackStageResult<T> = {
+  value: T;
+  traces: StageTrace[];
+};
+
+function requireChainConfiguration(): void {
+  if (!chainConfigured()) {
+    throw new FeedbackConfigurationError(
+      "HUIT_BEDROCK_API_KEY is not configured. Add it to .env.local before running feedback.",
+    );
+  }
+}
+
+function stageContext(input: ChainInput) {
+  const exam = getExam(input.examId);
+  const submission = resolveSubmission(input);
+  return {
+    exam,
+    submission,
+    submissionBrief: submissionContext({
+      ...submission,
+      kind: exam.kind,
+      modelAnswerKind: exam.modelAnswerKind,
+    }),
+  };
+}
+
+export async function runSubmissionFitStage(
+  input: ChainInput,
+): Promise<FeedbackStageResult<SubmissionFitAssessment>> {
+  requireChainConfiguration();
+  const { exam, submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: SubmissionFitAssessmentSchema,
+    stageName: "submission_fit",
+    model: FAST_MODEL,
+    reasoningEffort: "high",
+    developerPrompt: submissionFitDeveloperPrompt,
+    userPrompt: submissionFitUserPrompt({ exam: exam.prompt, answer: input.answer, submission: submissionBrief }),
+    traces,
+  });
+  return { value, traces };
+}
+
+export async function runSubmissionFitJudgeStage(
+  input: ChainInput,
+  submissionFit: SubmissionFitAssessment,
+): Promise<FeedbackStageResult<SubmissionFitJudge>> {
+  requireChainConfiguration();
+  const { exam, submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const localExamMatches = rankExamMatches(input.answer, exam.promptPath);
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: SubmissionFitJudgeSchema,
+    stageName: "submission_fit_judge",
+    model: JUDGE_MODEL,
+    reasoningEffort: "high",
+    developerPrompt: submissionFitJudgeDeveloperPrompt,
+    userPrompt: submissionFitJudgeUserPrompt({
+      exam: exam.prompt,
+      answer: input.answer,
+      firstPass: submissionFit,
+      localExamMatches: formatExamMatches(localExamMatches),
+      submission: submissionBrief,
+    }),
+    traces,
+  });
+  return { value, traces };
+}
+
+export function isZeroCreditSubmission(
+  submissionFit: SubmissionFitAssessment,
+  submissionFitJudge: SubmissionFitJudge,
+): boolean {
+  return submissionFit.status === "nonresponsive"
+    && submissionFit.recommendation === "zero_credit"
+    && submissionFit.responsivenessScore === 0
+    && submissionFit.confidence >= 0.9
+    && submissionFitJudge.status === "nonresponsive"
+    && submissionFitJudge.recommendation === "zero_credit"
+    && submissionFitJudge.responsivenessScore === 0
+    && submissionFitJudge.confidence >= 0.9;
+}
+
+export async function runIssueMapStage(
+  input: ChainInput,
+): Promise<FeedbackStageResult<IssueMap>> {
+  requireChainConfiguration();
+  const { exam, submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: IssueMapSchema,
+    stageName: "issue_map",
+    model: WORK_MODEL,
+    reasoningEffort: "medium",
+    developerPrompt: rubricDeveloperPrompt,
+    userPrompt: rubricUserPrompt({
+      exam: exam.prompt,
+      modelAnswer: exam.modelAnswer,
+      sources: "Additional course sources are retrieved after the issue map is built. Use the exam and instructor model answer for this stage.",
+      submission: submissionBrief,
+    }),
+    traces,
+  });
+  return { value, traces };
+}
+
+export async function runRetrievalQueryStage(
+  input: ChainInput,
+  issueMap: IssueMap,
+): Promise<FeedbackStageResult<string[]>> {
+  requireChainConfiguration();
+  const traces: StageTrace[] = [];
+  const query = await parseClaudeStage({
+    client: createChainClient(),
+    schema: RetrievalQuerySchema,
+    stageName: "retrieval_query",
+    model: FAST_MODEL,
+    reasoningEffort: "low",
+    developerPrompt: queryExpansionDeveloperPrompt,
+    userPrompt: queryExpansionUserPrompt({ issueMap, answer: input.answer }),
+    traces,
+  });
+  return {
+    value: [
+      ...query.criterionQueries.flatMap((entry) => entry.terms),
+      ...query.crossCuttingTerms,
+    ],
+    traces,
+  };
+}
+
+export async function runSourceRerankStage(
+  input: ChainInput,
+  issueMap: IssueMap,
+  expansionTerms: string[],
+): Promise<FeedbackStageResult<RetrievedSource[]>> {
+  requireChainConfiguration();
+  const traces: StageTrace[] = [];
+  const retrievalCandidates = await retrieveCourseContext(
+    { issueMap, answer: input.answer, expansionTerms },
+    RETRIEVAL_CANDIDATE_LIMIT,
+  );
+  if (retrievalCandidates.length === 0) return { value: [], traces };
+
+  try {
+    const rerank = await parseClaudeStage({
+      client: createChainClient(),
+      schema: SourceRerankSchema,
+      stageName: "retrieval_rerank",
+      model: FAST_MODEL,
+      reasoningEffort: "low",
+      developerPrompt: sourceRerankDeveloperPrompt,
+      userPrompt: sourceRerankUserPrompt({
+        issueMap,
+        answer: input.answer,
+        candidates: formatSources(retrievalCandidates),
+      }),
+      traces,
+    });
+    const candidateById = new Map(retrievalCandidates.map((source) => [source.id, source]));
+    const selectedIds = new Set<string>();
+    const selected = rerank.selections.flatMap((selection) => {
+      const source = candidateById.get(selection.sourceId);
+      if (!source || selectedIds.has(selection.sourceId)) return [];
+      selectedIds.add(selection.sourceId);
+      return [{
+        ...source,
+        rerankRelevance: selection.relevance,
+        rerankReason: selection.reason,
+      }];
+    });
+    return {
+      value: [
+        ...selected,
+        ...retrievalCandidates.filter((source) => !selectedIds.has(source.id)),
+      ].slice(0, FINAL_SOURCE_LIMIT),
+      traces,
+    };
+  } catch {
+    console.warn("Source reranking failed; using raw retrieval order for this run.");
+    return { value: retrievalCandidates.slice(0, FINAL_SOURCE_LIMIT), traces };
+  }
+}
+
+export async function runEvaluationStage(
+  input: ChainInput,
+  issueMap: IssueMap,
+  sources: RetrievedSource[],
+): Promise<FeedbackStageResult<Evaluation>> {
+  requireChainConfiguration();
+  const { exam, submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: EvaluationSchema,
+    stageName: "blind_evaluation",
+    model: EVALUATOR_MODEL,
+    reasoningEffort: "high",
+    developerPrompt: evaluationDeveloperPrompt,
+    userPrompt: evaluationUserPrompt({
+      exam: exam.prompt,
+      modelAnswer: exam.modelAnswer,
+      answer: input.answer,
+      issueMap,
+      sources: formatSources(sources),
+      anchors: buildAnchorPack(exam.id, input.calibrationId),
+      submission: submissionBrief,
+    }),
+    traces,
+  });
+  return { value, traces };
+}
+
+export async function runFeedbackDraftStage(
+  input: ChainInput,
+  issueMap: IssueMap,
+  evaluation: Evaluation,
+  sources: RetrievedSource[],
+): Promise<FeedbackStageResult<Feedback>> {
+  requireChainConfiguration();
+  const { submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: FeedbackSchema,
+    stageName: "feedback_draft",
+    model: WORK_MODEL,
+    reasoningEffort: "medium",
+    developerPrompt: coachDeveloperPrompt,
+    userPrompt: coachUserPrompt({
+      answer: input.answer,
+      issueMap,
+      evaluation,
+      sources: formatSources(sources),
+      submission: submissionBrief,
+    }),
+    traces,
+  });
+  return { value, traces };
+}
+
+export async function runJudgeStage(
+  input: ChainInput,
+  issueMap: IssueMap,
+  evaluation: Evaluation,
+  draftFeedback: Feedback,
+  sources: RetrievedSource[],
+): Promise<FeedbackStageResult<JudgeResult>> {
+  requireChainConfiguration();
+  const { exam, submissionBrief } = stageContext(input);
+  const traces: StageTrace[] = [];
+  const value = await parseClaudeStage({
+    client: createChainClient(),
+    schema: JudgeSchema,
+    stageName: "judge_and_revise",
+    model: JUDGE_MODEL,
+    reasoningEffort: "high",
+    developerPrompt: judgeDeveloperPrompt,
+    userPrompt: judgeUserPrompt({
+      exam: exam.prompt,
+      modelAnswer: exam.modelAnswer,
+      answer: input.answer,
+      issueMap,
+      evaluation,
+      draft: draftFeedback,
+      sources: formatSources(sources),
+      submission: submissionBrief,
+    }),
+    traces,
+  });
+  return { value, traces };
+}
+
+type FeedbackRunParts = {
+  submissionFit: SubmissionFitAssessment;
+  submissionFitJudge: SubmissionFitJudge;
+  issueMap?: IssueMap;
+  evaluation?: Evaluation;
+  draftFeedback?: Feedback;
+  judge?: JudgeResult;
+  sources: RetrievedSource[];
+  traces: StageTrace[];
+};
+
+export function assembleFeedbackRun(
+  input: ChainInput,
+  parts: FeedbackRunParts,
+  startedAt: number,
+): FeedbackRun {
+  const exam = getExam(input.examId);
+  const submission = resolveSubmission(input);
+  const zeroCredit = isZeroCreditSubmission(parts.submissionFit, parts.submissionFitJudge);
+  if (zeroCredit) {
+    return {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      source: input.source ?? "student",
+      calibrationId: input.calibrationId,
+      examId: exam.id,
+      examTitle: exam.title,
+      studentLabel: input.studentLabel ?? "Anonymous practice",
+      answer: input.answer,
+      ...submission,
+      actualGrade: input.actualGrade,
+      promptVersion: PROMPT_VERSION,
+      inputHash: hashInput(exam.id, input.answer),
+      submissionFit: parts.submissionFit,
+      submissionFitJudge: parts.submissionFitJudge,
+      assessmentOutcome: {
+        creditStatus: "zero_nonresponsive",
+        score: 0,
+        rationale: parts.submissionFitJudge.rationale,
+      },
+      sources: [],
+      traces: parts.traces,
+      totalDurationMs: Date.now() - startedAt,
+      pipeline: "single",
+    };
+  }
+  if (!parts.issueMap || !parts.evaluation || !parts.draftFeedback || !parts.judge) {
+    throw new Error("The feedback run is missing one or more completed stage artifacts.");
+  }
+  return {
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+    source: input.source ?? "student",
+    calibrationId: input.calibrationId,
+    examId: exam.id,
+    examTitle: exam.title,
+    studentLabel: input.studentLabel ?? "Anonymous practice",
+    answer: input.answer,
+    ...submission,
+    actualGrade: input.actualGrade,
+    predictedGrade: parts.evaluation.provisionalBand,
+    calibrationDistance: input.actualGrade && submission.scope === "full_exam"
+      && submission.mode === "full_draft" && exam.kind === "final"
+      ? gradeDistance(parts.evaluation.provisionalBand, input.actualGrade)
+      : undefined,
+    promptVersion: PROMPT_VERSION,
+    inputHash: hashInput(exam.id, input.answer),
+    submissionFit: parts.submissionFit,
+    submissionFitJudge: parts.submissionFitJudge,
+    assessmentOutcome: {
+      creditStatus: parts.submissionFitJudge.status === "uncertain"
+        || parts.submissionFitJudge.recommendation === "manual_review"
+        || !parts.submissionFitJudge.agreesWithFirstPass
+        ? "manual_review"
+        : "evaluated",
+      score: null,
+      rationale: parts.submissionFitJudge.rationale,
+    },
+    issueMap: parts.issueMap,
+    evaluation: parts.evaluation,
+    draftFeedback: parts.draftFeedback,
+    judge: parts.judge,
+    sources: parts.sources,
+    traces: parts.traces,
+    totalDurationMs: Date.now() - startedAt,
+    pipeline: "single",
+  };
+}
+
 export function chainConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return huitBedrockConfigured();
 }
 
-export function createChainClient(): Anthropic {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2 });
+export function createChainClient(): HuitBedrockClient {
+  return new HuitBedrockClient();
 }
 
-// Overload (529) errors usually arrive mid-stream, after the HTTP 200, so the
-// SDK's own maxRetries never fires; this stage-level ladder is the real retry
-// path. Overload episodes last minutes, so the delays escalate instead of
-// hammering the same window, with jitter so parallel fixtures desynchronize.
+// Retry transient gateway, rate-limit, and Bedrock service errors at the stage
+// boundary. Delays escalate instead of hammering the same window, with jitter
+// so parallel fixtures desynchronize.
 const STAGE_RETRY_DELAYS_MS = [5_000, 20_000, 60_000];
 const STAGE_RETRY_JITTER_MS = 5_000;
 
 function isNonRetryable(error: unknown): boolean {
   if (error instanceof NonRetryableStageError) return true;
-  return error instanceof Anthropic.APIError
+  return error instanceof HuitBedrockError
     && typeof error.status === "number"
     && [400, 401, 403, 404, 413].includes(error.status);
 }
 
 async function attemptClaudeStage<T>(input: {
-  client: Anthropic;
+  client: HuitBedrockClient;
   schema: z.ZodType<T>;
   stageName: string;
   model: string;
   reasoningEffort: ReasoningEffort;
   developerPrompt: string;
   userPrompt: string;
-  safetyIdentifier?: string;
   traces: StageTrace[];
 }): Promise<T> {
   const startedAt = Date.now();
-  // Streamed with generous headroom: adaptive thinking plus the nested
-  // feedback JSON regularly exceeds 15K output tokens on judge stages.
-  //
-  // Claude Opus 5 ships elevated safety classifiers that can decline a request
-  // outright, so every stage opts into a server-side fallback: a declined
-  // request is re-run on FALLBACK_MODEL inside the same call rather than
-  // failing the run. A Civil Procedure answer should never trip a cyber or bio
-  // classifier, but a false positive would otherwise lose a whole submission.
-  //
-  // Anthropic recommends `fallbacks: "default"` (category-routed, nothing to
-  // pin) over naming a model, but the SDK does not type the scalar form yet and
-  // this repo gates on tsc. Opus 4.8 is the documented target for a
-  // cyber-category refusal, so the pinned form behaves identically today.
-  const response = await input.client.beta.messages.stream({
+  const outputFormat = zodOutputFormat(input.schema);
+  const response = await input.client.invoke({
     model: input.model,
-    max_tokens: 64000,
+    maxTokens: MAX_OUTPUT_TOKENS,
     thinking: { type: "adaptive" },
     system: input.developerPrompt,
-    messages: [{ role: "user", content: input.userPrompt }],
-    betas: ["server-side-fallback-2026-06-01"],
-    fallbacks: [{ model: FALLBACK_MODEL }],
-    ...(input.safetyIdentifier ? { metadata: { user_id: input.safetyIdentifier } } : {}),
-    output_config: {
+    userPrompt: input.userPrompt,
+    outputConfig: {
       effort: input.reasoningEffort,
-      format: zodOutputFormat(input.schema),
+      format: {
+        type: "json_schema",
+        schema: outputFormat.schema as Record<string, unknown>,
+      },
     },
-  }).finalMessage();
+  });
   if (response.stop_reason === "max_tokens") {
     throw new Error("Output truncated at max_tokens before the structured object completed.");
   }
@@ -206,13 +577,11 @@ async function attemptClaudeStage<T>(input: {
 
   input.traces.push({
     name: input.stageName,
-    // The model that actually answered, which is the fallback rather than the
-    // requested model whenever a fallback served the turn.
-    model: response.model,
+    model: response.model ?? input.model,
     reasoningEffort: input.reasoningEffort,
     durationMs: Date.now() - startedAt,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
+    inputTokens: response.usage?.input_tokens,
+    outputTokens: response.usage?.output_tokens,
     responseId: response.id,
   });
   return parsed;
@@ -239,10 +608,13 @@ export async function parseClaudeStage<T>(input: Parameters<typeof attemptClaude
   throw new FeedbackStageError(input.stageName, lastError);
 }
 
-export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackIntake> {
+export async function runFeedbackIntake(
+  input: ChainInput,
+  options?: FeedbackChainOptions,
+): Promise<FeedbackIntake> {
   if (!chainConfigured()) {
     throw new FeedbackConfigurationError(
-      "ANTHROPIC_API_KEY is not configured. Add it to .env.local before running feedback.",
+      "HUIT_BEDROCK_API_KEY is not configured. Add it to .env.local before running feedback.",
     );
   }
 
@@ -250,8 +622,6 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
   const exam = getExam(input.examId);
   const traces: StageTrace[] = [];
   const client = createChainClient();
-  const studentLabel = input.studentLabel ?? "Anonymous practice";
-  const safetyIdentifier = stableSafetyIdentifier(studentLabel);
   const localExamMatches = rankExamMatches(input.answer, exam.promptPath);
   const submission = submissionContext({
     ...resolveSubmission(input),
@@ -259,18 +629,19 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
     modelAnswerKind: exam.modelAnswerKind,
   });
 
+  await reportProgress(options, "submission_fit");
   const submissionFit = await parseClaudeStage({
     client,
     schema: SubmissionFitAssessmentSchema,
     stageName: "submission_fit",
-    model: WORK_MODEL,
+    model: FAST_MODEL,
     reasoningEffort: "high",
     developerPrompt: submissionFitDeveloperPrompt,
     userPrompt: submissionFitUserPrompt({ exam: exam.prompt, answer: input.answer, submission }),
-    safetyIdentifier,
     traces,
   });
 
+  await reportProgress(options, "submission_fit_judge");
   const submissionFitJudge = await parseClaudeStage({
     client,
     schema: SubmissionFitJudgeSchema,
@@ -285,14 +656,12 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
       localExamMatches: formatExamMatches(localExamMatches),
       submission,
     }),
-    safetyIdentifier,
     traces,
   });
 
   return {
     startedAt,
     exam,
-    safetyIdentifier,
     submissionFit,
     submissionFitJudge,
     traces,
@@ -302,13 +671,13 @@ export async function runFeedbackIntake(input: ChainInput): Promise<FeedbackInta
 export async function runFeedbackChain(
   input: ChainInput,
   preparedIntake?: FeedbackIntake,
+  options?: FeedbackChainOptions,
 ): Promise<FeedbackRun> {
   const submission = resolveSubmission(input);
-  const intake = preparedIntake ?? await runFeedbackIntake(input);
+  const intake = preparedIntake ?? await runFeedbackIntake(input, options);
   const {
     startedAt,
     exam,
-    safetyIdentifier,
     submissionFit,
     submissionFitJudge,
     traces,
@@ -333,6 +702,7 @@ export async function runFeedbackChain(
     && submissionFitJudge.confidence >= 0.9;
 
   if (zeroCredit) {
+    await reportProgress(options, "complete");
     return {
       id: randomUUID(),
       createdAt: new Date().toISOString(),
@@ -360,6 +730,7 @@ export async function runFeedbackChain(
     };
   }
 
+  await reportProgress(options, "issue_map");
   const issueMap = await parseClaudeStage({
     client,
     schema: IssueMapSchema,
@@ -373,7 +744,6 @@ export async function runFeedbackChain(
       sources: "Additional course sources are retrieved after the issue map is built. Use the exam and instructor model answer for this stage.",
       submission: submissionBrief,
     }),
-    safetyIdentifier,
     traces,
   });
 
@@ -384,15 +754,15 @@ export async function runFeedbackChain(
   // terms alone, and labels the run as a lexical fallback.
   let expansionTerms: string[] = [];
   try {
+    await reportProgress(options, "retrieval_query");
     const retrievalQuery = await parseClaudeStage({
       client,
       schema: RetrievalQuerySchema,
       stageName: "retrieval_query",
-      model: WORK_MODEL,
+      model: FAST_MODEL,
       reasoningEffort: "low",
       developerPrompt: queryExpansionDeveloperPrompt,
       userPrompt: queryExpansionUserPrompt({ issueMap, answer: input.answer }),
-      safetyIdentifier,
       traces,
     });
     expansionTerms = [
@@ -410,11 +780,12 @@ export async function runFeedbackChain(
   let sources = retrievalCandidates.slice(0, FINAL_SOURCE_LIMIT);
   if (retrievalCandidates.length > 0) {
     try {
+      await reportProgress(options, "retrieval_rerank");
       const rerank = await parseClaudeStage({
         client,
         schema: SourceRerankSchema,
         stageName: "retrieval_rerank",
-        model: WORK_MODEL,
+        model: FAST_MODEL,
         reasoningEffort: "low",
         developerPrompt: sourceRerankDeveloperPrompt,
         userPrompt: sourceRerankUserPrompt({
@@ -422,7 +793,6 @@ export async function runFeedbackChain(
           answer: input.answer,
           candidates: formatSources(retrievalCandidates),
         }),
-        safetyIdentifier,
         traces,
       });
       const candidateById = new Map(retrievalCandidates.map((source) => [source.id, source]));
@@ -447,11 +817,12 @@ export async function runFeedbackChain(
   }
   const formattedSources = formatSources(sources);
 
+  await reportProgress(options, "blind_evaluation");
   const evaluation = await parseClaudeStage({
     client,
     schema: EvaluationSchema,
     stageName: "blind_evaluation",
-    model: WORK_MODEL,
+    model: EVALUATOR_MODEL,
     reasoningEffort: "high",
     developerPrompt: evaluationDeveloperPrompt,
     userPrompt: evaluationUserPrompt({
@@ -463,10 +834,10 @@ export async function runFeedbackChain(
       anchors: buildAnchorPack(exam.id, input.calibrationId),
       submission: submissionBrief,
     }),
-    safetyIdentifier,
     traces,
   });
 
+  await reportProgress(options, "feedback_draft");
   const draftFeedback = await parseClaudeStage({
     client,
     schema: FeedbackSchema,
@@ -475,10 +846,10 @@ export async function runFeedbackChain(
     reasoningEffort: "medium",
     developerPrompt: coachDeveloperPrompt,
     userPrompt: coachUserPrompt({ answer: input.answer, issueMap, evaluation, sources: formattedSources, submission: submissionBrief }),
-    safetyIdentifier,
     traces,
   });
 
+  await reportProgress(options, "judge_and_revise");
   const judge = await parseClaudeStage({
     client,
     schema: JudgeSchema,
@@ -496,10 +867,10 @@ export async function runFeedbackChain(
       sources: formattedSources,
       submission: submissionBrief,
     }),
-    safetyIdentifier,
     traces,
   });
 
+  await reportProgress(options, "complete");
   return {
     id: randomUUID(),
     createdAt: new Date().toISOString(),

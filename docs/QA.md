@@ -23,7 +23,8 @@ The supplied 2019 LP Word answer contains three anchored comments from Travis Fi
 
 ## Baseline procedure
 
-1. Add `ANTHROPIC_API_KEY` to `.env.local` — the only key the project uses — and start the app.
+1. Add the approved `HUIT_BEDROCK_API_KEY` and HUIT model settings to
+   `.env.local`, run `npm run huit:check`, and start the app.
 2. Open `/`.
 3. Use **Run all blind · 2 parallel** to run the eight ready fixtures with bounded concurrency, or run them individually. Do not change prompts or models during the batch.
 4. Export the run CSV and complete JSON archive. Keep these as the versioned baseline for the prompt version shown in the dashboard.

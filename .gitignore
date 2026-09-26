@@ -44,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/.swc
+
+# Playwright MCP snapshots (may contain console secrets)
+/.playwright-mcp

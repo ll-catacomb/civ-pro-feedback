@@ -1,8 +1,11 @@
 import { PracticeWorkspace } from "@/components/practice-workspace";
 import { SiteHeader } from "@/components/site-header";
+import { legacyPracticeEnabled } from "@/lib/access-control";
 import { getExams } from "@/lib/exams";
+import { redirect } from "next/navigation";
 
 export default function PracticePage() {
+  if (!legacyPracticeEnabled()) redirect("/student/practice");
   const exams = getExams();
   return (
     <>

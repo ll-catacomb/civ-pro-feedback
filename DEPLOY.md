@@ -1,61 +1,128 @@
-# Deploying for live student grading
+# Deploying the student app to Vercel
 
-The **Feedback Quality Report** (`/`) and **Review Dossier** (`/audit`) deploy fine to
-Vercel — they read committed snapshots and are safe to share read-only. But **live student
-grading (`/practice`) cannot run on Vercel**: a full run takes ~10–15 minutes and Vercel
-serverless functions are capped far below that (the request is killed and the browser shows a
-generic platform error). To let students submit on a live link, run the app on a host that
-keeps a long-lived Node server and gives it a writable, durable disk.
+The production design uses Vercel, Vercel Workflow, Google OAuth, two Google
+Sheets workbooks, one Apps Script write gate, and Claude through HUIT AI
+Services/AWS Bedrock. It does not require Postgres or a long-lived server.
 
-Only one secret is required: **`ANTHROPIC_API_KEY`**. There is no OpenAI key and no separate
-search index — retrieval reads `content/course` directly at startup.
+HUIT documents its Bedrock gateway as approved for Level 3 confidential data.
+That approval does not automatically cover Vercel, Workflow execution logs, or
+the Google configuration. Confirm the complete hosting path with Harvard
+Privacy/Security before accepting student responses at that classification.
 
-## Recommended: Render (no Docker)
+## 1. Create the Google resources
 
-1. The repo is already on GitHub: `ll-catacomb/civ-pro-feedback`.
-2. Render → **New → Web Service** → connect the repo.
-3. Settings:
-   - **Runtime:** Node
-   - **Build command:** `npm ci && npm run build`
-   - **Start command:** `npm run start`
-   - **Instance type:** Starter or higher. (A persistent disk requires a paid instance; the
-     free tier works for a quick test, but its filesystem is wiped on every deploy and it
-     sleeps after inactivity.)
-4. **Environment variables:**
-   - `ANTHROPIC_API_KEY` = your Anthropic key
-   - `FEEDBACK_DATA_DIR` = `/var/data`
-   - (Render sets `PORT` automatically; `next start` uses it.)
-5. **Add a persistent disk:** mount path `/var/data`, size 1 GB. Runs, failures, and evaluator
-   sweeps are stored there as JSON (via `FEEDBACK_DATA_DIR`), so they survive restarts and
-   redeploys.
-6. Deploy. The first build takes a few minutes. Open the service URL and go to `/practice`.
+1. Create an identity workbook and a feedback workbook in a course-owned Google
+   Drive. Keep them private.
+2. In Google Cloud, enable the Google Sheets API and create a service account.
+   Share both workbooks with its email as an editor.
+3. Create a Web OAuth client. Add local callback
+   `http://localhost:3000/api/auth/callback/google` while testing and production
+   callback `https://YOUR-DOMAIN/api/auth/callback/google` before launch.
+4. Deploy `google-apps-script/Code.gs` as a web app owned by the course account.
+   Follow `google-apps-script/README.md` and use a random gate secret of at least
+   32 bytes.
 
-Render runs the app as a long-lived server (not serverless), so it can handle much longer
-requests than Vercel.
+Do not give ordinary staff access to the identity workbook unless they need to
+resolve student identities. The feedback workbook contains pseudonyms rather
+than email addresses.
 
-## Railway
+## 2. Initialize the workbooks
 
-Same idea: connect the repo (it auto-detects Next.js), set the same env vars, add a **volume**
-mounted at `/var/data`, and set `FEEDBACK_DATA_DIR=/var/data`. Build `npm ci && npm run build`,
-start `npm run start`.
+Put the service-account credentials and both spreadsheet IDs in `.env.local`.
+Validate the roster first, then initialize the empty sheets:
 
-## Fly.io
+```bash
+npm run sheets:setup -- --roster path/to/roster.csv --dry-run
+npm run sheets:setup -- --roster path/to/roster.csv
+```
 
-Fly needs a container image. Ask me and I'll add a `Dockerfile` + `fly.toml` (standalone build,
-a mounted volume for `/var/data`, and an extended proxy timeout).
+The roster must contain an `email` column. It may also contain `status` and
+`max_attempts`; defaults are `active` and `5`. The command rejects duplicates,
+generates stable unique material-animal identifiers for the import, and will not
+overwrite a populated workbook.
 
-## Caveats worth knowing
+## 3. Configure Vercel
 
-- **The 13-minute wait is one long HTTP request.** These hosts allow it, but a request that
-  sends no bytes for 13 minutes can still be dropped by an intermediary — most commonly a CDN
-  or proxy placed in front (e.g., Cloudflare) that closes idle connections. If you see dropped
-  connections, tell me: the fixes are a lightweight keep-alive stream, or the async pattern
-  (submit → background worker → emailed link) so no one waits on an open tab.
-- **Storage.** The JSON store on a mounted disk is fine for a single instance and a pilot. If
-  you scale to multiple instances or want to query runs with SQL, move the store to Postgres —
-  a contained change behind the existing store interface that I can make when needed.
-- **Fresh disk = snapshot fallback.** Before any runs exist on a new disk, the report and
-  dossier fall back to the committed snapshots (same as on Vercel); they switch to live data as
-  runs accumulate.
-- **Node version** is pinned to 22.x via `.node-version` / `package.json` `engines`
-  (needs ≥ 20.19).
+Import the repository into Vercel and select Node 22. Set every required value
+listed in `.env.example` for the Production environment:
+
+- `HUIT_BEDROCK_API_KEY`
+- `HUIT_BEDROCK_BASE_URL`
+- `HUIT_BEDROCK_FAST_MODEL`
+- `HUIT_BEDROCK_WORK_MODEL`
+- `HUIT_BEDROCK_EVALUATOR_MODEL`
+- `HUIT_BEDROCK_JUDGE_MODEL`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
+- `GOOGLE_IDENTITY_SPREADSHEET_ID`
+- `GOOGLE_FEEDBACK_SPREADSHEET_ID`
+- `GOOGLE_ATTEMPT_GATE_URL`
+- `GOOGLE_ATTEMPT_GATE_SECRET`
+- `AUTH_SECRET`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+- `GOOGLE_WORKSPACE_DOMAIN`
+- `STAFF_EMAILS`
+- `STUDENT_DEMO_MODE=false`
+
+Use a generated high-entropy value for `AUTH_SECRET`. Preserve newlines in the
+service-account private key; the app also accepts the common escaped `\\n`
+environment-variable form.
+
+Use the HUIT API Portal **key**, not the separately issued app secret. Keep the
+default HUIT gateway URL and a `us.anthropic.*` inference profile unless Harvard
+approves another processing geography. Before deployment, add a spending cap to
+the Portal app registration and run `npm run huit:check`; it validates access,
+model availability, and quota without invoking a billable model.
+
+`GOOGLE_WORKSPACE_DOMAIN` is a comma-separated list of email domains; each
+entry also admits its subdomains. For HLS, `law.harvard.edu,g.harvard.edu`
+covers class-year student addresses (`jd27.law.harvard.edu`) and staff Google
+accounts. `STAFF_EMAILS` is a comma-separated allowlist of the addresses staff
+use to sign in to Google; each must fall inside one of those domains. Staff
+accounts do not need roster rows.
+
+## 4. Validate before deploying
+
+With production-equivalent values in `.env.local`, run:
+
+```bash
+npm run launch:check -- --live
+npm run huit:check
+npm run check
+npm run build
+```
+
+The live check confirms both workbooks are distinct, reachable by the service
+account, and have exactly the headers expected by the application.
+
+Push the verified commit and deploy it. Vercel installs the Workflow integration
+during the Next.js build and exposes the generated `.well-known/workflow`
+handlers. A student submission returns immediately after the attempt reservation
+and durable workflow start; the multi-stage model chain does not run inside that
+single request.
+
+## 5. Production smoke test
+
+Use one designated rostered test student and one allowlisted staff account.
+Verify sign-in rejection, attempt reservation, visible stage progress, closing
+and reopening the submission, completed feedback, staff audit access, and the
+identity/feedback separation in Sheets. Then test the fifth-attempt boundary on
+a disposable synthetic account or temporarily low-limit test row.
+
+Record the results in [LAUNCH_TODO.md](LAUNCH_TODO.md). A failed workflow should
+clear the active reservation, preserve a support reference, and not consume an
+attempt.
+
+## Operational notes
+
+- Vercel Workflow provides durable step execution; Google Sheets remains the
+  system of record for student-facing status and feedback.
+- The Apps Script lock makes attempt reservation atomic and idempotency keys
+  protect against double-click submission.
+- Staff routes and APIs require an allowlisted staff session. The legacy direct
+  feedback route returns 404 in production.
+- Rotate an exposed credential immediately and update both Apps Script and
+  Vercel when rotating the gate secret.
+- Establish a course-owned retention date and delete Sheets records according
+  to institutional policy after exports or review are complete.

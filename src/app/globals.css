@@ -326,10 +326,21 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .waiting-head svg { flex: 0 0 auto; margin-top: 2px; color: var(--crimson); }
 .waiting-head strong { display: block; font-size: 16px; }
 .waiting-head span { display: block; margin-top: 5px; font-size: 13.5px; line-height: 1.55; color: #6a4a4e; }
-
-.dino__canvas { display: block; width: 100%; height: 200px; background: var(--white); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; touch-action: manipulation; }
-.dino__hint { margin: 10px 0 0; text-align: center; font-size: 12.5px; color: var(--muted); }
-.dino kbd { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper-deep); font-family: var(--font-geist-mono), monospace; font-size: 11px; }
+.waiting-note { margin: 13px 0 30px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.feedback-pipeline { border-top: 1px solid var(--line); }
+.feedback-pipeline__heading { padding: 18px 0 16px; display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.feedback-pipeline__heading strong { font-size: 15px; }
+.feedback-pipeline__heading span { color: var(--muted); font-size: 11.5px; }
+.feedback-pipeline ol { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.feedback-pipeline__step { min-height: 94px; padding: 17px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; align-items: start; transition: opacity .2s ease, background-color .2s ease; }
+.feedback-pipeline__marker { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; color: #77736c; font: 600 11px var(--font-geist-mono), monospace; }
+.feedback-pipeline__step strong { display: block; margin-top: 2px; font-size: 13px; }
+.feedback-pipeline__step p { max-width: 620px; margin: 6px 0 0; color: #625f59; font-size: 12.5px; line-height: 1.55; }
+.feedback-pipeline__step.is-upcoming { opacity: .55; }
+.feedback-pipeline__step.is-active { box-shadow: inset 2px 0 0 var(--crimson); }
+.feedback-pipeline__step.is-active .feedback-pipeline__marker,
+.feedback-pipeline__step.is-active strong { color: var(--crimson); }
+.feedback-pipeline__step.is-complete .feedback-pipeline__marker { color: var(--success); }
 
 /* ---- Feedback Quality Report (homepage) ---- */
 .qa-report { max-width: 1120px; margin: 0 auto; padding: 56px 24px 120px; }
@@ -668,3 +679,120 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .fb-question__head { margin-bottom: 8px; font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
 /* Line-broken step lists survive into the lab, as they do for the student. */
 .fb-steps { white-space: pre-line; }
+
+/* ---- Authenticated student portal: intentionally quiet and document-like. ---- */
+.student-portal { min-height: 100vh; background: #f8f7f4; color: #252525; }
+.student-header { min-height: 62px; border-bottom: 1px solid #d7d4ce; background: #fff; }
+.student-header__inner { max-width: 960px; min-height: 62px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.student-wordmark { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.student-header nav { display: flex; align-items: center; gap: 22px; color: #555; font-size: 13px; }
+.student-header nav a:hover { color: var(--crimson); text-decoration: underline; text-underline-offset: 4px; }
+.student-header nav span { padding-left: 22px; border-left: 1px solid #d7d4ce; color: #252525; font-family: var(--font-geist-mono), monospace; font-size: 11px; }
+.student-header nav form { margin: 0; }
+.student-header nav button { padding: 0; border: 0; background: transparent; color: #555; cursor: pointer; font-size: 13px; }
+.student-header nav button:hover { color: var(--crimson); text-decoration: underline; text-underline-offset: 4px; }
+
+.student-page { max-width: 880px; margin: 0 auto; padding: 58px 24px 100px; }
+.student-demo-notice { margin-bottom: 46px; padding: 11px 0; border-top: 1px solid #bbb7af; border-bottom: 1px solid #bbb7af; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: #5d5953; font-size: 12px; }
+.student-demo-notice > span { font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.student-demo-notice form { display: flex; align-items: center; gap: 8px; }
+.student-demo-notice label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.student-demo-notice select, .student-demo-notice button { min-height: 32px; border: 1px solid #bbb7af; border-radius: 0; background: #fff; color: #252525; font-size: 12px; }
+.student-demo-notice select { padding: 0 28px 0 9px; }
+.student-demo-notice button { padding: 0 11px; cursor: pointer; }
+.student-demo-notice button:hover { border-color: #252525; }
+
+.student-page-heading { max-width: 620px; padding-bottom: 34px; }
+.student-page-heading > p:first-child, .student-practice-heading > p { margin: 0 0 10px; color: var(--crimson); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.student-page-heading h1, .student-practice-heading h1 { margin: 0; font-family: var(--font-geist-sans); font-size: clamp(32px, 5vw, 46px); font-weight: 600; line-height: 1.08; letter-spacing: -.035em; }
+.student-page-heading > p:last-child { margin: 14px 0 0; color: #625f59; font-size: 14px; line-height: 1.6; }
+
+.attempt-summary { padding: 26px 0 30px; border-top: 2px solid #252525; border-bottom: 1px solid #bbb7af; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 22px 36px; }
+.attempt-summary h2, .student-section-heading h2 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: -.015em; }
+.attempt-summary p { margin: 7px 0 0; color: #625f59; font-size: 13px; }
+.attempt-marks { display: flex; gap: 6px; align-self: center; }
+.attempt-marks span { width: 34px; height: 5px; background: #d7d4ce; }
+.attempt-marks span.is-used { background: var(--crimson); }
+.student-primary-link { grid-column: 1 / -1; width: fit-content; padding: 11px 15px; background: var(--crimson); color: #fff; font-size: 13px; font-weight: 700; }
+.student-primary-link:hover { background: var(--crimson-deep); }
+.attempt-limit-note { grid-column: 1 / -1; color: #7e2f23 !important; font-weight: 650; }
+
+.student-history { margin-top: 54px; }
+.student-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 13px; border-bottom: 1px solid #252525; }
+.student-section-heading p { margin: 0; color: #625f59; font-size: 12px; }
+.student-history-list article { min-height: 86px; padding: 18px 0; border-bottom: 1px solid #d7d4ce; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.student-history-link { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.student-history-link:hover h3 { color: var(--crimson); text-decoration: underline; text-underline-offset: 4px; }
+.student-history-list h3 { margin: 0; font-size: 14px; font-weight: 700; }
+.student-history-list p { margin: 6px 0 0; color: #625f59; font-size: 12px; }
+.student-history-status { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 11px; }
+.student-history-status span { color: #625f59; }
+.student-history-status strong { color: var(--crimson); font-weight: 700; }
+.student-empty-state { margin: 0; padding: 28px 0; border-bottom: 1px solid #d7d4ce; color: #625f59; font-size: 13px; }
+.student-setup-state { max-width: 640px; margin: 0 auto; padding: 100px 24px; }
+.student-setup-state h1 { margin: 0; font-size: 30px; }
+.student-setup-state p { color: #625f59; }
+.student-sign-in { max-width: 540px; margin: 0 auto; padding: 100px 24px; }
+.student-sign-in > p { margin: 0 0 10px; color: var(--crimson); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.student-sign-in h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -.03em; }
+.student-sign-in > span { display: block; margin-top: 15px; color: #625f59; font-size: 14px; line-height: 1.6; }
+.student-sign-in form { margin-top: 30px; }
+.student-sign-in button { min-height: 44px; padding: 0 17px; border: 0; background: var(--crimson); color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; }
+.student-sign-in button:hover { background: var(--crimson-deep); }
+.student-sign-in__pending { margin-top: 30px; padding: 15px 0; border-top: 1px solid #bbb7af; border-bottom: 1px solid #bbb7af; color: #625f59; font-size: 13px; }
+.student-sign-in small { display: block; margin-top: 22px; color: #77736c; font-size: 11px; line-height: 1.55; }
+.staff-sign-in { max-width: 540px; margin: 0 auto; padding: 100px 24px; }
+.staff-sign-in > p { margin: 0 0 10px; color: var(--crimson); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.staff-sign-in h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -.03em; }
+.staff-sign-in > span { display: block; margin-top: 15px; color: #625f59; font-size: 14px; line-height: 1.6; }
+.staff-sign-in form { margin-top: 30px; }
+.staff-sign-in button { min-height: 44px; padding: 0 17px; border: 0; background: var(--crimson); color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; }
+.staff-sign-in button:hover { background: var(--crimson-deep); }
+
+.student-practice-heading { max-width: 720px; margin: 0 auto; padding: 54px 24px 2px; }
+.student-practice-heading > span { display: block; max-width: 620px; margin-top: 14px; color: #625f59; font-size: 14px; line-height: 1.6; }
+.student-practice .practice-shell { max-width: 720px; padding-top: 30px; }
+.practice-attempt-line { margin-bottom: 30px; padding: 12px 0; border-top: 1px solid #bbb7af; border-bottom: 1px solid #bbb7af; display: flex; justify-content: space-between; gap: 20px; font-size: 12px; }
+.practice-attempt-line span { color: #625f59; }
+.student-practice .practice-select, .student-practice .answer-textarea, .student-practice .exam-document { border-radius: 0; background: #fff; }
+.student-practice .primary-button { width: auto; min-height: 44px; margin: 0; border-radius: 0; padding: 0 18px; }
+.student-practice .mode-note { background: transparent; border-left-width: 2px; }
+.student-practice .waiting-head { border-radius: 0; border-top: 2px solid var(--crimson); background: transparent; padding-left: 0; padding-right: 0; }
+.student-practice .feedback-pipeline__step.is-active { background: #f3f0eb; }
+.submission-refresh-warning { max-width: 712px; margin: 24px auto 0; padding: 10px 0; border-bottom: 1px solid #bbb7af; color: #765d20; font-size: 12px; }
+.student-submission-message { max-width: 620px; margin: 0 auto; padding: 90px 24px; }
+.student-submission-message h1 { margin: 0; font-size: 30px; letter-spacing: -.025em; }
+.student-submission-message p { color: #625f59; line-height: 1.6; }
+.student-submission-message code { display: block; margin: 20px 0; padding: 12px 0; border-top: 1px solid #bbb7af; border-bottom: 1px solid #bbb7af; }
+.student-submission-message a { color: var(--crimson); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+
+/* Feedback reads as one document in the student product, not a wall of cards. */
+.student-portal .result-shell { max-width: 880px; padding-left: 24px; padding-right: 24px; }
+.student-portal .result-heading h2 { font-family: var(--font-geist-sans); font-size: 38px; font-weight: 600; }
+.student-portal .quality-seal { width: auto; aspect-ratio: auto; padding: 3px 0 3px 15px; border: 0; border-left: 2px solid var(--success); border-radius: 0; align-items: flex-start; }
+.student-portal .quality-seal svg { display: none; }
+.student-portal .quality-seal span strong { font-family: var(--font-geist-sans); font-size: 12px; }
+.student-portal .quality-seal small { margin-top: 4px; font-size: 9px; }
+.student-portal .feedback-card { padding: 18px 0; border: 0; border-top: 1px solid #d7d4ce; background: transparent; }
+.student-portal .feedback-card h3 { font-family: var(--font-geist-sans); font-size: 17px; }
+.student-portal .strength-card, .student-portal .improvement-card { border-left: 0; }
+.student-portal .revision-panel { padding: 25px 0; border-top: 2px solid #252525; background: transparent; color: #252525; }
+.student-portal .revision-panel .eyebrow, .student-portal .example-revision strong { color: var(--crimson); }
+.student-portal .revision-panel li, .student-portal .closing-note { color: #4b4843; }
+.student-portal .revision-panel li::before, .student-portal .example-revision { border-color: #bbb7af; }
+.student-portal .example-revision { background: #fff; }
+
+@media (max-width: 700px) {
+  .student-header__inner { min-height: auto; padding: 14px 16px; align-items: flex-start; flex-direction: column; gap: 12px; }
+  .student-header nav { width: 100%; gap: 14px; flex-wrap: wrap; }
+  .student-header nav span { margin-left: auto; padding-left: 14px; }
+  .student-page { padding: 38px 16px 72px; }
+  .student-demo-notice, .practice-attempt-line, .student-section-heading { align-items: flex-start; flex-direction: column; }
+  .attempt-summary { grid-template-columns: 1fr; align-items: start; }
+  .attempt-marks { align-self: start; }
+  .student-history-list article, .student-history-link { align-items: flex-start; flex-direction: column; }
+  .student-history-status { align-items: flex-start; }
+  .student-practice-heading { padding: 38px 16px 2px; }
+  .feedback-pipeline__heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .feedback-pipeline__step { min-height: 0; }
+}

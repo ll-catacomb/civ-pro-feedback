@@ -14,7 +14,7 @@ export function SiteHeader() {
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
           <Link href="/"><FlaskConical size={16} /> Quality lab</Link>
-          <Link href="/practice"><BookOpen size={16} /> Student experience</Link>
+          <Link href="/student"><BookOpen size={16} /> Student experience</Link>
           <Link href="/audit"><ScrollText size={16} /> Review dossier</Link>
         </nav>
       </div>

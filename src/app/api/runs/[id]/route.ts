@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { requireStaffApi } from "@/lib/access-control";
 import { updateRunReview } from "@/lib/store";
 
 const ReviewSchema = z.object({
@@ -14,6 +15,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const denied = await requireStaffApi();
+  if (denied) return denied;
   try {
     const { id } = await context.params;
     const run = await updateRunReview(id, ReviewSchema.parse(await request.json()));

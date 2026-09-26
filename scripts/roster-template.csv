@@ -1,0 +1,3 @@
+email,status,max_attempts
+student1@example.edu,active,5
+student2@example.edu,active,5

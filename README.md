@@ -1,54 +1,115 @@
 # CivPro Practice
 
-A Next.js application for course-grounded Civil Procedure exam practice. Students paste a response to the 2015 or 2019 final and receive personalized feedback after a structured prompt chain. A two-pass intake gate first verifies that the response answers the selected exam; a clearly different-exam response receives zero credit and substantive grading stops. Instructors can run historical answers blind, compare predicted and actual bands, inspect the complete audit trail, rate feedback quality, and export results for Airtable.
+A course-grounded Civil Procedure practice app. Enrolled students sign in with
+Google, submit a draft or bullet-point outline, and receive evidence-grounded
+feedback from a durable, multi-step Claude workflow served through HUIT AI
+Services and AWS Bedrock. Professors and TAs have a
+separate allowlisted QA area for blind calibration, run review, and exports.
 
-## Included
+The production application is designed for Vercel and Google Sheets. It does
+not require Postgres.
 
-- 451 cleaned course-context Markdown files imported from `civil-procedure-materials`
-- the official 2015 and 2019 exams and instructor model answers
-- eight valid anonymized calibration responses — a full DS/H/P/LP ladder for each of the two exams
-- an exam-fingerprinting check on every submission, which is what caught the mislabeled answer originally supplied for the 2015 P slot
-- student submission and evidence-grounded feedback UI
-- blind calibration dashboard as the homepage; student practice at `/practice`
-- one-click batch calibration with three bounded parallel chains and independent per-fixture persistence
-- independent blind band calibration after the skeptical judge, followed by automatic post-hoc comparison against the actual grade and any real grader comments
-- local run persistence, complete JSON archive export, and Airtable-ready CSV export
-- prompt/model/version/token/timing traces for repeatable QA
+## What is included
 
-See [Architecture](docs/ARCHITECTURE.md) and [QA protocol](docs/QA.md) for the design and evaluation procedure.
+- Google OAuth with roster-only student access and an explicit staff allowlist
+- stable material-animal student identifiers, such as `golden-horse`
+- a hard, concurrency-safe five-attempt limit per student
+- separate private identity and feedback workbooks
+- durable Vercel Workflow execution, split so no request remains open for the
+  full feedback chain
+- a student progress view that explains each stage and can be reopened later
+- 451 cleaned course-context files, official practice exams, model answers, and
+  anonymized calibration responses
+- staff-only calibration, audit, JSON, and CSV tools
 
-## Setup
+See [Architecture](docs/ARCHITECTURE.md), [HUIT Bedrock integration](docs/HUIT_BEDROCK.md),
+[QA protocol](docs/QA.md), and the [launch checklist](LAUNCH_TODO.md).
 
-This project expects Node 20.19 or newer for the full Next.js toolchain.
+## Local setup
+
+Use Node 22.13 or newer. The version is pinned in `.node-version`.
 
 ```bash
 npm install
 cp .env.example .env.local
-```
-
-Add your Anthropic API key to `.env.local` — it is the only key the project needs — then run:
-
-```bash
 npm run dev
 ```
 
-There is no index to build. Course retrieval reads `content/course` directly at startup, so changed course materials take effect on the next restart.
+For interface work without credentials, set `STUDENT_DEMO_MODE=true`. The
+synthetic portal is available at `http://localhost:3000/student`; it does not
+call Google Sheets or create real submissions. Production refuses demo mode.
 
-Open `http://localhost:3000` for the Feedback Quality Lab and `http://localhost:3000/practice` for the secondary student experience. `/qa` redirects to the homepage.
+Once OAuth and Sheets are configured, students use `/student`, while staff use
+`/staff/sign-in` and then `/`. The older `/practice` endpoint is available only
+in local development and is disabled in production.
 
-The entire project runs on a single Anthropic API key (`claude-opus-5` by default; override with `ANTHROPIC_WORK_MODEL` / `ANTHROPIC_JUDGE_MODEL`). Every stage opts into a server-side refusal fallback, so a safety-classifier false positive is re-run on Anthropic's recommended substitute instead of failing the run; each stage trace records the model that actually answered. The blind evaluation owns the band recommendation and bands comparatively against instructor-graded reference answers (leave-one-out, so a run never sees its own grade). v4.0.0 collapsed the earlier dual OpenAI+Claude pipeline after calibration showed the cross-model judging layer did not improve band accuracy; v4.2.0 removed the last OpenAI call by replacing embedding-based retrieval with a Claude query-expansion stage. Pre-v4 dual runs remain readable in the QA lab and exports. Course retrieval now expands the issue map into the doctrine vocabulary the course materials actually use, ranks the corpus by BM25, retrieves 48 candidates, and reranks them into a curated packet of up to 24 excerpts.
+## Prepare Google Sheets
+
+Copy `scripts/roster-template.csv` and replace its synthetic rows. The required
+column is `email`; `status` and `max_attempts` are optional. Validate it without
+making external changes:
+
+```bash
+npm run sheets:setup -- --roster path/to/roster.csv --dry-run
+```
+
+After adding the Google service-account and spreadsheet variables to
+`.env.local`, initialize empty workbooks with:
+
+```bash
+npm run sheets:setup -- --roster path/to/roster.csv
+```
+
+The command creates the expected tabs and headers, assigns unique identifiers,
+and refuses to overwrite populated tabs. Production should use two workbooks:
+the identity workbook holds email mappings, while the feedback workbook holds
+pseudonymous submissions and generated content.
+
+The serialized attempt gate lives in `google-apps-script/`; its README explains
+deployment and Script Properties.
+
+## Configure HUIT Bedrock
+
+The app uses the Harvard API Gateway rather than a direct Anthropic key. Add the
+API **key** from the Harvard API Portal—not the separately issued app secret—to
+`HUIT_BEDROCK_API_KEY`. The key is sent server-side only in the `x-api-key`
+header. Defaults use US cross-region profiles so inference stays within US AWS
+regions: Sonnet 5 for supporting stages and Opus 5.5 for blind evaluation and
+skeptical judging.
+
+After approval, verify the key, selected inference profiles, and remaining
+budget without making a billable model call:
+
+```bash
+npm run huit:check
+```
+
+The API Portal app registration should include the HUIT billing ID and an
+explicit course spending cap. A real feedback-chain smoke test is still required
+after this non-billable check.
 
 ## Verification
 
 ```bash
 npm run check
 npm run build
+npm run huit:check
+npm run launch:check
+npm run launch:check -- --live
 ```
 
-Tests validate the core structured contracts and blindness/prompt invariants. A live model run is intentionally not part of the automated suite because it has API cost and non-determinism; run the historical fixtures from the homepage for the model-level evaluation.
+The non-live launch check validates configuration shape. `--live` also verifies
+service-account access and exact Google Sheets headers. Automated tests do not
+make paid model calls; use a designated test account for the final end-to-end
+check.
 
 ## Deployment
 
-The read-only Feedback Quality Report (`/`) and Review Dossier (`/audit`) run anywhere, including Vercel, because they fall back to committed snapshots. Live student grading (`/practice`) needs a long-lived server with a writable disk — a full run is ~10–15 minutes, longer than serverless function limits allow. See [DEPLOY.md](DEPLOY.md) for the Render/Railway/Fly setup.
+Deploy to Vercel with Node 22 and copy the production variables from
+`.env.example`. Vercel Workflow persists and resumes each model stage, so the
+browser request only reserves an attempt and starts the workflow. Students poll
+the stored submission state and may close and reopen the page safely.
 
-The current store is local JSON on disk and the routes are unauthenticated. That is appropriate for a single-instance pilot with a persistent disk, but before accepting real student work at scale, add authentication, rate limiting, a durable database, and a clear retention policy.
+Complete instructions are in [DEPLOY.md](DEPLOY.md). The exact course-owned
+credentials and final acceptance checks still needed are tracked in
+[LAUNCH_TODO.md](LAUNCH_TODO.md).
