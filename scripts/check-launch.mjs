@@ -25,7 +25,7 @@ const REQUIRED = [
 ];
 const EXPECTED_HEADERS = [
   ["Enrollment!A1:J1", [
-    "student_id", "google_subject", "email", "pseudonym", "status",
+    "student_id", "enrollment_code_hash", "section", "pseudonym", "status",
     "max_attempts", "attempts_consumed", "active_submission_id", "created_at",
     "last_login_at",
   ]],
@@ -132,6 +132,19 @@ async function checkLiveSheets() {
     const rows = await readRange(token, spreadsheetId, range);
     if (JSON.stringify(rows[0] ?? []) !== JSON.stringify(expectedHeaders)) {
       failures.push(`${range} does not have the exact expected header row.`);
+    }
+  }
+  const enrollment = await readRange(
+    token,
+    value("GOOGLE_IDENTITY_SPREADSHEET_ID"),
+    "Enrollment!A2:J",
+  );
+  for (const [index, row] of enrollment.entries()) {
+    if (!/^[a-f0-9]{64}$/.test(String(row[1] ?? ""))) {
+      failures.push(`Enrollment row ${index + 2} does not contain a valid access-code hash.`);
+    }
+    if (row.some((cell) => /@|CIVP-/i.test(String(cell ?? "")))) {
+      failures.push(`Enrollment row ${index + 2} appears to contain an email address or plaintext access code.`);
     }
   }
 }

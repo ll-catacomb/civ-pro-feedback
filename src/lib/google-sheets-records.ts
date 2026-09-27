@@ -22,8 +22,8 @@ export const CONTENT_SHEET = "Content";
 
 export const IDENTITY_HEADERS = [
   "student_id",
-  "google_subject",
-  "email",
+  "enrollment_code_hash",
+  "section",
   "pseudonym",
   "status",
   "max_attempts",
@@ -70,8 +70,8 @@ function integer(value: unknown, label: string): number {
 export function studentToRow(student: StudentRecord): string[] {
   return [
     student.studentId,
-    student.googleSubject,
-    student.email,
+    student.enrollmentCodeHash,
+    student.section,
     student.pseudonym,
     student.status,
     String(student.maxAttempts),
@@ -85,8 +85,8 @@ export function studentToRow(student: StudentRecord): string[] {
 export function rowToStudent(row: unknown[]): StudentRecord {
   return StudentRecordSchema.parse({
     studentId: text(row[0]),
-    googleSubject: text(row[1]),
-    email: text(row[2]),
+    enrollmentCodeHash: text(row[1]),
+    section: text(row[2]),
     pseudonym: text(row[3]),
     status: text(row[4]),
     maxAttempts: integer(row[5], "max_attempts"),

@@ -17,12 +17,12 @@ export default async function StudentPractice({
   const requested = Array.isArray(query.student) ? query.student[0] : query.student;
   const enabled = syntheticPortalEnabled();
   const session = enabled ? null : await auth();
-  if (!enabled && (!session?.user.googleSubject || !session.user.pseudonym)) {
+  if (!enabled && (!session?.user.studentId || !session.user.pseudonym)) {
     redirect("/student/sign-in");
   }
   const model = enabled
     ? getSyntheticPortalModel(Number(requested ?? 1))
-    : await getSheetsPortalModel(session!.user.googleSubject, session!.user.pseudonym);
+    : await getSheetsPortalModel(session!.user.studentId, session!.user.pseudonym);
   return (
     <div className="student-portal student-practice">
       <StudentHeader

@@ -32,7 +32,7 @@ describe("signed attempt gate", () => {
     });
     const client = new AttemptGateClient("https://example.test/gate", "test-secret", fetchImpl as typeof fetch);
     const result = await client.reserve({
-      googleSubject: "google-1",
+      studentId: randomUUID(),
       submissionId,
       requestKey: "request-1",
       examId: "2019-final",
@@ -45,5 +45,30 @@ describe("signed attempt gate", () => {
     });
     expect(result.remainingAttempts).toBe(4);
     expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("authenticates only with a code hash and returns an opaque student ID", async () => {
+    const studentId = randomUUID();
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const envelope = JSON.parse(String(init?.body));
+      expect(envelope.action).toBe("authenticate");
+      expect(envelope.payload).toEqual({
+        codeHash: "a".repeat(64),
+        loginAt: "2026-09-01T12:00:00.000Z",
+      });
+      expect(JSON.stringify(envelope)).not.toContain("email");
+      return new Response(JSON.stringify({
+        ok: true,
+        studentId,
+        pseudonym: "copper-horse",
+        remainingAttempts: 5,
+      }));
+    });
+    const client = new AttemptGateClient("https://example.test/gate", "test-secret", fetchImpl as typeof fetch);
+    const result = await client.authenticate({
+      codeHash: "a".repeat(64),
+      loginAt: "2026-09-01T12:00:00.000Z",
+    });
+    expect(result).toMatchObject({ studentId, pseudonym: "copper-horse" });
   });
 });

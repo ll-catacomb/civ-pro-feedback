@@ -15,8 +15,8 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session?.user.googleSubject || !session.user.pseudonym) {
-    return NextResponse.json({ error: "Sign in with your enrolled course account." }, { status: 401 });
+  if (!session?.user.studentId || !session.user.pseudonym) {
+    return NextResponse.json({ error: "Sign in with your course access code." }, { status: 401 });
   }
 
   const gate = createAttemptGateClient();
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     submissionId = randomUUID();
     const createdAt = new Date().toISOString();
     const reservation = await gate.reserve({
-      googleSubject: session.user.googleSubject,
+      studentId: session.user.studentId,
       submissionId,
       requestKey,
       examId: parsed.examId,
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     if (reserved && submissionId) {
       try {
         await gate.refund({
-          googleSubject: session.user.googleSubject,
+          studentId: session.user.studentId,
           submissionId,
           updatedAt: new Date().toISOString(),
           errorReference,

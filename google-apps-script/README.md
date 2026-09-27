@@ -3,6 +3,8 @@
 This Apps Script is the serialized write gate for student attempts. It uses a
 script-wide `LockService` lock, signed requests, idempotency keys, and replay
 protection so concurrent browser requests cannot both consume the fifth try.
+Student codes reach this service only as SHA-256 hashes. The identity workbook
+contains no student names, email addresses, or plaintext access codes.
 
 ## Deployment
 

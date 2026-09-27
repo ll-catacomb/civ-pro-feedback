@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { assignPseudonym, type StudentRecord } from "@/lib/student-records";
+import { assignPseudonym, hashEnrollmentCode, type StudentRecord } from "@/lib/student-records";
 
 /** Development-only roster with deliberately varied attempt states. */
 export function buildSyntheticRoster(count = 30): StudentRecord[] {
@@ -9,13 +9,13 @@ export function buildSyntheticRoster(count = 30): StudentRecord[] {
 
   return Array.from({ length: count }, (_, index) => {
     const number = index + 1;
-    const googleSubject = `synthetic-google-subject-${number.toString().padStart(3, "0")}`;
-    const pseudonym = assignPseudonym(googleSubject, usedNames);
+    const syntheticIdentity = `synthetic-student-${number.toString().padStart(3, "0")}`;
+    const pseudonym = assignPseudonym(syntheticIdentity, usedNames);
     usedNames.add(pseudonym);
     return {
       studentId: randomUUID(),
-      googleSubject,
-      email: `student${number.toString().padStart(3, "0")}@example.test`,
+      enrollmentCodeHash: hashEnrollmentCode(`CIVP-TEST-TEST-${number.toString().padStart(8, "0")}`),
+      section: number % 2 ? "Section 2" : "Section 3",
       pseudonym,
       status: number === count ? "disabled" : "active",
       maxAttempts: 5,

@@ -8,7 +8,7 @@ const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
 
 const IDENTITY_HEADERS = [
-  "student_id", "google_subject", "email", "pseudonym", "status",
+  "student_id", "enrollment_code_hash", "section", "pseudonym", "status",
   "max_attempts", "attempts_consumed", "active_submission_id", "created_at",
   "last_login_at",
 ];
@@ -73,13 +73,13 @@ function parseCsv(text) {
   return rows.filter((candidate) => candidate.some((value) => value.trim()));
 }
 
-function normalizeEmail(value) {
-  return value.trim().toLowerCase();
+function normalizeEnrollmentCode(value) {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function assignPseudonym(email, used) {
+function assignPseudonym(stableIdentity, used) {
   const capacity = MATERIALS.length * ANIMALS.length;
-  const digest = createHash("sha256").update(email).digest();
+  const digest = createHash("sha256").update(stableIdentity).digest();
   const start = digest.readUInt32BE(0) % capacity;
   for (let offset = 0; offset < capacity; offset += 1) {
     const index = (start + offset) % capacity;
@@ -95,18 +95,26 @@ function assignPseudonym(email, used) {
 function buildEnrollment(csvRows) {
   if (!csvRows.length) fail("The roster CSV is empty.");
   const headers = csvRows[0].map((value) => value.trim().toLowerCase());
-  const emailIndex = headers.indexOf("email");
+  const nameIndex = headers.indexOf("name");
+  const sectionIndex = headers.indexOf("section");
+  const codeIndex = headers.indexOf("enrollment_code");
   const statusIndex = headers.indexOf("status");
   const attemptsIndex = headers.indexOf("max_attempts");
-  if (emailIndex === -1) fail('The roster CSV needs a header named "email".');
+  if (nameIndex === -1 || sectionIndex === -1 || codeIndex === -1) {
+    fail('The private roster CSV needs headers named "name", "section", and "enrollment_code".');
+  }
   const seen = new Set();
   const usedPseudonyms = new Set();
   const createdAt = new Date().toISOString();
   const rows = csvRows.slice(1).map((values, index) => {
-    const email = normalizeEmail(values[emailIndex] ?? "");
-    if (!/^\S+@\S+\.\S+$/.test(email)) fail(`Row ${index + 2} has an invalid email address.`);
-    if (seen.has(email)) fail(`The roster contains the email ${email} more than once.`);
-    seen.add(email);
+    const name = (values[nameIndex] ?? "").trim();
+    const section = (values[sectionIndex] ?? "").trim();
+    const normalizedCode = normalizeEnrollmentCode(values[codeIndex] ?? "");
+    if (!name || !section) fail(`Row ${index + 2} is missing a name or section.`);
+    if (!/^CIVP[A-Z0-9]{16}$/.test(normalizedCode)) fail(`Row ${index + 2} has an invalid enrollment_code.`);
+    const codeHash = createHash("sha256").update(normalizedCode).digest("hex");
+    if (seen.has(codeHash)) fail(`The roster contains an enrollment code more than once.`);
+    seen.add(codeHash);
     const status = (values[statusIndex] ?? "active").trim().toLowerCase() || "active";
     if (status !== "active" && status !== "disabled") {
       fail(`Row ${index + 2} has status ${status}; use active or disabled.`);
@@ -116,7 +124,7 @@ function buildEnrollment(csvRows) {
       fail(`Row ${index + 2} has an invalid max_attempts value.`);
     }
     return [
-      randomUUID(), "", email, assignPseudonym(email, usedPseudonyms), status,
+      randomUUID(), codeHash, section, assignPseudonym(`${section}\0${name}`, usedPseudonyms), status,
       maxAttempts, 0, "", createdAt, "",
     ];
   });
@@ -172,7 +180,7 @@ async function main() {
     ? process.argv.slice(2).find((argument) => !argument.startsWith("-"))
     : process.argv[rosterFlagIndex + 1];
   if (!rosterPath || rosterPath.startsWith("-")) {
-    fail("Usage: npm run sheets:setup -- --roster path/to/roster.csv [--dry-run]");
+    fail("Usage: npm run sheets:setup -- --roster path/to/private-enrollment-codes.csv [--dry-run]");
   }
   const enrollment = buildEnrollment(parseCsv(await readFile(rosterPath, "utf8")));
   if (process.argv.includes("--dry-run")) {

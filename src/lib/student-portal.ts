@@ -60,12 +60,12 @@ export function getSyntheticPortalModel(requestedIndex = 1): StudentPortalModel 
 }
 
 export async function getSheetsPortalModel(
-  googleSubject: string,
+  studentId: string,
   expectedPseudonym: string,
 ): Promise<StudentPortalModel> {
   const store = new GoogleSheetsRecordStore(createGoogleSheetsClient());
   const [students, submissions] = await Promise.all([store.listStudents(), store.listSubmissions()]);
-  const student = students.find((candidate) => candidate.googleSubject === googleSubject);
+  const student = students.find((candidate) => candidate.studentId === studentId);
   if (!student || student.pseudonym !== expectedPseudonym || student.status !== "active") {
     throw new Error("The authenticated account no longer has an active course enrollment.");
   }

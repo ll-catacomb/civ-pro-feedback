@@ -13,7 +13,7 @@ function doPost(event) {
     authenticateRequest(request);
     let result;
     switch (request.action) {
-      case "claim": result = claimIdentity(request.payload); break;
+      case "authenticate": result = authenticateCode(request.payload); break;
       case "reserve": result = reserveAttempt(request.payload); break;
       case "complete": result = finishAttempt(request.payload, true); break;
       case "refund": result = finishAttempt(request.payload, false); break;
@@ -33,25 +33,21 @@ function doPost(event) {
   }
 }
 
-function claimIdentity(payload) {
-  requireFields(payload, ["email", "googleSubject", "loginAt"]);
+function authenticateCode(payload) {
+  requireFields(payload, ["codeHash", "loginAt"]);
   const sheets = openConfiguredSheets();
-  const student = findRowCaseInsensitive(sheets.enrollment, 3, payload.email);
-  if (!student) gateError("not_enrolled", "This email address is not enrolled in the course.");
+  const student = findRow(sheets.enrollment, 2, String(payload.codeHash).toLowerCase());
+  if (!student) gateError("not_enrolled", "This course access code is not valid.");
   if (String(student.values[4]) !== "active") gateError("disabled", "This course account is disabled.");
-  const existingSubject = String(student.values[1] || "");
-  if (existingSubject && existingSubject !== payload.googleSubject) {
-    gateError("conflict", "This roster entry is already linked to another Google account.");
-  }
   const pseudonym = String(student.values[3] || "");
   if (!pseudonym) throw new Error("The enrolled student does not have a pseudonym.");
-  sheets.enrollment.getRange(student.rowNumber, 2).setValue(payload.googleSubject);
   sheets.enrollment.getRange(student.rowNumber, 10).setValue(payload.loginAt);
   SpreadsheetApp.flush();
   const maxAttempts = integerCell(student.values[5], "max_attempts");
   const attemptsConsumed = integerCell(student.values[6], "attempts_consumed");
   const reserved = student.values[7] ? 1 : 0;
   return {
+    studentId: String(student.values[0]),
     pseudonym,
     remainingAttempts: Math.max(0, maxAttempts - attemptsConsumed - reserved),
   };
@@ -91,15 +87,15 @@ function constantTimeEqual(left, right) {
 
 function reserveAttempt(payload) {
   requireFields(payload, [
-    "googleSubject", "submissionId", "requestKey", "examId", "scope", "mode",
+    "studentId", "submissionId", "requestKey", "examId", "scope", "mode",
     "createdAt", "promptVersion", "answerParts",
   ]);
   if (!Array.isArray(payload.answerParts) || payload.answerParts.length === 0) {
     gateError("invalid_request", "answerParts must contain at least one part.");
   }
   const sheets = openConfiguredSheets();
-  const student = findRow(sheets.enrollment, 2, payload.googleSubject);
-  if (!student) gateError("not_enrolled", "This Google account is not enrolled in the course.");
+  const student = findRow(sheets.enrollment, 1, payload.studentId);
+  if (!student) gateError("not_enrolled", "This student account is not enrolled in the course.");
 
   const duplicate = findRow(sheets.submissions, 3, payload.requestKey);
   const maxAttempts = integerCell(student.values[5], "max_attempts");
@@ -155,10 +151,10 @@ function reserveAttempt(payload) {
 }
 
 function finishAttempt(payload, consume) {
-  requireFields(payload, ["googleSubject", "submissionId", "updatedAt"]);
+  requireFields(payload, ["studentId", "submissionId", "updatedAt"]);
   const sheets = openConfiguredSheets();
-  const student = findRow(sheets.enrollment, 2, payload.googleSubject);
-  if (!student) gateError("not_enrolled", "This Google account is not enrolled in the course.");
+  const student = findRow(sheets.enrollment, 1, payload.studentId);
+  if (!student) gateError("not_enrolled", "This student account is not enrolled in the course.");
   const submission = findRow(sheets.submissions, 1, payload.submissionId);
   if (!submission) gateError("not_found", "The submission was not found.");
 
@@ -190,7 +186,7 @@ function finishAttempt(payload, consume) {
   }
   sheets.enrollment.getRange(student.rowNumber, 8).clearContent();
   SpreadsheetApp.flush();
-  const refreshed = findRow(sheets.enrollment, 2, payload.googleSubject);
+  const refreshed = findRow(sheets.enrollment, 1, payload.studentId);
   return finishResponse(refreshed, payload.submissionId);
 }
 
@@ -250,15 +246,6 @@ function findRow(sheet, column, value) {
   if (lastRow < 2) return null;
   const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   const index = values.findIndex((row) => String(row[column - 1]) === String(value));
-  return index === -1 ? null : { rowNumber: index + 2, values: values[index] };
-}
-
-function findRowCaseInsensitive(sheet, column, value) {
-  const target = String(value).trim().toLowerCase();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return null;
-  const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
-  const index = values.findIndex((row) => String(row[column - 1]).trim().toLowerCase() === target);
   return index === -1 ? null : { rowNumber: index + 2, values: values[index] };
 }
 

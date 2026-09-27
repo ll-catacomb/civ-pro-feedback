@@ -17,7 +17,7 @@ export default async function StudentSubmissionPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user.googleSubject || !session.user.pseudonym || session.user.role !== "student") {
+  if (!session?.user.studentId || !session.user.pseudonym || session.user.role !== "student") {
     redirect("/student/sign-in");
   }
   const { id } = await params;

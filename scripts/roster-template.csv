@@ -1,3 +1,2 @@
-email,status,max_attempts
-student1@example.edu,active,5
-student2@example.edu,active,5
+name,section,email,enrollment_code,status,max_attempts
+Example Student,Section 2,,CIVP-2345-6789-ABCD-EFGH,active,5

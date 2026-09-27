@@ -21,12 +21,12 @@ export default async function StudentHome({
   const requested = Array.isArray(query.student) ? query.student[0] : query.student;
   const synthetic = syntheticPortalEnabled();
   const session = synthetic ? null : await auth();
-  if (!synthetic && (!session?.user.googleSubject || !session.user.pseudonym)) {
+  if (!synthetic && (!session?.user.studentId || !session.user.pseudonym)) {
     redirect("/student/sign-in");
   }
   const model = synthetic
     ? getSyntheticPortalModel(Number(requested ?? 1))
-    : await getSheetsPortalModel(session!.user.googleSubject, session!.user.pseudonym);
+    : await getSheetsPortalModel(session!.user.studentId, session!.user.pseudonym);
   const used = model.student.maxAttempts - model.remainingAttempts;
   const querySuffix = model.synthetic ? `?student=${model.demoIndex}` : "";
   return (

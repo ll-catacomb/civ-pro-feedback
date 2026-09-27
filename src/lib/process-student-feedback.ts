@@ -20,7 +20,7 @@ export type StudentFeedbackPreparation =
   | {
     kind: "ready";
     submissionId: string;
-    googleSubject: string;
+    studentId: string;
     input: ChainInput;
     startedAt: number;
   };
@@ -58,8 +58,8 @@ export async function prepareStudentFeedback(
 
   const students = await store.listStudents();
   const student = students.find((candidate) => candidate.pseudonym === submission.pseudonym);
-  if (!student?.googleSubject) {
-    throw new Error("The submission is not linked to an enrolled Google account.");
+  if (!student) {
+    throw new Error("The submission is not linked to an enrolled student account.");
   }
 
   const content = await store.listContent(submissionId);
@@ -67,7 +67,7 @@ export async function prepareStudentFeedback(
   if (persistedRun) {
     await bestEffortSaveRun(persistedRun);
     await createAttemptGateClient().complete({
-      googleSubject: student.googleSubject,
+      studentId: student.studentId,
       submissionId,
       updatedAt: new Date().toISOString(),
     });
@@ -98,7 +98,7 @@ export async function prepareStudentFeedback(
   return {
     kind: "ready",
     submissionId,
-    googleSubject: student.googleSubject,
+    studentId: student.studentId,
     startedAt: Date.now(),
     input: {
       examId: submission.examId,
@@ -142,7 +142,7 @@ export async function completeStudentFeedback(
   }
   await bestEffortSaveRun(finalRun);
   await createAttemptGateClient().complete({
-    googleSubject: preparation.googleSubject,
+    studentId: preparation.studentId,
     submissionId: preparation.submissionId,
     updatedAt: new Date().toISOString(),
   });
@@ -166,7 +166,7 @@ export async function failStudentFeedback(
   if (persistedRun) {
     await bestEffortSaveRun(persistedRun);
     await createAttemptGateClient().complete({
-      googleSubject: preparation.googleSubject,
+      studentId: preparation.studentId,
       submissionId: preparation.submissionId,
       updatedAt: new Date().toISOString(),
     });
@@ -192,7 +192,7 @@ export async function failStudentFeedback(
     console.warn("Legacy failure-store write skipped", storeError);
   }
   await createAttemptGateClient().refund({
-    googleSubject: preparation.googleSubject,
+    studentId: preparation.studentId,
     submissionId: preparation.submissionId,
     updatedAt: new Date().toISOString(),
     errorReference,

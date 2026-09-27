@@ -11,13 +11,14 @@ import {
   submissionToRow,
 } from "@/lib/google-sheets-records";
 import type { StudentRecord, SubmissionContent, SubmissionRecord } from "@/lib/student-records";
+import { hashEnrollmentCode } from "@/lib/student-records";
 
 describe("Google Sheets record serialization", () => {
   it("round-trips enrollment rows", () => {
     const record: StudentRecord = {
       studentId: randomUUID(),
-      googleSubject: "google-123",
-      email: "student@example.test",
+      enrollmentCodeHash: hashEnrollmentCode("CIVP-2345-6789-ABCD-EFGH"),
+      section: "Section 2",
       pseudonym: "copper-horse",
       status: "active",
       maxAttempts: 5,

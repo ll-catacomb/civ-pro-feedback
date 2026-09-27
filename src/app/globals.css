@@ -736,9 +736,13 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .student-sign-in > p { margin: 0 0 10px; color: var(--crimson); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
 .student-sign-in h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -.03em; }
 .student-sign-in > span { display: block; margin-top: 15px; color: #625f59; font-size: 14px; line-height: 1.6; }
-.student-sign-in form { margin-top: 30px; }
+.student-sign-in form { display: grid; gap: 10px; margin-top: 30px; }
+.student-sign-in form label { color: #393733; font-size: 12px; font-weight: 700; }
+.student-sign-in form input { min-height: 46px; padding: 0 13px; border: 1px solid #aaa59c; border-radius: 0; background: #fff; color: #222; font: 600 16px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
+.student-sign-in form input:focus { border-color: var(--crimson); outline: 2px solid color-mix(in srgb, var(--crimson) 22%, transparent); outline-offset: 1px; }
 .student-sign-in button { min-height: 44px; padding: 0 17px; border: 0; background: var(--crimson); color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; }
 .student-sign-in button:hover { background: var(--crimson-deep); }
+.student-sign-in__error { margin-top: 22px; padding: 12px 14px; border-left: 3px solid var(--crimson); background: #f8eeee; color: #5d141c; font-size: 13px; line-height: 1.5; }
 .student-sign-in__pending { margin-top: 30px; padding: 15px 0; border-top: 1px solid #bbb7af; border-bottom: 1px solid #bbb7af; color: #625f59; font-size: 13px; }
 .student-sign-in small { display: block; margin-top: 22px; color: #77736c; font-size: 11px; line-height: 1.55; }
 .staff-sign-in { max-width: 540px; margin: 0 auto; padding: 100px 24px; }

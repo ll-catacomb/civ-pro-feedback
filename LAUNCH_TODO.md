@@ -1,6 +1,6 @@
 # Student App Launch Checklist
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
@@ -17,28 +17,27 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Upgrade security-sensitive dependencies and rerun audit, tests, and production build.
 - [x] Replace direct Anthropic access with the HUIT AI Services Bedrock gateway,
       US inference-profile configuration, and a non-billable access/quota check.
-- [x] Accept multiple Google Workspace domains, including subdomains, so HLS
-      class-year student addresses (`jd27.law.harvard.edu`) and staff
-      `g.harvard.edu` accounts can both sign in (`src/lib/workspace-domains.ts`).
+- [x] Replace student email/OAuth identity with individually issued, hashed
+      access codes. Google OAuth remains only for allowlisted staff.
 - [ ] Complete a live end-to-end smoke test with a synthetic or designated test account.
 
 Automated verification completed on 2026-09-26:
 
-- `npm run check`: clean lint and typecheck; 165 tests passing.
+- `npm run check`: clean lint and typecheck; 166 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
-- roster dry run: two synthetic rows and two unique identifiers validated.
+- roster preparation and dry run: 83 students in each section, 166 unique
+  students, 166 unique access codes, plus one separate test account.
 - Apps Script syntax check: passed.
 - `npm run huit:check`: HUIT authentication passed. US Sonnet 5 and US Opus 5.5
   are available. On 2026-09-26 the gateway reported a 10,000 USD monthly limit
   with 9,999.99997 USD remaining; no model was invoked.
-- `npm run launch:check`: with the test Google resources below in `.env.local`,
-  the only remaining failure is `STAFF_EMAILS`. The `-- --live` check also needs
-  the workbooks initialized with `npm run sheets:setup` and a roster. A live
-  read-only check authenticated successfully with the service account and
-  reached the identity workbook, then stopped because the `Enrollment` tab does
-  not exist yet, as expected for the still-empty test workbooks.
+- The two test workbooks are initialized with exact headers and 167 anonymous
+  identity records. Apps Script Version 2 is deployed at the existing URL.
+- Live code authentication and the browser sign-in flow passed for the separate
+  `quartz-owl` test account with five attempts remaining. Invalid-code handling
+  also passed. The temporary test code was rotated after the check.
 
 ## Google test environment (set up 2026-09-25)
 
@@ -52,13 +51,15 @@ request a course-owned project from HUIT and recreate these resources there.
   with no project roles. JSON key at `.data/google-service-account.json`
   (gitignored, mode 600).
 - OAuth consent screen "Civil Procedure Feedback", audience **Internal**
-  (harvard.edu Google organization only). Web client
+  (harvard.edu Google organization only) for staff access. Web client
   "civpro-feedback web (test)" with the redirect
   `http://localhost:3000/api/auth/callback/google` only. Backup JSON at
   `.data/google-oauth-client.json`.
 - Workbooks in the owner's Drive, shared with the service account only:
   "CivPro Feedback – IDENTITY (test, private)" and
-  "CivPro Feedback – FEEDBACK (test)". Both still contain only an empty `Sheet1`.
+  "CivPro Feedback – FEEDBACK (test)". They now contain the initialized
+  `Enrollment`, `Submissions`, and `Content` tabs. Enrollment holds code hashes,
+  not names, plaintext codes, or emails.
 - Apps Script "CivPro Feedback attempt gate (test)", deployed as a web app
   (execute as owner, access: Anyone; requests are HMAC-authenticated). Script
   Properties are set; the gate secret is also in `.data/gate-secret.txt`. If
@@ -89,22 +90,19 @@ request a course-owned project from HUIT and recreate these resources there.
       once the Vercel URL is chosen.
 - [x] Provide `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and a generated `AUTH_SECRET`
       (test values in `.env.local`).
-- [x] Confirm the Google Workspace domain used for student accounts: HLS students
-      use class-year subdomains (`jdNN.law.harvard.edu`); configured as
-      `law.harvard.edu,g.harvard.edu`.
-- [ ] Verify with a real HLS student account that sign-in succeeds (the Internal
-      consent screen and domain check have not yet been exercised by a
-      `law.harvard.edu` account).
+- [x] Configure the Google Workspace domains used by staff accounts as
+      `law.harvard.edu,g.harvard.edu`. Students do not use Google OAuth.
 - [x] Create a Google Sheets service account, enable the Sheets API, and provide
       its email/private key (test project).
 - [x] Create the private identity workbook and private feedback workbook; share
       both with the service account (test workbooks; access verified via API).
 - [x] Deploy the Apps Script attempt gate and provide its deployment URL and
       shared secret (test deployment).
-- [ ] Provide the final roster as CSV or Google Sheet with one institutional
-      email per active student, then run `npm run sheets:setup`. The setup
-      refuses to overwrite a populated workbook, so use a test roster only on
-      throwaway workbooks.
+- [x] Prepare both fall section rosters: 83 students each, with no duplicates or
+      overlap. Private codes are in `.data/fall-2026-enrollment-codes.csv`.
+- [ ] Obtain student emails if permitted, populate only the private roster's
+      `email` column, and use it for mail merge. Do not upload that mapping.
+- [x] Redeploy the Apps Script web app with the current code-based gate.
 - [ ] Provide the staff email allowlist for professors and TAs, using the Harvard
       Google address each person signs in with.
 - [ ] Decide who may access the identity workbook versus the feedback workbook.
@@ -137,14 +135,15 @@ the test resources above; none have been added to Vercel yet.
 
 ## Live acceptance test
 
-- [ ] A rostered student can sign in and receives the expected pseudonym.
-- [ ] A non-roster account and wrong-domain account are rejected.
+- [x] The designated test code signs in and receives the expected pseudonym.
+- [x] An unknown code is rejected without revealing whether a similar code exists.
 - [ ] Double-clicking submit creates only one reservation and one workflow.
 - [ ] A student can close the tab, return through history, and see live progress.
 - [ ] Completed feedback reopens from history after a new login.
 - [ ] A failed workflow is refunded and shows a support reference.
 - [ ] The fifth attempt succeeds and a sixth is rejected.
-- [ ] The identity workbook contains the email mapping but no student answers.
+- [x] The identity workbook contains code hashes and account state but no names,
+      student emails, plaintext codes, or student answers.
 - [ ] The feedback workbook contains pseudonyms, answers, status, and feedback
       but no student emails.
 - [ ] Staff routes work for allowlisted staff and reject student sessions.

@@ -6,9 +6,8 @@ export const StudentStatusSchema = z.enum(["active", "disabled"]);
 
 export const StudentRecordSchema = z.object({
   studentId: z.string().uuid(),
-  // Empty until an allowlisted roster email completes its first Google login.
-  googleSubject: z.string(),
-  email: z.string().email(),
+  enrollmentCodeHash: z.string().regex(/^[a-f0-9]{64}$/),
+  section: z.string().min(1),
   pseudonym: z.string().regex(/^[a-z]+-[a-z]+$/),
   status: StudentStatusSchema,
   maxAttempts: z.number().int().positive(),
@@ -19,6 +18,16 @@ export const StudentRecordSchema = z.object({
 });
 
 export type StudentRecord = z.infer<typeof StudentRecordSchema>;
+
+export function normalizeEnrollmentCode(code: string): string {
+  return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export function hashEnrollmentCode(code: string): string {
+  const normalized = normalizeEnrollmentCode(code);
+  if (normalized.length < 16) throw new Error("The enrollment code is incomplete.");
+  return createHash("sha256").update(normalized).digest("hex");
+}
 
 export const SubmissionStatusSchema = z.enum([
   "queued",

@@ -1,7 +1,7 @@
 # CivPro Practice
 
 A course-grounded Civil Procedure practice app. Enrolled students sign in with
-Google, submit a draft or bullet-point outline, and receive evidence-grounded
+private course access codes, submit a draft or bullet-point outline, and receive evidence-grounded
 feedback from a durable, multi-step Claude workflow served through HUIT AI
 Services and AWS Bedrock. Professors and TAs have a
 separate allowlisted QA area for blind calibration, run review, and exports.
@@ -11,7 +11,7 @@ not require Postgres.
 
 ## What is included
 
-- Google OAuth with roster-only student access and an explicit staff allowlist
+- hashed, roster-issued student access codes and Google OAuth for allowlisted staff
 - stable material-animal student identifiers, such as `golden-horse`
 - a hard, concurrency-safe five-attempt limit per student
 - separate private identity and feedback workbooks
@@ -39,31 +39,43 @@ For interface work without credentials, set `STUDENT_DEMO_MODE=true`. The
 synthetic portal is available at `http://localhost:3000/student`; it does not
 call Google Sheets or create real submissions. Production refuses demo mode.
 
-Once OAuth and Sheets are configured, students use `/student`, while staff use
+Once authentication and Sheets are configured, students use `/student`, while staff use
 `/staff/sign-in` and then `/`. The older `/practice` endpoint is available only
 in local development and is disabled in production.
 
 ## Prepare Google Sheets
 
-Copy `scripts/roster-template.csv` and replace its synthetic rows. The required
-column is `email`; `status` and `max_attempts` are optional. Validate it without
-making external changes:
+Prepare one-column class-list exports locally. This command strips the seating
+codes, generates high-entropy student access codes, and writes a private,
+gitignored delivery roster with a blank email column for later mail merge:
 
 ```bash
-npm run sheets:setup -- --roster path/to/roster.csv --dry-run
+npm run roster:prepare -- \
+  --section "Section 2=/path/to/section-2.csv" \
+  --section "Section 3=/path/to/section-3.csv" \
+  --output .data/enrollment-codes.csv
+```
+
+The private output contains names and plaintext codes and must not be committed.
+Only one-way code hashes, sections, pseudonyms, and attempt state are uploaded.
+Validate the private roster without making external changes:
+
+```bash
+npm run sheets:setup -- --roster .data/enrollment-codes.csv --dry-run
 ```
 
 After adding the Google service-account and spreadsheet variables to
 `.env.local`, initialize empty workbooks with:
 
 ```bash
-npm run sheets:setup -- --roster path/to/roster.csv
+npm run sheets:setup -- --roster .data/enrollment-codes.csv
 ```
 
 The command creates the expected tabs and headers, assigns unique identifiers,
 and refuses to overwrite populated tabs. Production should use two workbooks:
-the identity workbook holds email mappings, while the feedback workbook holds
-pseudonymous submissions and generated content.
+the identity workbook holds code hashes and account state, while the feedback
+workbook holds pseudonymous submissions and generated content. Neither workbook
+needs student names or email addresses.
 
 The serialized attempt gate lives in `google-apps-script/`; its README explains
 deployment and Script Properties.
@@ -96,6 +108,7 @@ npm run build
 npm run huit:check
 npm run launch:check
 npm run launch:check -- --live
+npm run student-code:check -- --roster .data/enrollment-codes.csv
 ```
 
 The non-live launch check validates configuration shape. `--live` also verifies

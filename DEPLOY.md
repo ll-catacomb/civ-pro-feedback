@@ -1,6 +1,6 @@
 # Deploying the student app to Vercel
 
-The production design uses Vercel, Vercel Workflow, Google OAuth, two Google
+The production design uses Vercel, Vercel Workflow, private student access codes, staff Google OAuth, two Google
 Sheets workbooks, one Apps Script write gate, and Claude through HUIT AI
 Services/AWS Bedrock. It does not require Postgres or a long-lived server.
 
@@ -15,7 +15,7 @@ Privacy/Security before accepting student responses at that classification.
    Drive. Keep them private.
 2. In Google Cloud, enable the Google Sheets API and create a service account.
    Share both workbooks with its email as an editor.
-3. Create a Web OAuth client. Add local callback
+3. Create a Web OAuth client for staff access. Add local callback
    `http://localhost:3000/api/auth/callback/google` while testing and production
    callback `https://YOUR-DOMAIN/api/auth/callback/google` before launch.
 4. Deploy `google-apps-script/Code.gs` as a web app owned by the course account.
@@ -28,18 +28,20 @@ than email addresses.
 
 ## 2. Initialize the workbooks
 
-Put the service-account credentials and both spreadsheet IDs in `.env.local`.
-Validate the roster first, then initialize the empty sheets:
+Prepare the private code-delivery roster, validate it, then initialize the empty
+sheets. The delivery roster remains local and gitignored:
 
 ```bash
-npm run sheets:setup -- --roster path/to/roster.csv --dry-run
-npm run sheets:setup -- --roster path/to/roster.csv
+npm run roster:prepare -- --section "Section 2=/path/to/section-2.csv" --section "Section 3=/path/to/section-3.csv" --output .data/enrollment-codes.csv
+npm run sheets:setup -- --roster .data/enrollment-codes.csv --dry-run
+npm run sheets:setup -- --roster .data/enrollment-codes.csv
 ```
 
-The roster must contain an `email` column. It may also contain `status` and
-`max_attempts`; defaults are `active` and `5`. The command rejects duplicates,
-generates stable unique material-animal identifiers for the import, and will not
-overwrite a populated workbook.
+The generated delivery roster contains `name`, `section`, a blank `email` field
+for later mail merge, `enrollment_code`, `status`, and `max_attempts`. The setup
+command rejects duplicates, generates unique material-animal identifiers, hashes
+codes before upload, and will not overwrite a populated workbook. No student
+name, email address, or plaintext code is uploaded.
 
 ## 3. Configure Vercel
 
@@ -75,12 +77,10 @@ approves another processing geography. Before deployment, add a spending cap to
 the Portal app registration and run `npm run huit:check`; it validates access,
 model availability, and quota without invoking a billable model.
 
-`GOOGLE_WORKSPACE_DOMAIN` is a comma-separated list of email domains; each
-entry also admits its subdomains. For HLS, `law.harvard.edu,g.harvard.edu`
-covers class-year student addresses (`jd27.law.harvard.edu`) and staff Google
-accounts. `STAFF_EMAILS` is a comma-separated allowlist of the addresses staff
-use to sign in to Google; each must fall inside one of those domains. Staff
-accounts do not need roster rows.
+`GOOGLE_WORKSPACE_DOMAIN` is a comma-separated list of email domains admitted
+for staff Google sign-in; each entry also admits its subdomains. `STAFF_EMAILS`
+is a separate exact allowlist. Student authentication does not request or store
+Google or email identity.
 
 ## 4. Validate before deploying
 
@@ -89,6 +89,7 @@ With production-equivalent values in `.env.local`, run:
 ```bash
 npm run launch:check -- --live
 npm run huit:check
+npm run student-code:check -- --roster .data/enrollment-codes.csv
 npm run check
 npm run build
 ```
@@ -104,7 +105,7 @@ single request.
 
 ## 5. Production smoke test
 
-Use one designated rostered test student and one allowlisted staff account.
+Use the separately generated test code and one allowlisted staff account.
 Verify sign-in rejection, attempt reservation, visible stage progress, closing
 and reopening the submission, completed feedback, staff audit access, and the
 identity/feedback separation in Sheets. Then test the fifth-attempt boundary on

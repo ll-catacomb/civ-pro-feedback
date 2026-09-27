@@ -4,7 +4,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { z } from "zod";
 
-const GateActionSchema = z.enum(["claim", "reserve", "complete", "refund", "progress"]);
+const GateActionSchema = z.enum(["authenticate", "reserve", "complete", "refund", "progress"]);
 export type GateAction = z.infer<typeof GateActionSchema>;
 
 const GateEnvelopeSchema = z.object({
@@ -17,15 +17,14 @@ const GateEnvelopeSchema = z.object({
 
 export type GateEnvelope = z.infer<typeof GateEnvelopeSchema>;
 
-export const ClaimIdentityPayloadSchema = z.object({
-  email: z.string().email(),
-  googleSubject: z.string().min(1),
+export const AuthenticateCodePayloadSchema = z.object({
+  codeHash: z.string().regex(/^[a-f0-9]{64}$/),
   loginAt: z.string().datetime(),
 });
-export type ClaimIdentityPayload = z.infer<typeof ClaimIdentityPayloadSchema>;
+export type AuthenticateCodePayload = z.infer<typeof AuthenticateCodePayloadSchema>;
 
 export const ReserveAttemptPayloadSchema = z.object({
-  googleSubject: z.string().min(1),
+  studentId: z.string().uuid(),
   submissionId: z.string().uuid(),
   requestKey: z.string().min(1),
   examId: z.string().min(1),
@@ -39,7 +38,7 @@ export const ReserveAttemptPayloadSchema = z.object({
 export type ReserveAttemptPayload = z.infer<typeof ReserveAttemptPayloadSchema>;
 
 const FinishAttemptPayloadSchema = z.object({
-  googleSubject: z.string().min(1),
+  studentId: z.string().uuid(),
   submissionId: z.string().uuid(),
   updatedAt: z.string().datetime(),
   errorReference: z.string().optional(),
@@ -61,6 +60,7 @@ export const GateResponseSchema = z.object({
   remainingAttempts: z.number().int().nonnegative().optional(),
   duplicate: z.boolean().optional(),
   pseudonym: z.string().regex(/^[a-z]+-[a-z]+$/).optional(),
+  studentId: z.string().uuid().optional(),
   error: z.string().optional(),
   code: z.enum([
     "invalid_request",
@@ -115,8 +115,8 @@ export class AttemptGateClient {
     private readonly fetchImpl: FetchLike = fetch,
   ) {}
 
-  claim(payload: ClaimIdentityPayload): Promise<GateResponse> {
-    return this.call("claim", ClaimIdentityPayloadSchema.parse(payload));
+  authenticate(payload: AuthenticateCodePayload): Promise<GateResponse> {
+    return this.call("authenticate", AuthenticateCodePayloadSchema.parse(payload));
   }
 
   reserve(payload: ReserveAttemptPayload): Promise<GateResponse> {

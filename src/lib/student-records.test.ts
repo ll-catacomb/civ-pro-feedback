@@ -7,6 +7,7 @@ import {
   assignPseudonym,
   chunkSheetContent,
   completeAttempt,
+  hashEnrollmentCode,
   joinSheetContent,
   refundAttempt,
   remainingAttempts,
@@ -17,8 +18,8 @@ import {
 function student(overrides: Partial<StudentRecord> = {}): StudentRecord {
   return {
     studentId: randomUUID(),
-    googleSubject: "google-subject-1",
-    email: "student@example.test",
+    enrollmentCodeHash: hashEnrollmentCode("CIVP-2345-6789-ABCD-EFGH"),
+    section: "Section 2",
     pseudonym: "amber-owl",
     status: "active",
     maxAttempts: 5,
@@ -66,6 +67,14 @@ describe("student pseudonyms", () => {
     const first = assignPseudonym("same-student", new Set());
     expect(assignPseudonym("same-student", new Set())).toBe(first);
     expect(assignPseudonym("same-student", new Set([first]))).not.toBe(first);
+  });
+});
+
+describe("student enrollment codes", () => {
+  it("hashes display variants to the same irreversible value", () => {
+    expect(hashEnrollmentCode("civp-2345-6789-abcd-efgh"))
+      .toBe(hashEnrollmentCode(" CIVP 2345 6789 ABCD EFGH "));
+    expect(hashEnrollmentCode("CIVP-2345-6789-ABCD-EFGH")).toMatch(/^[a-f0-9]{64}$/);
   });
 });
 

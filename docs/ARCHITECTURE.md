@@ -3,8 +3,8 @@
 ## Production request flow
 
 ```text
-Google sign-in
-  -> roster claim under Apps Script lock
+private course access code
+  -> hash and roster authentication under Apps Script lock
   -> signed Auth.js session (student pseudonym or staff role)
 
 student submission
@@ -38,11 +38,11 @@ the internal workflow retains finer-grained checkpoints for recovery and QA.
 
 ## Identity and authorization
 
-Google OAuth establishes the institutional account. On first student sign-in,
-the signed Apps Script gate matches the normalized email to an active Enrollment
-row and binds that row to Google's stable subject identifier. Later requests use
-the subject identifier and pseudonym stored in the signed session; student email
-is not exposed to the student application session.
+Each student receives a random, high-entropy access code through a private course
+channel. The Next.js server normalizes and hashes the submitted code before the
+signed Apps Script gate matches it to an active Enrollment row. The signed
+session contains only the internal student ID and pseudonym. Student names,
+plaintext codes, and email addresses are not uploaded to either workbook.
 
 Staff access is separate: `STAFF_EMAILS` is an explicit allowlist inside the
 configured Workspace domain. Staff-only page and API guards protect calibration,
@@ -51,7 +51,7 @@ is disabled in production.
 
 ## Attempt integrity
 
-Apps Script is the single serialized writer for identity claims, reservations,
+Apps Script is the single serialized writer for authentication, reservations,
 progress, completion, and refunds. A script-wide `LockService` lock prevents two
 requests from both claiming the last attempt. Calls from Next.js have a
 short-lived HMAC signature, timestamp, and single-use nonce. Submission request
@@ -85,15 +85,16 @@ persisted index.
 
 Production uses two private Google workbooks:
 
-- **Identity workbook / `Enrollment`:** institutional email, Google subject,
-  internal student ID, pseudonym, account status, attempt limit and counts,
+- **Identity workbook / `Enrollment`:** enrollment-code hash, section, internal
+  student ID, pseudonym, account status, attempt limit and counts,
   active reservation, and login timestamps.
 - **Feedback workbook / `Submissions` and `Content`:** pseudonym, submission and
   idempotency IDs, progress, attempt number, exam metadata, prompt version,
   student-answer chunks, workflow artifacts, final feedback, and error details.
 
-This split allows access to feedback QA without automatically revealing the
-email-to-pseudonym mapping. Vercel Workflow also retains execution state and logs
+The private local delivery roster is the only file that maps names to plaintext
+codes; its blank email column can be populated later for mail merge. The workbook
+split keeps authentication records out of routine feedback QA. Vercel Workflow also retains execution state and logs
 needed to resume steps; it is not the student record of authority.
 
 The local JSON run store remains for historical calibration and staff QA data.
@@ -102,14 +103,14 @@ read-only historical reporting when no local run store exists.
 
 ## Privacy boundary
 
-- API, OAuth, service-account, and gate secrets remain server-side.
+- API, staff OAuth, service-account, and gate secrets remain server-side.
 - HUIT's API Gateway and AWS Bedrock receive the exam response and contextual
   material needed to generate feedback. The configured US cross-region profile
   keeps inference processing in US AWS regions.
 - Google stores enrollment, submissions, progress, and results in the two
   course-owned workbooks.
 - Vercel executes and logs the durable workflow; operational logs should avoid
-  student email and raw-answer logging.
+  plaintext access codes, student identity, and raw-answer logging.
 - Historical calibration documents have student identifiers and exam-system
   metadata removed.
 
