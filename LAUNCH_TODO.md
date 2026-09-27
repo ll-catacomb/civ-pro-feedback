@@ -8,7 +8,7 @@ Workflow for durable execution; it does not require Postgres.
 
 ## Engineering before launch
 
-- [x] Protect staff pages, calibration actions, run data, reviews, and exports.
+- [x] Remove the Quality Lab and Review Dossier pages from the student-facing app.
 - [x] Disable the legacy unauthenticated practice endpoint in production.
 - [x] Let students reopen completed and in-progress submissions from history.
 - [x] Add a roster-to-Sheets setup command with duplicate and format checks.
@@ -17,13 +17,13 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Upgrade security-sensitive dependencies and rerun audit, tests, and production build.
 - [x] Replace direct Anthropic access with the HUIT AI Services Bedrock gateway,
       US inference-profile configuration, and a non-billable access/quota check.
-- [x] Replace student email/OAuth identity with individually issued, hashed
-      access codes. Google OAuth remains only for allowlisted staff.
+- [x] Require Harvard Google verification before accepting an individually
+      issued, hashed student access code; do not retain the verified email.
 - [ ] Complete a live end-to-end smoke test with a synthetic or designated test account.
 
-Automated verification completed on 2026-09-26:
+Automated verification completed on 2026-09-27:
 
-- `npm run check`: clean lint and typecheck; 166 tests passing.
+- `npm run check`: clean lint and typecheck; 169 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
@@ -51,9 +51,9 @@ request a course-owned project from HUIT and recreate these resources there.
   with no project roles. JSON key at `.data/google-service-account.json`
   (gitignored, mode 600).
 - OAuth consent screen "Civil Procedure Feedback", audience **Internal**
-  (harvard.edu Google organization only) for staff access. Web client
-  "civpro-feedback web (test)" with the redirect
-  `http://localhost:3000/api/auth/callback/google` only. Backup JSON at
+  (harvard.edu Google organization only) for student access. Web client
+  "civpro-feedback web (test)" with local and production redirects, including
+  `https://civ-pro-feedback.vercel.app/api/auth/callback/google`. Backup JSON at
   `.data/google-oauth-client.json`.
 - Workbooks in the owner's Drive, shared with the service account only:
   "CivPro Feedback – IDENTITY (test, private)" and
@@ -66,13 +66,11 @@ request a course-owned project from HUIT and recreate these resources there.
   `google-apps-script/Code.gs` changes, redeploy it in Apps Script.
 - Harvard shows an "external to Google Apps for Harvard" warning when sharing
   with service accounts. This is expected; choose "Share anyway".
-- HLS faculty do not get Harvard Gmail. Staff must sign in with a Harvard Google
-  account (usually `g.harvard.edu`), and `STAFF_EMAILS` must list that address,
-  not their Microsoft email.
 
 ## Credentials and decisions needed from the course team
 
-- [ ] Choose the production Vercel project, owner, plan, and final URL.
+- [x] Choose the production Vercel project and URL:
+      `https://civ-pro-feedback.vercel.app/`.
 - [ ] Obtain Harvard confirmation that the selected Vercel project, Workflow
       execution/log retention, and configuration are approved for the data
       classification of student exam responses. HUIT's Level 3 approval covers
@@ -85,13 +83,12 @@ request a course-owned project from HUIT and recreate these resources there.
 - [ ] Request a course-owned Google Cloud project from HUIT (the test project
       is personal, in the `self-paid` folder), then recreate the resources below
       in it.
-- [x] Create a Google Cloud web OAuth client (test project; localhost redirect).
-- [ ] Add `https://YOUR-DOMAIN/api/auth/callback/google` to the OAuth client
-      once the Vercel URL is chosen.
+- [x] Create a Google Cloud web OAuth client and add both the localhost and
+      `https://civ-pro-feedback.vercel.app/api/auth/callback/google` redirects.
 - [x] Provide `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and a generated `AUTH_SECRET`
       (test values in `.env.local`).
-- [x] Configure the Google Workspace domains used by staff accounts as
-      `law.harvard.edu,g.harvard.edu`. Students do not use Google OAuth.
+- [x] Configure the Google Workspace domains admitted for student verification
+      as `law.harvard.edu,g.harvard.edu` (including their subdomains).
 - [x] Create a Google Sheets service account, enable the Sheets API, and provide
       its email/private key (test project).
 - [x] Create the private identity workbook and private feedback workbook; share
@@ -103,16 +100,14 @@ request a course-owned project from HUIT and recreate these resources there.
 - [ ] Obtain student emails if permitted, populate only the private roster's
       `email` column, and use it for mail merge. Do not upload that mapping.
 - [x] Redeploy the Apps Script web app with the current code-based gate.
-- [ ] Provide the staff email allowlist for professors and TAs, using the Harvard
-      Google address each person signs in with.
 - [ ] Decide who may access the identity workbook versus the feedback workbook.
 - [ ] Confirm the student disclosure, support contact, and record-retention date
       with the institution's privacy/IT guidance.
 
 ## Production environment variables
 
-Checked items have values. The Google values currently in `.env.local` point to
-the test resources above; none have been added to Vercel yet.
+Checked items have values. The Google values in `.env.local` and Vercel point
+to the test resources above.
 
 - [x] `HUIT_BEDROCK_API_KEY`
 - [x] `HUIT_BEDROCK_BASE_URL`
@@ -130,11 +125,12 @@ the test resources above; none have been added to Vercel yet.
 - [x] `AUTH_GOOGLE_ID` (test)
 - [x] `AUTH_GOOGLE_SECRET` (test)
 - [x] `GOOGLE_WORKSPACE_DOMAIN` = `law.harvard.edu,g.harvard.edu`
-- [ ] `STAFF_EMAILS`
 - [x] Set `STUDENT_DEMO_MODE=false`.
 
 ## Live acceptance test
 
+- [ ] A permitted Harvard Google account proceeds to the course-code step; a
+      non-permitted account is rejected.
 - [x] The designated test code signs in and receives the expected pseudonym.
 - [x] An unknown code is rejected without revealing whether a similar code exists.
 - [ ] Double-clicking submit creates only one reservation and one workflow.
@@ -146,7 +142,6 @@ the test resources above; none have been added to Vercel yet.
       student emails, plaintext codes, or student answers.
 - [ ] The feedback workbook contains pseudonyms, answers, status, and feedback
       but no student emails.
-- [ ] Staff routes work for allowlisted staff and reject student sessions.
 - [ ] Legacy production endpoints cannot trigger model calls.
 - [ ] Vercel shows the split workflow steps and a complete production run.
 - [ ] The first structured-output run completes within the configured Vercel

@@ -1,6 +1,7 @@
 # Deploying the student app to Vercel
 
-The production design uses Vercel, Vercel Workflow, private student access codes, staff Google OAuth, two Google
+The production design uses Vercel, Vercel Workflow, Harvard Google verification,
+private student access codes, two Google
 Sheets workbooks, one Apps Script write gate, and Claude through HUIT AI
 Services/AWS Bedrock. It does not require Postgres or a long-lived server.
 
@@ -15,7 +16,7 @@ Privacy/Security before accepting student responses at that classification.
    Drive. Keep them private.
 2. In Google Cloud, enable the Google Sheets API and create a service account.
    Share both workbooks with its email as an editor.
-3. Create a Web OAuth client for staff access. Add local callback
+3. Create a Web OAuth client for student access. Add local callback
    `http://localhost:3000/api/auth/callback/google` while testing and production
    callback `https://YOUR-DOMAIN/api/auth/callback/google` before launch.
 4. Deploy `google-apps-script/Code.gs` as a web app owned by the course account.
@@ -64,7 +65,6 @@ listed in `.env.example` for the Production environment:
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 - `GOOGLE_WORKSPACE_DOMAIN`
-- `STAFF_EMAILS`
 - `STUDENT_DEMO_MODE=false`
 
 Use a generated high-entropy value for `AUTH_SECRET`. Preserve newlines in the
@@ -78,9 +78,9 @@ the Portal app registration and run `npm run huit:check`; it validates access,
 model availability, and quota without invoking a billable model.
 
 `GOOGLE_WORKSPACE_DOMAIN` is a comma-separated list of email domains admitted
-for staff Google sign-in; each entry also admits its subdomains. `STAFF_EMAILS`
-is a separate exact allowlist. Student authentication does not request or store
-Google or email identity.
+for student Google sign-in; each entry also admits its subdomains. Students
+then enter their private course code. The verified email is checked during the
+OAuth callback but is not retained in the session or Google Sheets.
 
 ## 4. Validate before deploying
 
@@ -105,9 +105,9 @@ single request.
 
 ## 5. Production smoke test
 
-Use the separately generated test code and one allowlisted staff account.
-Verify sign-in rejection, attempt reservation, visible stage progress, closing
-and reopening the submission, completed feedback, staff audit access, and the
+Use the separately generated test code and a Harvard Google test account.
+Verify OAuth rejection, code rejection, attempt reservation, visible stage progress, closing
+and reopening the submission, completed feedback, and the
 identity/feedback separation in Sheets. Then test the fifth-attempt boundary on
 a disposable synthetic account or temporarily low-limit test row.
 
@@ -121,8 +121,7 @@ attempt.
   system of record for student-facing status and feedback.
 - The Apps Script lock makes attempt reservation atomic and idempotency keys
   protect against double-click submission.
-- Staff routes and APIs require an allowlisted staff session. The legacy direct
-  feedback route returns 404 in production.
+- The legacy direct feedback route returns 404 in production.
 - Rotate an exposed credential immediately and update both Apps Script and
   Vercel when rotating the gate secret.
 - Establish a course-owned retention date and delete Sheets records according

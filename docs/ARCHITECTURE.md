@@ -4,8 +4,9 @@
 
 ```text
 private course access code
+  <- short-lived proof from verified Harvard Google OAuth
   -> hash and roster authentication under Apps Script lock
-  -> signed Auth.js session (student pseudonym or staff role)
+  -> signed Auth.js student session containing only the pseudonymous course identity
 
 student submission
   -> validate session and input
@@ -44,10 +45,11 @@ signed Apps Script gate matches it to an active Enrollment row. The signed
 session contains only the internal student ID and pseudonym. Student names,
 plaintext codes, and email addresses are not uploaded to either workbook.
 
-Staff access is separate: `STAFF_EMAILS` is an explicit allowlist inside the
-configured Workspace domain. Staff-only page and API guards protect calibration,
-run details, audit views, and exports. The unauthenticated legacy practice route
-is disabled in production.
+Google OAuth verifies that the person has an account in a configured Harvard
+Workspace domain. The verified email is used only during the OAuth callback and
+is not retained. A short-lived signed handoff permits the subsequent course-code
+check; the code endpoint rejects direct calls without that proof. The
+unauthenticated legacy practice route is disabled in production.
 
 ## Attempt integrity
 
@@ -103,7 +105,7 @@ read-only historical reporting when no local run store exists.
 
 ## Privacy boundary
 
-- API, staff OAuth, service-account, and gate secrets remain server-side.
+- API, OAuth, service-account, and gate secrets remain server-side.
 - HUIT's API Gateway and AWS Bedrock receive the exam response and contextual
   material needed to generate feedback. The configured US cross-region profile
   keeps inference processing in US AWS regions.

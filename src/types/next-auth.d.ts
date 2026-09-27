@@ -6,12 +6,13 @@ declare module "next-auth" {
       googleSubject: string;
       studentId: string;
       pseudonym: string;
-      role: "student" | "staff";
+      role: "pending" | "student" | "staff";
     };
   }
 
   interface User {
-    role?: "student" | "staff";
+    role?: "pending" | "student" | "staff";
+    googleSubject?: string;
   }
 }
 
@@ -20,6 +21,6 @@ declare module "next-auth/jwt" {
     googleSubject?: string;
     studentId?: string;
     pseudonym?: string | null;
-    role?: "student" | "staff";
+    role?: "pending" | "student" | "staff";
   }
 }

@@ -21,7 +21,6 @@ const REQUIRED = [
   "AUTH_GOOGLE_ID",
   "AUTH_GOOGLE_SECRET",
   "GOOGLE_WORKSPACE_DOMAIN",
-  "STAFF_EMAILS",
 ];
 const EXPECTED_HEADERS = [
   ["Enrollment!A1:J1", [
@@ -93,18 +92,7 @@ if (value("GOOGLE_ATTEMPT_GATE_URL")) {
 // Mirrors src/lib/workspace-domains.ts: each entry admits itself and subdomains.
 const workspaceDomains = value("GOOGLE_WORKSPACE_DOMAIN").split(",")
   .map((domain) => domain.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
-const inWorkspace = (email) => {
-  const emailDomain = email.slice(email.lastIndexOf("@") + 1);
-  return workspaceDomains.some((domain) => emailDomain === domain || emailDomain.endsWith(`.${domain}`));
-};
-const staff = value("STAFF_EMAILS").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-if (staff.length !== new Set(staff).size) failures.push("STAFF_EMAILS contains a duplicate address.");
-for (const email of staff) {
-  if (!/^\S+@\S+\.\S+$/.test(email)) failures.push(`STAFF_EMAILS contains invalid address ${email}.`);
-  if (workspaceDomains.length && !inWorkspace(email)) {
-    failures.push(`Staff address ${email} is outside GOOGLE_WORKSPACE_DOMAIN and will be rejected.`);
-  }
-}
+if (!workspaceDomains.length) failures.push("GOOGLE_WORKSPACE_DOMAIN must contain at least one domain.");
 
 async function readRange(token, spreadsheetId, range) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`;

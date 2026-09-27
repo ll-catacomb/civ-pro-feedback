@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, FlaskConical, Scale, ScrollText } from "lucide-react";
+import { BookOpen, Scale } from "lucide-react";
 
 export function SiteHeader() {
   return (
@@ -13,9 +13,7 @@ export function SiteHeader() {
           </span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
-          <Link href="/"><FlaskConical size={16} /> Quality lab</Link>
           <Link href="/student"><BookOpen size={16} /> Student experience</Link>
-          <Link href="/audit"><ScrollText size={16} /> Review dossier</Link>
         </nav>
       </div>
     </header>

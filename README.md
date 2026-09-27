@@ -3,15 +3,14 @@
 A course-grounded Civil Procedure practice app. Enrolled students sign in with
 private course access codes, submit a draft or bullet-point outline, and receive evidence-grounded
 feedback from a durable, multi-step Claude workflow served through HUIT AI
-Services and AWS Bedrock. Professors and TAs have a
-separate allowlisted QA area for blind calibration, run review, and exports.
+Services and AWS Bedrock.
 
 The production application is designed for Vercel and Google Sheets. It does
 not require Postgres.
 
 ## What is included
 
-- hashed, roster-issued student access codes and Google OAuth for allowlisted staff
+- Harvard Google verification followed by a hashed, roster-issued student access code
 - stable material-animal student identifiers, such as `golden-horse`
 - a hard, concurrency-safe five-attempt limit per student
 - separate private identity and feedback workbooks
@@ -20,7 +19,6 @@ not require Postgres.
 - a student progress view that explains each stage and can be reopened later
 - 451 cleaned course-context files, official practice exams, model answers, and
   anonymized calibration responses
-- staff-only calibration, audit, JSON, and CSV tools
 
 See [Architecture](docs/ARCHITECTURE.md), [HUIT Bedrock integration](docs/HUIT_BEDROCK.md),
 [QA protocol](docs/QA.md), and the [launch checklist](LAUNCH_TODO.md).
@@ -39,9 +37,9 @@ For interface work without credentials, set `STUDENT_DEMO_MODE=true`. The
 synthetic portal is available at `http://localhost:3000/student`; it does not
 call Google Sheets or create real submissions. Production refuses demo mode.
 
-Once authentication and Sheets are configured, students use `/student`, while staff use
-`/staff/sign-in` and then `/`. The older `/practice` endpoint is available only
-in local development and is disabled in production.
+Once authentication and Sheets are configured, students use `/student`. The
+root URL redirects there. The older `/practice` endpoint is available only in
+local development and is disabled in production.
 
 ## Prepare Google Sheets
 
