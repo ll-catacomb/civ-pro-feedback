@@ -78,6 +78,11 @@ and compare schema-error and latency rates before enabling it in production.
   and Sheets into a course-owned environment.
 - Set a HUIT spending cap tied to the course billing ID.
 - Rotate the Apps Script gate secret in both Script Properties and Vercel.
+- Update the Apps Script HMAC call to pass `Utilities.Charset.UTF_8`, deploy the
+  new gate version, and then remove Next.js's legacy non-ASCII-to-`?` signature
+  compatibility transform. The current transform preserves the original answer
+  payload but mirrors Apps Script's default signing behavior for Word-style
+  punctuation.
 - Convert remaining credential-like Vercel Config values to Sensitive values.
 - Approve the student disclosure, support route, workbook access list, and
   record-retention/deletion date.

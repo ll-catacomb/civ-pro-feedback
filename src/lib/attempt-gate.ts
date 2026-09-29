@@ -88,7 +88,13 @@ export class AttemptGateError extends Error {
 }
 
 function canonicalMessage(envelope: Omit<GateEnvelope, "signature">): string {
-  return `${envelope.timestamp}.${envelope.nonce}.${envelope.action}.${JSON.stringify(envelope.payload)}`;
+  const message = `${envelope.timestamp}.${envelope.nonce}.${envelope.action}.${JSON.stringify(envelope.payload)}`;
+  // Apps Script's two-argument computeHmacSha256Signature overload encodes
+  // unmappable non-ASCII characters as "?". Mirror that legacy behavior for
+  // signatures only; the JSON request and stored student answer remain UTF-8.
+  // A future gate version should use its explicit UTF_8 overload, coordinated
+  // with removal of this compatibility transform.
+  return message.replace(/[^\x00-\x7f]/g, "?");
 }
 
 export function signGateEnvelope(

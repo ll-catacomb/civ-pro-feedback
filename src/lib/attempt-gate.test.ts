@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -16,6 +16,18 @@ describe("signed attempt gate", () => {
     expect(verifyGateEnvelope(envelope, "test-secret")).toBe(true);
     expect(verifyGateEnvelope({ ...envelope, payload: { ...envelope.payload, stage: "complete" } }, "test-secret"))
       .toBe(false);
+  });
+
+  it("matches Apps Script's legacy HMAC encoding for Word-style punctuation", () => {
+    const timestamp = 1_800_000_000_000;
+    const nonce = "11111111-1111-4111-8111-111111111111";
+    const payload = { answerParts: ["Dario’s response ¶10 — quoted"] };
+    const envelope = signGateEnvelope("reserve", payload, "test-secret", timestamp, nonce);
+    const canonical = `${timestamp}.${nonce}.reserve.${JSON.stringify(payload)}`
+      .replace(/[^\x00-\x7f]/g, "?");
+    expect(envelope.signature).toBe(
+      createHmac("sha256", "test-secret").update(canonical).digest("base64url"),
+    );
   });
 
   it("sends a signed request and validates the response", async () => {

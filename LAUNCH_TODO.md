@@ -33,6 +33,8 @@ Longer-term vendor requests and institutional follow-up are recorded in
       HUIT proxy rejects Bedrock's native `output_config.format` field.
 - [x] Skip the obsolete local JSON run/failure store on Vercel, where the
       application bundle is read-only and Google Sheets is authoritative.
+- [x] Make signed attempt-gate requests compatible with Word-style Unicode
+      punctuation while preserving the original UTF-8 answer payload.
 
 Automated verification completed on 2026-09-28:
 
