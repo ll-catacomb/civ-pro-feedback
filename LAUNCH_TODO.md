@@ -40,10 +40,12 @@ Longer-term vendor requests and institutional follow-up are recorded in
 - [x] Keep internal bands, grounding diagnostics, and judge audits out of the
       student view; order improvements by priority within each question and
       attach the example revision to the improvement it demonstrates.
+- [x] Retry transient non-JSON Apps Script success responses with the original
+      idempotency key and refund any reservation whose response remains ambiguous.
 
 Automated verification completed on 2026-09-28:
 
-- `npm run check`: clean lint and typecheck; 182 tests passing.
+- `npm run check`: clean lint and typecheck; 184 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
@@ -67,6 +69,11 @@ Automated verification completed on 2026-09-28:
   protected Vercel secrets were resynchronized, the app was redeployed, and a
   production Auth.js-to-Apps-Script diagnostic passed without reserving an
   attempt or calling a model.
+- On 2026-09-29, Apps Script completed one reservation but returned a non-JSON
+  HTTP 200 response to Vercel, leaving the anonymous submission queued without
+  a workflow. The reservation was explicitly refunded (five attempts remain).
+  The gate client now retries transient malformed success responses using the
+  original request key and refunds any reservation whose outcome stays ambiguous.
 
 ## Google test environment (set up 2026-09-25)
 

@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const gate = createAttemptGateClient();
   let submissionId: string | undefined;
   let reserved = false;
+  let reservationMayExist = false;
   try {
     const parsed = FeedbackRequestSchema.parse(await request.json());
     if (!isKnownExamId(parsed.examId)) {
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     }
     submissionId = randomUUID();
     const createdAt = new Date().toISOString();
+    reservationMayExist = true;
     const reservation = await gate.reserve({
       studentId: session.user.studentId,
       submissionId,
@@ -69,6 +71,7 @@ export async function POST(request: Request) {
       );
     }
     reserved = true;
+    reservationMayExist = false;
     const workflowRun = await start(studentFeedbackWorkflow, [submissionId]);
     reserved = false;
     return NextResponse.json({
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
     }
     const errorReference = randomUUID();
     console.error("Could not queue authenticated student feedback", { errorReference, error });
-    if (reserved && submissionId) {
+    if ((reserved || reservationMayExist) && submissionId) {
       try {
         await gate.refund({
           studentId: session.user.studentId,

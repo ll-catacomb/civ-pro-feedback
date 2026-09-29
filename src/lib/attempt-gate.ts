@@ -124,12 +124,18 @@ export function verifyGateEnvelope(envelope: GateEnvelope, secret: string): bool
 }
 
 type FetchLike = typeof fetch;
+const DEFAULT_RETRY_DELAYS_MS = [0, 250, 750] as const;
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 export class AttemptGateClient {
   constructor(
     private readonly endpoint: string,
     private readonly secret: string,
     private readonly fetchImpl: FetchLike = fetch,
+    private readonly retryDelaysMs: readonly number[] = DEFAULT_RETRY_DELAYS_MS,
   ) {}
 
   authenticate(payload: AuthenticateCodePayload): Promise<GateResponse> {
@@ -153,28 +159,53 @@ export class AttemptGateClient {
   }
 
   private async call(action: GateAction, payload: Record<string, unknown>): Promise<GateResponse> {
-    const envelope = signGateEnvelope(action, payload, this.secret);
-    const response = await this.fetchImpl(this.endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(envelope),
-      redirect: "follow",
-    });
-    const raw = await response.text();
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error(`The attempt gate returned a non-JSON response (${response.status}).`);
+    let lastTransientError: Error | undefined;
+    for (let attempt = 0; attempt < this.retryDelaysMs.length; attempt += 1) {
+      if (attempt > 0) await delay(this.retryDelaysMs[attempt]);
+      const envelope = signGateEnvelope(action, payload, this.secret);
+      let response: Response;
+      try {
+        response = await this.fetchImpl(this.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(envelope),
+          redirect: "follow",
+        });
+      } catch (error) {
+        lastTransientError = error instanceof Error ? error : new Error("The attempt gate request failed.");
+        if (attempt + 1 < this.retryDelaysMs.length) continue;
+        throw lastTransientError;
+      }
+      const raw = await response.text();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        lastTransientError = new Error(`The attempt gate returned a non-JSON response (${response.status}).`);
+        // Apps Script can finish a write and then transiently return an HTML
+        // success page. Retrying is safe: reserve uses requestKey idempotency,
+        // and every other action is idempotent for the same submission.
+        if (response.ok && attempt + 1 < this.retryDelaysMs.length) continue;
+        throw lastTransientError;
+      }
+      const result = GateResponseSchema.parse(parsed);
+      if (!response.ok || !result.ok) {
+        const gateError = new AttemptGateError(
+          result.code ?? "internal_error",
+          result.error ?? `The attempt gate failed (${response.status}).`,
+        );
+        const transient = result.code === "internal_error"
+          || response.status === 429
+          || response.status >= 500;
+        if (transient && attempt + 1 < this.retryDelaysMs.length) {
+          lastTransientError = gateError;
+          continue;
+        }
+        throw gateError;
+      }
+      return result;
     }
-    const result = GateResponseSchema.parse(parsed);
-    if (!response.ok || !result.ok) {
-      throw new AttemptGateError(
-        result.code ?? "internal_error",
-        result.error ?? `The attempt gate failed (${response.status}).`,
-      );
-    }
-    return result;
+    throw lastTransientError ?? new Error("The attempt gate request failed after retries.");
   }
 }
 

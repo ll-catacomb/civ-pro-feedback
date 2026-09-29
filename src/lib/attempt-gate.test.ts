@@ -59,6 +59,59 @@ describe("signed attempt gate", () => {
     expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
+  it("retries a malformed HTTP 200 response with the same idempotent reservation", async () => {
+    const submissionId = randomUUID();
+    const requestKey = "request-transient-html";
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response("<html>Temporary Apps Script response</html>", { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        submissionId,
+        attemptNumber: 1,
+        remainingAttempts: 4,
+        duplicate: true,
+      }), { status: 200 }));
+    const client = new AttemptGateClient(
+      "https://example.test/gate",
+      "test-secret",
+      fetchImpl as typeof fetch,
+      [0, 0, 0],
+    );
+    const result = await client.reserve({
+      studentId: randomUUID(),
+      submissionId,
+      requestKey,
+      examId: "2022-final",
+      scope: "full_exam",
+      mode: "full_draft",
+      questionRef: "",
+      createdAt: "2026-09-29T11:57:52.896Z",
+      promptVersion: "test",
+      answerParts: ["A substantive answer"],
+    });
+    expect(result).toMatchObject({ ok: true, duplicate: true, submissionId });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const envelopes = fetchImpl.mock.calls.map((call) => JSON.parse(String(call[1]?.body)));
+    expect(envelopes[0].payload.requestKey).toBe(requestKey);
+    expect(envelopes[1].payload.requestKey).toBe(requestKey);
+    expect(envelopes[0].nonce).not.toBe(envelopes[1].nonce);
+  });
+
+  it("stops after bounded retries when successful responses remain non-JSON", async () => {
+    const fetchImpl = vi.fn(async () => new Response("temporary html", { status: 200 }));
+    const client = new AttemptGateClient(
+      "https://example.test/gate",
+      "test-secret",
+      fetchImpl as typeof fetch,
+      [0, 0, 0],
+    );
+    await expect(client.authenticate({
+      codeHash: "a".repeat(64),
+      loginAt: "2026-09-29T12:00:00.000Z",
+    })).rejects.toThrow("non-JSON response (200)");
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
   it("authenticates only with a code hash and returns an opaque student ID", async () => {
     const studentId = randomUUID();
     const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
