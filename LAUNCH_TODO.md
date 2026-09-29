@@ -37,14 +37,20 @@ Automated verification completed on 2026-09-28:
 - `npm run huit:check`: HUIT authentication passed. US Sonnet 5 and US Opus 5.5
   are available. On 2026-09-26 the gateway reported a 10,000 USD monthly limit
   with 9,999.99997 USD remaining; no model was invoked.
-- The two test workbooks are initialized with exact headers and 167 anonymous
-  identity records. Apps Script Version 2 is deployed at the existing URL.
+- The two test workbooks are initialized with exact headers and 174 anonymous
+  identity records: 166 students, 7 TAs, and 1 diagnostic account. Apps Script
+  Version 2 is deployed at the existing URL.
 - Live code authentication and the browser sign-in flow passed for the separate
   `quartz-owl` test account with five attempts remaining. Invalid-code handling
   also passed. The temporary test code was rotated after the check.
 - The roster migration matched 173 accounts (166 students and 7 TAs), left the
   separate diagnostic row unchanged, and passed a non-consuming email-lookup
   authentication check. No model was invoked.
+- On 2026-09-28, two pilot submissions exposed a Vercel/Apps Script gate-secret
+  mismatch. Both failed before reservation, so no attempts were used. The
+  protected Vercel secrets were resynchronized, the app was redeployed, and a
+  production Auth.js-to-Apps-Script diagnostic passed without reserving an
+  attempt or calling a model.
 
 ## Google test environment (set up 2026-09-25)
 
@@ -102,6 +108,8 @@ request a course-owned project from HUIT and recreate these resources there.
       both with the service account (test workbooks; access verified via API).
 - [x] Deploy the Apps Script attempt gate and provide its deployment URL and
       shared secret (test deployment).
+- [ ] Before student launch, rotate the Apps Script gate secret in both Script
+      Properties and Vercel; an earlier Vercel Config version was readable.
 - [x] Prepare both fall section rosters: 83 students each, with no duplicates or
       overlap. The private roster is in `.data/fall-2026-enrollment-codes.csv`.
 - [x] Obtain student emails, populate only the private roster's `email` column,
