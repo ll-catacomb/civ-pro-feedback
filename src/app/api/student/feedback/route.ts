@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { start } from "workflow/api";
 
 import { auth } from "@/auth";
-import { createAttemptGateClient } from "@/lib/attempt-gate";
+import { AttemptGateError, createAttemptGateClient } from "@/lib/attempt-gate";
 import { getExams, isKnownExamId } from "@/lib/exams";
 import { PROMPT_VERSION } from "@/lib/prompts";
 import { chunkSheetContent } from "@/lib/student-records";
@@ -65,8 +65,21 @@ export async function POST(request: Request) {
       remainingAttempts: reservation.remainingAttempts,
     }, { status: 202 });
   } catch (error) {
-    console.error("Could not queue authenticated student feedback", error);
+    if (error instanceof Error && error.name === "ZodError") {
+      return NextResponse.json({ error: "The submission is incomplete." }, { status: 400 });
+    }
+    if (error instanceof AttemptGateError) {
+      const expectedErrors: Partial<Record<AttemptGateError["code"], { status: number; message: string }>> = {
+        disabled: { status: 403, message: "This course account is currently disabled. Please contact the course team." },
+        limit_reached: { status: 409, message: "All available feedback attempts have been used." },
+        already_running: { status: 409, message: "A feedback submission is already processing. Open My feedback to follow it before submitting another." },
+        not_enrolled: { status: 403, message: "This account is not currently enrolled. Please contact the course team." },
+      };
+      const expected = expectedErrors[error.code];
+      if (expected) return NextResponse.json({ error: expected.message }, { status: expected.status });
+    }
     const errorReference = randomUUID();
+    console.error("Could not queue authenticated student feedback", { errorReference, error });
     if (reserved && submissionId) {
       try {
         await gate.refund({
@@ -78,9 +91,6 @@ export async function POST(request: Request) {
       } catch (refundError) {
         console.error("Attempt refund failed", refundError);
       }
-    }
-    if (error instanceof Error && error.name === "ZodError") {
-      return NextResponse.json({ error: "The submission is incomplete." }, { status: 400 });
     }
     return NextResponse.json(
       { error: `The submission could not be queued. No attempt was used. Error reference: ${errorReference}.` },

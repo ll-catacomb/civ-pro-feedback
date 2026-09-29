@@ -75,6 +75,17 @@ export const GateResponseSchema = z.object({
   ]).optional(),
 });
 export type GateResponse = z.infer<typeof GateResponseSchema>;
+export type AttemptGateErrorCode = NonNullable<GateResponse["code"]>;
+
+export class AttemptGateError extends Error {
+  constructor(
+    public readonly code: AttemptGateErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "AttemptGateError";
+  }
+}
 
 function canonicalMessage(envelope: Omit<GateEnvelope, "signature">): string {
   return `${envelope.timestamp}.${envelope.nonce}.${envelope.action}.${JSON.stringify(envelope.payload)}`;
@@ -152,7 +163,10 @@ export class AttemptGateClient {
     }
     const result = GateResponseSchema.parse(parsed);
     if (!response.ok || !result.ok) {
-      throw new Error(result.error ?? `The attempt gate failed (${response.status}).`);
+      throw new AttemptGateError(
+        result.code ?? "internal_error",
+        result.error ?? `The attempt gate failed (${response.status}).`,
+      );
     }
     return result;
   }

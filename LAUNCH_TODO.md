@@ -20,6 +20,10 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Match Harvard Google OAuth directly to a keyed, one-way roster lookup;
       do not retain the verified email or require students to enter codes.
 - [ ] Complete a live end-to-end smoke test with a synthetic or designated test account.
+- [x] Add a root-level TA pilot script and incident-reporting checklist.
+- [x] Return specific, recoverable messages for exhausted, disabled, and
+      already-running accounts instead of treating them as generic server errors.
+- [x] Preserve submission idempotency across ambiguous browser/network failures.
 
 Automated verification completed on 2026-09-28:
 
@@ -38,6 +42,9 @@ Automated verification completed on 2026-09-28:
 - Live code authentication and the browser sign-in flow passed for the separate
   `quartz-owl` test account with five attempts remaining. Invalid-code handling
   also passed. The temporary test code was rotated after the check.
+- The roster migration matched 173 accounts (166 students and 7 TAs), left the
+  separate diagnostic row unchanged, and passed a non-consuming email-lookup
+  authentication check. No model was invoked.
 
 ## Google test environment (set up 2026-09-25)
 

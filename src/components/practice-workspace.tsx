@@ -391,6 +391,7 @@ export function PracticeWorkspace({
   const [run, setRun] = useState<FeedbackRun | null>(null);
   const [progress, setProgress] = useState<ProgressDisplay>();
   const submittingRef = useRef(false);
+  const requestKeyRef = useRef<string | null>(null);
   const selectedExam = useMemo(() => exams.find((exam) => exam.id === selectedId) ?? exams[0], [exams, selectedId]);
   const questionOptions = useMemo(() => listQuestionLabels(selectedExam.prompt), [selectedExam]);
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
@@ -414,12 +415,15 @@ export function PracticeWorkspace({
     setError("");
     setIsSubmitting(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    let responseReceived = false;
     try {
+      const requestKey = requestKeyRef.current ?? crypto.randomUUID();
+      requestKeyRef.current = requestKey;
       const response = await fetch(submissionEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Idempotency-Key": crypto.randomUUID(),
+          "Idempotency-Key": requestKey,
         },
         body: JSON.stringify({
           examId: selectedId,
@@ -432,12 +436,14 @@ export function PracticeWorkspace({
           ...(scope === "single_question" ? { questionRef } : {}),
         }),
       });
+      responseReceived = true;
       // The response may not be JSON: a hosting timeout returns a plain-text
       // error page, which would otherwise throw a cryptic JSON parse error.
       const raw = await response.text();
       let payload: { run?: FeedbackRun; error?: string; submissionId?: string } | null = null;
       try { payload = raw ? JSON.parse(raw) : null; } catch { payload = null; }
       if (response.ok && payload?.submissionId && !payload.run) {
+        requestKeyRef.current = null;
         const completed = await waitForSubmission(payload.submissionId);
         setRun(completed);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -445,11 +451,16 @@ export function PracticeWorkspace({
       }
       if (!response.ok || !payload?.run) {
         if (payload?.error) throw new Error(payload.error);
-        throw new Error("This hosted preview stopped the request before grading finished — a full run takes about 10–15 minutes, longer than the server allows. Your answer was not graded. Please let the course team know.");
+        throw new Error("The server returned an unexpected response. Your submission may still have queued; check My feedback before trying again.");
       }
+      requestKeyRef.current = null;
       setRun(payload.run);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
+      // If the server answered, a new click is a new request. If the network
+      // failed before any answer arrived, retain the key so a retry cannot
+      // create a second reservation if the first request reached the server.
+      if (responseReceived) requestKeyRef.current = null;
       setError(caught instanceof Error ? caught.message : "Feedback failed.");
     } finally {
       submittingRef.current = false;
@@ -474,6 +485,9 @@ export function PracticeWorkspace({
       } | null = null;
       try { payload = raw ? JSON.parse(raw) : null; } catch { payload = null; }
       if (response.status === 503) continue;
+      if (response.status === 401) {
+        throw new Error("Your sign-in expired while feedback was processing. Sign in again and open My feedback; your submission was not lost.");
+      }
       if (!response.ok || !payload) throw new Error(payload?.error ?? "Could not check feedback progress.");
       if (payload.progress) setProgress(payload.progress);
       if (payload.status === "completed" && payload.run) return payload.run;
@@ -484,7 +498,7 @@ export function PracticeWorkspace({
     throw new Error("Feedback is still processing. You can return to My feedback later without losing your submission.");
   }
 
-  if (run) return <FeedbackResult run={run} onReset={() => { setRun(null); setAnswer(""); }} />;
+  if (run) return <FeedbackResult run={run} onReset={() => { setRun(null); setAnswer(""); requestKeyRef.current = null; }} />;
   if (isSubmitting) return <WaitingView examLabel={String(selectedExam.year)} progress={progress} durable={submissionEndpoint.startsWith("/api/student/")} />;
 
   return (

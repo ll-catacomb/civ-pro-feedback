@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { AttemptGateClient, signGateEnvelope, verifyGateEnvelope } from "@/lib/attempt-gate";
+import { AttemptGateClient, AttemptGateError, signGateEnvelope, verifyGateEnvelope } from "@/lib/attempt-gate";
 
 describe("signed attempt gate", () => {
   it("verifies an intact envelope and rejects tampering", () => {
@@ -70,5 +70,29 @@ describe("signed attempt gate", () => {
       loginAt: "2026-09-01T12:00:00.000Z",
     });
     expect(result).toMatchObject({ studentId, pseudonym: "copper-horse" });
+  });
+
+  it("preserves a known gate error code for safe API handling", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: false,
+      code: "already_running",
+      error: "A feedback submission is already in progress.",
+    })));
+    const client = new AttemptGateClient("https://example.test/gate", "test-secret", fetchImpl as typeof fetch);
+    await expect(client.reserve({
+      studentId: randomUUID(),
+      submissionId: randomUUID(),
+      requestKey: "request-2",
+      examId: "2019-final",
+      scope: "full_exam",
+      mode: "full_draft",
+      questionRef: "",
+      createdAt: "2026-09-01T12:00:00.000Z",
+      promptVersion: "test",
+      answerParts: ["An answer"],
+    })).rejects.toEqual(new AttemptGateError(
+      "already_running",
+      "A feedback submission is already in progress.",
+    ));
   });
 });
