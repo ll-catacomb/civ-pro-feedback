@@ -5,9 +5,10 @@ import { start } from "workflow/api";
 
 import { auth } from "@/auth";
 import { AttemptGateError, createAttemptGateClient } from "@/lib/attempt-gate";
-import { getExams, isKnownExamId } from "@/lib/exams";
+import { getExam, getExams, isKnownExamId } from "@/lib/exams";
 import { PROMPT_VERSION } from "@/lib/prompts";
 import { chunkSheetContent } from "@/lib/student-records";
+import { assessSubmissionPreflight } from "@/lib/submission-preflight";
 import { FeedbackRequestSchema } from "@/lib/types";
 import { studentFeedbackWorkflow } from "@/workflows/student-feedback";
 
@@ -31,6 +32,17 @@ export async function POST(request: Request) {
         { error: `That practice item is unavailable. Final exams: ${Math.min(...finalYears)}–${Math.max(...finalYears)}.` },
         { status: 400 },
       );
+    }
+    const exam = getExam(parsed.examId);
+    const preflight = assessSubmissionPreflight({
+      answer: parsed.answer,
+      examPrompt: exam.prompt,
+      scope: parsed.scope,
+      mode: parsed.mode,
+      examQuestionCount: exam.questionCount,
+    });
+    if (!preflight.ok) {
+      return NextResponse.json({ error: preflight.message }, { status: 422 });
     }
     const requestKey = request.headers.get("Idempotency-Key")?.trim();
     if (!requestKey || requestKey.length > 120) {
