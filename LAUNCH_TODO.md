@@ -24,6 +24,8 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Return specific, recoverable messages for exhausted, disabled, and
       already-running accounts instead of treating them as generic server errors.
 - [x] Preserve submission idempotency across ambiguous browser/network failures.
+- [x] Add a non-consuming production authentication canary that detects Vercel,
+      Auth.js, and Apps Script secret mismatches without invoking a model.
 
 Automated verification completed on 2026-09-28:
 

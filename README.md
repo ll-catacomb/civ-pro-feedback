@@ -97,12 +97,15 @@ npm run build
 npm run huit:check
 npm run launch:check
 npm run launch:check -- --live
+npm run production-auth:check
 ```
 
 The non-live launch check validates configuration shape. `--live` also verifies
 service-account access and exact Google Sheets headers. Automated tests do not
 make paid model calls; use a designated test account for the final end-to-end
-check.
+check. `production-auth:check` verifies the deployed Vercel → Auth.js → Apps
+Script signing path with the diagnostic account; it neither reserves an attempt
+nor invokes a model.
 
 ## Deployment
 

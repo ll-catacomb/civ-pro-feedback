@@ -17,6 +17,7 @@
     "sheets:setup": "node scripts/setup-google-sheets.mjs",
     "student-code:check": "node scripts/check-student-code.mjs",
     "student-code:rotate-test": "node scripts/check-student-code.mjs --rotate-test",
+    "production-auth:check": "node scripts/check-production-auth.mjs",
     "huit:check": "node scripts/check-huit-bedrock.mjs",
     "launch:check": "node scripts/check-launch.mjs",
     "snapshot:runs": "node scripts/build-run-stats-snapshot.mjs",
