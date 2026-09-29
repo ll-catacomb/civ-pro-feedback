@@ -6,6 +6,9 @@ This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
 Workflow for durable execution; it does not require Postgres.
 
+Longer-term vendor requests and institutional follow-up are recorded in
+[GOING_FORWARD.md](GOING_FORWARD.md).
+
 ## Engineering before launch
 
 - [x] Remove the Quality Lab and Review Dossier pages from the student-facing app.
@@ -26,6 +29,10 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Preserve submission idempotency across ambiguous browser/network failures.
 - [x] Add a non-consuming production authentication canary that detects Vercel,
       Auth.js, and Apps Script secret mismatches without invoking a model.
+- [x] Fall back to schema-instruction plus Zod validation because the current
+      HUIT proxy rejects Bedrock's native `output_config.format` field.
+- [x] Skip the obsolete local JSON run/failure store on Vercel, where the
+      application bundle is read-only and Google Sheets is authoritative.
 
 Automated verification completed on 2026-09-28:
 

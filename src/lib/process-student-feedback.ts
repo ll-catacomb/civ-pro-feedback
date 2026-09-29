@@ -30,6 +30,9 @@ function createStore(): GoogleSheetsRecordStore {
 }
 
 async function bestEffortSaveRun(run: Parameters<typeof saveRun>[0]) {
+  // Google Sheets is authoritative in production; Vercel's application bundle
+  // is read-only and cannot host the legacy local JSON store.
+  if (process.env.VERCEL) return;
   try {
     await saveRun(run);
   } catch (error) {
@@ -180,16 +183,18 @@ export async function failStudentFeedback(
   // The submission ID is already a unique UUID and makes retries return the
   // same reference even if the failure step itself is replayed.
   const errorReference = preparation.submissionId;
-  try {
-    await saveFailure({
-      source: "student",
-      examId: preparation.input.examId,
-      studentLabel: preparation.input.studentLabel,
-      answer: preparation.input.answer,
-      message,
-    });
-  } catch (storeError) {
-    console.warn("Legacy failure-store write skipped", storeError);
+  if (!process.env.VERCEL) {
+    try {
+      await saveFailure({
+        source: "student",
+        examId: preparation.input.examId,
+        studentLabel: preparation.input.studentLabel,
+        answer: preparation.input.answer,
+        message,
+      });
+    } catch (storeError) {
+      console.warn("Legacy failure-store write skipped", storeError);
+    }
   }
   await createAttemptGateClient().refund({
     studentId: preparation.studentId,

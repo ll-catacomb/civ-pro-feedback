@@ -17,6 +17,7 @@ import {
   HuitBedrockClient,
   HuitBedrockError,
   huitBedrockConfigured,
+  huitNativeStructuredOutputEnabled,
 } from "@/lib/huit-bedrock";
 import {
   coachDeveloperPrompt,
@@ -540,18 +541,21 @@ async function attemptClaudeStage<T>(input: {
 }): Promise<T> {
   const startedAt = Date.now();
   const outputFormat = zodOutputFormat(input.schema);
+  const nativeStructuredOutput = huitNativeStructuredOutputEnabled();
+  const schema = outputFormat.schema as Record<string, unknown>;
+  const jsonInstruction = `\n\n# Output contract\nReturn only one valid JSON value. Do not use Markdown fences or add commentary. The value must satisfy this JSON Schema:\n${JSON.stringify(schema)}`;
   const response = await input.client.invoke({
     model: input.model,
     maxTokens: MAX_OUTPUT_TOKENS,
     thinking: { type: "adaptive" },
-    system: input.developerPrompt,
+    system: nativeStructuredOutput ? input.developerPrompt : `${input.developerPrompt}${jsonInstruction}`,
     userPrompt: input.userPrompt,
     outputConfig: {
       effort: input.reasoningEffort,
-      format: {
+      ...(nativeStructuredOutput ? { format: {
         type: "json_schema",
-        schema: outputFormat.schema as Record<string, unknown>,
-      },
+        schema,
+      } } : {}),
     },
   });
   if (response.stop_reason === "max_tokens") {
@@ -573,7 +577,17 @@ async function attemptClaudeStage<T>(input: {
   if (!text) {
     throw new Error("The response contained no structured output text.");
   }
-  const parsed = input.schema.parse(JSON.parse(text));
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    // The current HUIT surface cannot enforce Bedrock's native structured
+    // output. Tolerate only a fenced JSON value; Zod still enforces the schema.
+    const fenced = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    if (!fenced) throw new Error("The model response was not valid JSON.");
+    json = JSON.parse(fenced[1]);
+  }
+  const parsed = input.schema.parse(json);
 
   input.traces.push({
     name: input.stageName,

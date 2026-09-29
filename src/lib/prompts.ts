@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.20.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.21.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -598,4 +598,3 @@ export function judgeUserPrompt(input: {
 }): string {
   return `# Exam\n${input.exam}\n\n# Instructor model answer\n${input.modelAnswer}\n\n${input.submission}\n\n# Student answer\n${input.answer}\n\n# Issue map\n${JSON.stringify(input.issueMap, null, 2)}\n\n# Independent evaluation\n${JSON.stringify(input.evaluation, null, 2)}\n\n# Draft feedback\n${JSON.stringify(input.draft, null, 2)}\n\n# Retrieved course sources\n${input.sources}`;
 }
-

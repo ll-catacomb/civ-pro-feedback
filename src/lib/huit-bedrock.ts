@@ -27,7 +27,7 @@ export type HuitClaudeRequest = {
   thinking: { type: "adaptive" };
   outputConfig: {
     effort: "low" | "medium" | "high" | "xhigh";
-    format: {
+    format?: {
       type: "json_schema";
       schema: Record<string, unknown>;
     };
@@ -163,6 +163,10 @@ export class HuitBedrockClient {
 
 export function huitBedrockConfigured(): boolean {
   return Boolean(process.env.HUIT_BEDROCK_API_KEY?.trim());
+}
+
+export function huitNativeStructuredOutputEnabled(): boolean {
+  return process.env.HUIT_BEDROCK_STRUCTURED_OUTPUT?.trim().toLowerCase() === "true";
 }
 
 export const HUIT_BEDROCK_DEFAULT_BASE_URL = DEFAULT_BASE_URL;
