@@ -1,7 +1,7 @@
 # Deploying the student app to Vercel
 
-The production design uses Vercel, Vercel Workflow, Harvard Google verification,
-private student access codes, two Google
+The production design uses Vercel, Vercel Workflow, Harvard Google OAuth with
+private keyed roster matching, two Google
 Sheets workbooks, one Apps Script write gate, and Claude through HUIT AI
 Services/AWS Bedrock. It does not require Postgres or a long-lived server.
 
@@ -29,20 +29,19 @@ than email addresses.
 
 ## 2. Initialize the workbooks
 
-Prepare the private code-delivery roster, validate it, then initialize the empty
-sheets. The delivery roster remains local and gitignored:
+Prepare the private roster with `name`, `section`, `email`, `status`, and
+`max_attempts` columns, validate it, then initialize the empty sheets. The
+roster remains local and gitignored:
 
 ```bash
-npm run roster:prepare -- --section "Section 2=/path/to/section-2.csv" --section "Section 3=/path/to/section-3.csv" --output .data/enrollment-codes.csv
 npm run sheets:setup -- --roster .data/enrollment-codes.csv --dry-run
 npm run sheets:setup -- --roster .data/enrollment-codes.csv
 ```
 
-The generated delivery roster contains `name`, `section`, a blank `email` field
-for later mail merge, `enrollment_code`, `status`, and `max_attempts`. The setup
-command rejects duplicates, generates unique material-animal identifiers, hashes
-codes before upload, and will not overwrite a populated workbook. No student
-name, email address, or plaintext code is uploaded.
+The setup command rejects duplicates, generates unique material-animal
+identifiers, creates keyed one-way email lookup hashes before upload, and will
+not overwrite a populated workbook. No student name or email address is
+uploaded.
 
 ## 3. Configure Vercel
 
@@ -61,13 +60,15 @@ listed in `.env.example` for the Production environment:
 - `GOOGLE_FEEDBACK_SPREADSHEET_ID`
 - `GOOGLE_ATTEMPT_GATE_URL`
 - `GOOGLE_ATTEMPT_GATE_SECRET`
+- `STUDENT_EMAIL_LOOKUP_SECRET`
 - `AUTH_SECRET`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
 - `GOOGLE_WORKSPACE_DOMAIN`
 - `STUDENT_DEMO_MODE=false`
 
-Use a generated high-entropy value for `AUTH_SECRET`. Preserve newlines in the
+Use separate generated high-entropy values for `AUTH_SECRET` and
+`STUDENT_EMAIL_LOOKUP_SECRET`. Preserve newlines in the
 service-account private key; the app also accepts the common escaped `\\n`
 environment-variable form.
 
@@ -78,9 +79,9 @@ the Portal app registration and run `npm run huit:check`; it validates access,
 model availability, and quota without invoking a billable model.
 
 `GOOGLE_WORKSPACE_DOMAIN` is a comma-separated list of email domains admitted
-for student Google sign-in; each entry also admits its subdomains. Students
-then enter their private course code. The verified email is checked during the
-OAuth callback but is not retained in the session or Google Sheets.
+for student Google sign-in; each entry also admits its subdomains. The verified
+address is immediately converted to a keyed lookup hash for roster matching and
+is not retained in the session or Google Sheets.
 
 ## 4. Validate before deploying
 
@@ -89,7 +90,6 @@ With production-equivalent values in `.env.local`, run:
 ```bash
 npm run launch:check -- --live
 npm run huit:check
-npm run student-code:check -- --roster .data/enrollment-codes.csv
 npm run check
 npm run build
 ```
@@ -105,8 +105,8 @@ single request.
 
 ## 5. Production smoke test
 
-Use the separately generated test code and a Harvard Google test account.
-Verify OAuth rejection, code rejection, attempt reservation, visible stage progress, closing
+Use a rostered Harvard Google test account. Verify unlisted-account rejection,
+attempt reservation, visible stage progress, closing
 and reopening the submission, completed feedback, and the
 identity/feedback separation in Sheets. Then test the fifth-attempt boundary on
 a disposable synthetic account or temporarily low-limit test row.

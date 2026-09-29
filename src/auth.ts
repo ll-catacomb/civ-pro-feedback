@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 
 import { attemptGateConfigured, createAttemptGateClient } from "@/lib/attempt-gate";
 import { verifyGoogleIdentityProof } from "@/lib/google-identity-proof";
+import { hashStudentEmail } from "@/lib/student-email-lookup";
 import { hashEnrollmentCode } from "@/lib/student-records";
 import { isWorkspaceEmail, workspaceDomains } from "@/lib/workspace-domains";
 
@@ -76,21 +77,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (typeof profile.hd !== "string" || !profile.hd) return false;
         if (!isWorkspaceEmail(profile.email, allowedDomains)) return false;
       }
-      user.id = profile.sub;
+      const lookupSecret = process.env.STUDENT_EMAIL_LOOKUP_SECRET;
+      if (!attemptGateConfigured() || !lookupSecret) return false;
+      try {
+        const authenticated = await createAttemptGateClient().authenticate({
+          codeHash: hashStudentEmail(profile.email, lookupSecret),
+          loginAt: new Date().toISOString(),
+        });
+        if (!authenticated.studentId || !authenticated.pseudonym) return false;
+        user.id = authenticated.studentId;
+        user.name = authenticated.pseudonym;
+      } catch {
+        // A rejected lookup can mean either an unlisted account or a gate
+        // problem. Do not log the address or disclose which case occurred.
+        return false;
+      }
       user.email = null;
-      user.name = null;
       user.image = null;
-      user.role = "pending";
+      user.role = "student";
       user.googleSubject = profile.sub;
       return true;
     },
     jwt({ token, user, account }) {
       if (user) {
         if (account?.provider === "google") {
-          token.role = "pending";
+          token.role = "student";
           token.googleSubject = user.googleSubject ?? user.id;
-          token.studentId = undefined;
-          token.pseudonym = null;
+          token.studentId = user.id;
+          token.pseudonym = user.name;
         } else {
           token.role = "student";
           token.googleSubject = user.googleSubject;

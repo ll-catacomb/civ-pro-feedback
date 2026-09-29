@@ -17,6 +17,7 @@ const REQUIRED = [
   "GOOGLE_FEEDBACK_SPREADSHEET_ID",
   "GOOGLE_ATTEMPT_GATE_URL",
   "GOOGLE_ATTEMPT_GATE_SECRET",
+  "STUDENT_EMAIL_LOOKUP_SECRET",
   "AUTH_SECRET",
   "AUTH_GOOGLE_ID",
   "AUTH_GOOGLE_SECRET",
@@ -48,6 +49,9 @@ if (value("AUTH_SECRET") && value("AUTH_SECRET").length < 32) {
 }
 if (value("GOOGLE_ATTEMPT_GATE_SECRET") && value("GOOGLE_ATTEMPT_GATE_SECRET").length < 32) {
   failures.push("GOOGLE_ATTEMPT_GATE_SECRET must contain at least 32 characters.");
+}
+if (value("STUDENT_EMAIL_LOOKUP_SECRET") && value("STUDENT_EMAIL_LOOKUP_SECRET").length < 32) {
+  failures.push("STUDENT_EMAIL_LOOKUP_SECRET must contain at least 32 characters.");
 }
 if (value("HUIT_BEDROCK_BASE_URL")) {
   try {
@@ -129,7 +133,7 @@ async function checkLiveSheets() {
   );
   for (const [index, row] of enrollment.entries()) {
     if (!/^[a-f0-9]{64}$/.test(String(row[1] ?? ""))) {
-      failures.push(`Enrollment row ${index + 2} does not contain a valid access-code hash.`);
+      failures.push(`Enrollment row ${index + 2} does not contain a valid opaque lookup hash.`);
     }
     if (row.some((cell) => /@|CIVP-/i.test(String(cell ?? "")))) {
       failures.push(`Enrollment row ${index + 2} appears to contain an email address or plaintext access code.`);

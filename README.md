@@ -1,7 +1,7 @@
 # CivPro Practice
 
 A course-grounded Civil Procedure practice app. Enrolled students sign in with
-private course access codes, submit a draft or bullet-point outline, and receive evidence-grounded
+their rostered Harvard Google account, submit a draft or bullet-point outline, and receive evidence-grounded
 feedback from a durable, multi-step Claude workflow served through HUIT AI
 Services and AWS Bedrock.
 
@@ -10,7 +10,7 @@ not require Postgres.
 
 ## What is included
 
-- Harvard Google verification followed by a hashed, roster-issued student access code
+- Harvard Google OAuth matched to an opaque, keyed roster lookup
 - stable material-animal student identifiers, such as `golden-horse`
 - a hard, concurrency-safe five-attempt limit per student
 - separate private identity and feedback workbooks
@@ -43,19 +43,10 @@ local development and is disabled in production.
 
 ## Prepare Google Sheets
 
-Prepare one-column class-list exports locally. This command strips the seating
-codes, generates high-entropy student access codes, and writes a private,
-gitignored delivery roster with a blank email column for later mail merge:
-
-```bash
-npm run roster:prepare -- \
-  --section "Section 2=/path/to/section-2.csv" \
-  --section "Section 3=/path/to/section-3.csv" \
-  --output .data/enrollment-codes.csv
-```
-
-The private output contains names and plaintext codes and must not be committed.
-Only one-way code hashes, sections, pseudonyms, and attempt state are uploaded.
+Prepare a private, gitignored CSV with `name`, `section`, `email`, `status`, and
+`max_attempts` columns. Set a separate high-entropy
+`STUDENT_EMAIL_LOOKUP_SECRET`. Only keyed one-way email lookup values, sections,
+pseudonyms, and attempt state are uploaded; names and addresses remain local.
 Validate the private roster without making external changes:
 
 ```bash
@@ -71,7 +62,7 @@ npm run sheets:setup -- --roster .data/enrollment-codes.csv
 
 The command creates the expected tabs and headers, assigns unique identifiers,
 and refuses to overwrite populated tabs. Production should use two workbooks:
-the identity workbook holds code hashes and account state, while the feedback
+the identity workbook holds keyed lookup hashes and account state, while the feedback
 workbook holds pseudonymous submissions and generated content. Neither workbook
 needs student names or email addresses.
 
@@ -106,7 +97,6 @@ npm run build
 npm run huit:check
 npm run launch:check
 npm run launch:check -- --live
-npm run student-code:check -- --roster .data/enrollment-codes.csv
 ```
 
 The non-live launch check validates configuration shape. `--live` also verifies

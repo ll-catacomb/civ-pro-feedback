@@ -3,9 +3,8 @@
 ## Production request flow
 
 ```text
-private course access code
-  <- short-lived proof from verified Harvard Google OAuth
-  -> hash and roster authentication under Apps Script lock
+verified Harvard Google OAuth address
+  -> keyed one-way hash and roster authentication under Apps Script lock
   -> signed Auth.js student session containing only the pseudonymous course identity
 
 student submission
@@ -39,16 +38,13 @@ the internal workflow retains finer-grained checkpoints for recovery and QA.
 
 ## Identity and authorization
 
-Each student receives a random, high-entropy access code through a private course
-channel. The Next.js server normalizes and hashes the submitted code before the
-signed Apps Script gate matches it to an active Enrollment row. The signed
-session contains only the internal student ID and pseudonym. Student names,
-plaintext codes, and email addresses are not uploaded to either workbook.
-
 Google OAuth verifies that the person has an account in a configured Harvard
-Workspace domain. The verified email is used only during the OAuth callback and
-is not retained. A short-lived signed handoff permits the subsequent course-code
-check; the code endpoint rejects direct calls without that proof. The
+Workspace domain. During the callback, the Next.js server normalizes the
+verified address and creates an HMAC using a dedicated secret. The signed Apps
+Script gate matches that opaque value to an active Enrollment row. The address
+is then discarded; the signed session contains only the Google subject, internal
+student ID, and pseudonym. Student names and email addresses are not uploaded to
+either workbook. The
 unauthenticated legacy practice route is disabled in production.
 
 ## Attempt integrity
@@ -87,15 +83,15 @@ persisted index.
 
 Production uses two private Google workbooks:
 
-- **Identity workbook / `Enrollment`:** enrollment-code hash, section, internal
+- **Identity workbook / `Enrollment`:** keyed email lookup hash, section, internal
   student ID, pseudonym, account status, attempt limit and counts,
   active reservation, and login timestamps.
 - **Feedback workbook / `Submissions` and `Content`:** pseudonym, submission and
   idempotency IDs, progress, attempt number, exam metadata, prompt version,
   student-answer chunks, workflow artifacts, final feedback, and error details.
 
-The private local delivery roster is the only file that maps names to plaintext
-codes; its blank email column can be populated later for mail merge. The workbook
+The private local roster is the only file that maps names to email addresses.
+The workbook
 split keeps authentication records out of routine feedback QA. Vercel Workflow also retains execution state and logs
 needed to resume steps; it is not the student record of authority.
 
@@ -112,7 +108,7 @@ read-only historical reporting when no local run store exists.
 - Google stores enrollment, submissions, progress, and results in the two
   course-owned workbooks.
 - Vercel executes and logs the durable workflow; operational logs should avoid
-  plaintext access codes, student identity, and raw-answer logging.
+  plaintext student identity and raw-answer logging.
 - Historical calibration documents have student identifiers and exam-system
   metadata removed.
 

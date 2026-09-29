@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user.studentId || !session.user.pseudonym) {
-    return NextResponse.json({ error: "Sign in with your course access code." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in with your enrolled Harvard Google account." }, { status: 401 });
   }
 
   const gate = createAttemptGateClient();

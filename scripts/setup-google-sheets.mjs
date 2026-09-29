@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import nextEnv from "@next/env";
@@ -73,8 +73,15 @@ function parseCsv(text) {
   return rows.filter((candidate) => candidate.some((value) => value.trim()));
 }
 
-function normalizeEnrollmentCode(value) {
-  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+function normalizeEmail(value) {
+  return value.trim().toLowerCase();
+}
+
+function hashStudentEmail(value) {
+  const secret = env("STUDENT_EMAIL_LOOKUP_SECRET");
+  return createHmac("sha256", secret)
+    .update(`civ-pro-feedback/student-email/v1\0${normalizeEmail(value)}`)
+    .digest("hex");
 }
 
 function assignPseudonym(stableIdentity, used) {
@@ -97,11 +104,11 @@ function buildEnrollment(csvRows) {
   const headers = csvRows[0].map((value) => value.trim().toLowerCase());
   const nameIndex = headers.indexOf("name");
   const sectionIndex = headers.indexOf("section");
-  const codeIndex = headers.indexOf("enrollment_code");
+  const emailIndex = headers.indexOf("email");
   const statusIndex = headers.indexOf("status");
   const attemptsIndex = headers.indexOf("max_attempts");
-  if (nameIndex === -1 || sectionIndex === -1 || codeIndex === -1) {
-    fail('The private roster CSV needs headers named "name", "section", and "enrollment_code".');
+  if (nameIndex === -1 || sectionIndex === -1 || emailIndex === -1) {
+    fail('The private roster CSV needs headers named "name", "section", and "email".');
   }
   const seen = new Set();
   const usedPseudonyms = new Set();
@@ -109,12 +116,12 @@ function buildEnrollment(csvRows) {
   const rows = csvRows.slice(1).map((values, index) => {
     const name = (values[nameIndex] ?? "").trim();
     const section = (values[sectionIndex] ?? "").trim();
-    const normalizedCode = normalizeEnrollmentCode(values[codeIndex] ?? "");
-    if (!name || !section) fail(`Row ${index + 2} is missing a name or section.`);
-    if (!/^CIVP[A-Z0-9]{16}$/.test(normalizedCode)) fail(`Row ${index + 2} has an invalid enrollment_code.`);
-    const codeHash = createHash("sha256").update(normalizedCode).digest("hex");
-    if (seen.has(codeHash)) fail(`The roster contains an enrollment code more than once.`);
-    seen.add(codeHash);
+    const email = normalizeEmail(values[emailIndex] ?? "");
+    if (!name || !section || !email) fail(`Row ${index + 2} is missing a name, section, or email.`);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(`Row ${index + 2} has an invalid email.`);
+    const lookupHash = hashStudentEmail(email);
+    if (seen.has(lookupHash)) fail(`The roster contains an email address more than once.`);
+    seen.add(lookupHash);
     const status = (values[statusIndex] ?? "active").trim().toLowerCase() || "active";
     if (status !== "active" && status !== "disabled") {
       fail(`Row ${index + 2} has status ${status}; use active or disabled.`);
@@ -124,7 +131,7 @@ function buildEnrollment(csvRows) {
       fail(`Row ${index + 2} has an invalid max_attempts value.`);
     }
     return [
-      randomUUID(), codeHash, section, assignPseudonym(`${section}\0${name}`, usedPseudonyms), status,
+      randomUUID(), lookupHash, section, assignPseudonym(`${section}\0${name}`, usedPseudonyms), status,
       maxAttempts, 0, "", createdAt, "",
     ];
   });
@@ -180,7 +187,7 @@ async function main() {
     ? process.argv.slice(2).find((argument) => !argument.startsWith("-"))
     : process.argv[rosterFlagIndex + 1];
   if (!rosterPath || rosterPath.startsWith("-")) {
-    fail("Usage: npm run sheets:setup -- --roster path/to/private-enrollment-codes.csv [--dry-run]");
+    fail("Usage: npm run sheets:setup -- --roster path/to/private-roster.csv [--dry-run]");
   }
   const enrollment = buildEnrollment(parseCsv(await readFile(rosterPath, "utf8")));
   if (process.argv.includes("--dry-run")) {

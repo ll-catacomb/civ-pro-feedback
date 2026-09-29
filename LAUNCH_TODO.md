@@ -1,6 +1,6 @@
 # Student App Launch Checklist
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
@@ -17,18 +17,18 @@ Workflow for durable execution; it does not require Postgres.
 - [x] Upgrade security-sensitive dependencies and rerun audit, tests, and production build.
 - [x] Replace direct Anthropic access with the HUIT AI Services Bedrock gateway,
       US inference-profile configuration, and a non-billable access/quota check.
-- [x] Require Harvard Google verification before accepting an individually
-      issued, hashed student access code; do not retain the verified email.
+- [x] Match Harvard Google OAuth directly to a keyed, one-way roster lookup;
+      do not retain the verified email or require students to enter codes.
 - [ ] Complete a live end-to-end smoke test with a synthetic or designated test account.
 
-Automated verification completed on 2026-09-27:
+Automated verification completed on 2026-09-28:
 
-- `npm run check`: clean lint and typecheck; 169 tests passing.
+- `npm run check`: clean lint and typecheck; 172 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
 - roster preparation and dry run: 83 students in each section, 166 unique
-  students, 166 unique access codes, plus one separate test account.
+  students and 166 unique emails, plus one separate diagnostic account.
 - Apps Script syntax check: passed.
 - `npm run huit:check`: HUIT authentication passed. US Sonnet 5 and US Opus 5.5
   are available. On 2026-09-26 the gateway reported a 10,000 USD monthly limit
@@ -58,8 +58,8 @@ request a course-owned project from HUIT and recreate these resources there.
 - Workbooks in the owner's Drive, shared with the service account only:
   "CivPro Feedback – IDENTITY (test, private)" and
   "CivPro Feedback – FEEDBACK (test)". They now contain the initialized
-  `Enrollment`, `Submissions`, and `Content` tabs. Enrollment holds code hashes,
-  not names, plaintext codes, or emails.
+  `Enrollment`, `Submissions`, and `Content` tabs. Enrollment holds opaque keyed
+  lookup hashes, not names or emails.
 - Apps Script "CivPro Feedback attempt gate (test)", deployed as a web app
   (execute as owner, access: Anyone; requests are HMAC-authenticated). Script
   Properties are set; the gate secret is also in `.data/gate-secret.txt`. If
@@ -96,10 +96,11 @@ request a course-owned project from HUIT and recreate these resources there.
 - [x] Deploy the Apps Script attempt gate and provide its deployment URL and
       shared secret (test deployment).
 - [x] Prepare both fall section rosters: 83 students each, with no duplicates or
-      overlap. Private codes are in `.data/fall-2026-enrollment-codes.csv`.
-- [ ] Obtain student emails if permitted, populate only the private roster's
-      `email` column, and use it for mail merge. Do not upload that mapping.
-- [x] Redeploy the Apps Script web app with the current code-based gate.
+      overlap. The private roster is in `.data/fall-2026-enrollment-codes.csv`.
+- [x] Obtain student emails, populate only the private roster's `email` column,
+      and create the local, gitignored mail-merge CSV. Do not upload that mapping.
+- [x] Confirm the existing Apps Script gate accepts the new opaque lookup hashes;
+      no Apps Script redeploy is required.
 - [ ] Decide who may access the identity workbook versus the feedback workbook.
 - [ ] Confirm the student disclosure, support contact, and record-retention date
       with the institution's privacy/IT guidance.
@@ -121,6 +122,7 @@ to the test resources above.
 - [x] `GOOGLE_FEEDBACK_SPREADSHEET_ID` (test)
 - [x] `GOOGLE_ATTEMPT_GATE_URL` (test)
 - [x] `GOOGLE_ATTEMPT_GATE_SECRET` (test)
+- [x] `STUDENT_EMAIL_LOOKUP_SECRET` (test; separate from all other secrets)
 - [x] `AUTH_SECRET` (test; generate a new one for production)
 - [x] `AUTH_GOOGLE_ID` (test)
 - [x] `AUTH_GOOGLE_SECRET` (test)
@@ -129,17 +131,15 @@ to the test resources above.
 
 ## Live acceptance test
 
-- [ ] A permitted Harvard Google account proceeds to the course-code step; a
-      non-permitted account is rejected.
-- [x] The designated test code signs in and receives the expected pseudonym.
-- [x] An unknown code is rejected without revealing whether a similar code exists.
+- [ ] A rostered Harvard Google account signs in and receives its expected
+      pseudonym; an unlisted account is rejected without revealing roster state.
 - [ ] Double-clicking submit creates only one reservation and one workflow.
 - [ ] A student can close the tab, return through history, and see live progress.
 - [ ] Completed feedback reopens from history after a new login.
 - [ ] A failed workflow is refunded and shows a support reference.
 - [ ] The fifth attempt succeeds and a sixth is rejected.
-- [x] The identity workbook contains code hashes and account state but no names,
-      student emails, plaintext codes, or student answers.
+- [x] The identity workbook contains keyed lookup hashes and account state but
+      no names, student emails, plaintext codes, or student answers.
 - [ ] The feedback workbook contains pseudonyms, answers, status, and feedback
       but no student emails.
 - [ ] Legacy production endpoints cannot trigger model calls.
