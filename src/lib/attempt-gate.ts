@@ -125,6 +125,7 @@ export function verifyGateEnvelope(envelope: GateEnvelope, secret: string): bool
 
 type FetchLike = typeof fetch;
 const DEFAULT_RETRY_DELAYS_MS = [0, 250, 750] as const;
+const TRANSIENT_HTTP_STATUSES = new Set([404, 408, 425, 429]);
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -185,7 +186,10 @@ export class AttemptGateClient {
         // Apps Script can finish a write and then transiently return an HTML
         // success page. Retrying is safe: reserve uses requestKey idempotency,
         // and every other action is idempotent for the same submission.
-        if (response.ok && attempt + 1 < this.retryDelaysMs.length) continue;
+        const transient = response.ok
+          || TRANSIENT_HTTP_STATUSES.has(response.status)
+          || response.status >= 500;
+        if (transient && attempt + 1 < this.retryDelaysMs.length) continue;
         throw lastTransientError;
       }
       const result = GateResponseSchema.parse(parsed);

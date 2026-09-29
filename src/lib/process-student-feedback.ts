@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createAttemptGateClient } from "@/lib/attempt-gate";
+import { createAttemptGateClient, type AttemptGateClient } from "@/lib/attempt-gate";
 import type { ChainInput } from "@/lib/feedback-chain";
 import { createGoogleSheetsClient } from "@/lib/google-sheets";
 import { GoogleSheetsRecordStore } from "@/lib/google-sheets-records";
@@ -118,13 +118,24 @@ export async function prepareStudentFeedback(
 export async function reportStudentFeedbackProgress(
   submissionId: string,
   stage: string,
+  gate: Pick<AttemptGateClient, "progress"> = createAttemptGateClient(),
 ): Promise<void> {
-  await createAttemptGateClient().progress({
-    submissionId,
-    status: "running",
-    stage,
-    updatedAt: new Date().toISOString(),
-  });
+  try {
+    await gate.progress({
+      submissionId,
+      status: "running",
+      stage,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    // Progress is display-only. A transient Apps Script failure must never
+    // abort model work, refund a healthy run, or make the student resubmit.
+    console.warn("Student feedback progress update skipped", {
+      submissionId,
+      stage,
+      error: error instanceof Error ? error.message : "Unknown progress error",
+    });
+  }
 }
 
 export async function completeStudentFeedback(

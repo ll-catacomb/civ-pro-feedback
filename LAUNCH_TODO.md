@@ -42,10 +42,12 @@ Longer-term vendor requests and institutional follow-up are recorded in
       attach the example revision to the improvement it demonstrates.
 - [x] Retry transient non-JSON Apps Script success responses with the original
       idempotency key and refund any reservation whose response remains ambiguous.
+- [x] Treat progress reporting as best-effort so an Apps Script display-update
+      failure cannot abort or refund an otherwise healthy feedback workflow.
 
 Automated verification completed on 2026-09-28:
 
-- `npm run check`: clean lint and typecheck; 184 tests passing.
+- `npm run check`: clean lint and typecheck; 186 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
@@ -74,6 +76,10 @@ Automated verification completed on 2026-09-28:
   a workflow. The reservation was explicitly refunded (five attempts remain).
   The gate client now retries transient malformed success responses using the
   original request key and refunds any reservation whose outcome stays ambiguous.
+- Later that morning, the same pilot account reached source retrieval but an
+  Apps Script progress update returned a transient non-JSON 404. The progress
+  write incorrectly aborted the workflow; the run was refunded automatically.
+  Progress updates are now non-fatal, and transient Apps Script 404s are retried.
 
 ## Google test environment (set up 2026-09-25)
 

@@ -112,6 +112,26 @@ describe("signed attempt gate", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
+  it("retries a transient non-JSON Apps Script 404", async () => {
+    const submissionId = randomUUID();
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response("Not Found", { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, submissionId }), { status: 200 }));
+    const client = new AttemptGateClient(
+      "https://example.test/gate",
+      "test-secret",
+      fetchImpl as typeof fetch,
+      [0, 0, 0],
+    );
+    await expect(client.progress({
+      submissionId,
+      status: "running",
+      stage: "retrieval_rerank",
+      updatedAt: "2026-09-29T13:36:11.100Z",
+    })).resolves.toMatchObject({ ok: true, submissionId });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("authenticates only with a code hash and returns an opaque student ID", async () => {
     const studentId = randomUUID();
     const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
