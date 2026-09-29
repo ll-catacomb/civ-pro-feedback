@@ -110,7 +110,7 @@ const {
   evaluator: EVALUATOR_MODEL,
   judge: JUDGE_MODEL,
 } = FEEDBACK_MODELS;
-const MAX_OUTPUT_TOKENS = 64_000;
+const MAX_OUTPUT_TOKENS = 32_000;
 const RETRIEVAL_CANDIDATE_LIMIT = 48;
 const FINAL_SOURCE_LIMIT = 24;
 
@@ -200,6 +200,7 @@ export async function runSubmissionFitJudgeStage(
     schema: SubmissionFitJudgeSchema,
     stageName: "submission_fit_judge",
     model: JUDGE_MODEL,
+    fallbackModel: FAST_MODEL,
     reasoningEffort: "high",
     developerPrompt: submissionFitJudgeDeveloperPrompt,
     userPrompt: submissionFitJudgeUserPrompt({
@@ -343,6 +344,7 @@ export async function runEvaluationStage(
     schema: EvaluationSchema,
     stageName: "blind_evaluation",
     model: EVALUATOR_MODEL,
+    fallbackModel: WORK_MODEL,
     reasoningEffort: "high",
     developerPrompt: evaluationDeveloperPrompt,
     userPrompt: evaluationUserPrompt({
@@ -402,6 +404,7 @@ export async function runJudgeStage(
     schema: JudgeSchema,
     stageName: "judge_and_revise",
     model: JUDGE_MODEL,
+    fallbackModel: WORK_MODEL,
     reasoningEffort: "high",
     developerPrompt: judgeDeveloperPrompt,
     userPrompt: judgeUserPrompt({
@@ -516,10 +519,9 @@ export function createChainClient(): HuitBedrockClient {
   return new HuitBedrockClient();
 }
 
-// Retry transient gateway, rate-limit, and Bedrock service errors at the stage
-// boundary. Delays escalate instead of hammering the same window, with jitter
-// so parallel fixtures desynchronize.
-const STAGE_RETRY_DELAYS_MS = [5_000, 20_000, 60_000];
+// Retry transient gateway, rate-limit, and Bedrock service errors once at the
+// stage boundary. Jitter keeps parallel submissions from retrying together.
+const STAGE_RETRY_DELAYS_MS = [5_000];
 const STAGE_RETRY_JITTER_MS = 5_000;
 
 function isNonRetryable(error: unknown): boolean {
@@ -534,6 +536,7 @@ async function attemptClaudeStage<T>(input: {
   schema: z.ZodType<T>;
   stageName: string;
   model: string;
+  fallbackModel?: string;
   reasoningEffort: ReasoningEffort;
   developerPrompt: string;
   userPrompt: string;
@@ -605,7 +608,10 @@ export async function parseClaudeStage<T>(input: Parameters<typeof attemptClaude
   let lastError: unknown;
   for (let attempt = 0; attempt <= STAGE_RETRY_DELAYS_MS.length; attempt += 1) {
     try {
-      return await attemptClaudeStage(input);
+      return await attemptClaudeStage({
+        ...input,
+        model: attempt === 0 ? input.model : input.fallbackModel ?? input.model,
+      });
     } catch (error) {
       if (isNonRetryable(error)) {
         throw new FeedbackStageError(input.stageName, error);

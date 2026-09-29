@@ -1,7 +1,9 @@
 import "server-only";
 
 const DEFAULT_BASE_URL = "https://apis.huit.harvard.edu/ais-bedrock-llm/v2";
-const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
+// Keep one provider call comfortably inside Vercel's step lifetime so the
+// stage-level fallback can run before infrastructure terminates the function.
+const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
 export type HuitClaudeContentBlock =
   | { type: "text"; text: string }
@@ -100,29 +102,40 @@ export class HuitBedrockClient {
 
   async invoke(input: HuitClaudeRequest): Promise<HuitClaudeResponse> {
     if (!this.apiKey) throw new Error("HUIT_BEDROCK_API_KEY is not configured.");
-    const response = await fetch(
-      `${this.baseUrl}/model/${encodeURIComponent(input.model)}/invoke`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": this.apiKey,
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.baseUrl}/model/${encodeURIComponent(input.model)}/invoke`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": this.apiKey,
+          },
+          body: JSON.stringify({
+            anthropic_version: "bedrock-2023-05-31",
+            max_tokens: input.maxTokens,
+            thinking: input.thinking,
+            output_config: input.outputConfig,
+            system: input.system,
+            messages: [{
+              role: "user",
+              content: [{ type: "text", text: input.userPrompt }],
+            }],
+          }),
+          signal: AbortSignal.timeout(this.timeoutMs),
+          cache: "no-store",
         },
-        body: JSON.stringify({
-          anthropic_version: "bedrock-2023-05-31",
-          max_tokens: input.maxTokens,
-          thinking: input.thinking,
-          output_config: input.outputConfig,
-          system: input.system,
-          messages: [{
-            role: "user",
-            content: [{ type: "text", text: input.userPrompt }],
-          }],
-        }),
-        signal: AbortSignal.timeout(this.timeoutMs),
-        cache: "no-store",
-      },
-    );
+      );
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new HuitBedrockError({
+          message: `HUIT Bedrock request timed out after ${this.timeoutMs}ms.`,
+          status: 504,
+        });
+      }
+      throw error;
+    }
     const requestID = response.headers.get("x-request-id")
       ?? response.headers.get("x-amzn-requestid")
       ?? response.headers.get("x-amzn-request-id")

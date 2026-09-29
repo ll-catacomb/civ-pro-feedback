@@ -87,4 +87,21 @@ describe("HUIT Bedrock client", () => {
     expect(error).toMatchObject({ status: 429, requestID: "request-42", retryAfterMs: 10_000 });
     expect(String(error)).not.toContain("never-print-this");
   });
+
+  it("turns a provider timeout into a retryable gateway error", async () => {
+    const timeout = new Error("The operation was aborted due to timeout");
+    timeout.name = "TimeoutError";
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(timeout);
+    const client = new HuitBedrockClient({
+      apiKey: "key",
+      baseUrl: "https://example.edu/v2",
+      timeoutMs: 12_345,
+    });
+
+    await expect(client.invoke(request)).rejects.toMatchObject({
+      name: "HuitBedrockError",
+      status: 504,
+      message: "HUIT Bedrock request timed out after 12345ms.",
+    });
+  });
 });

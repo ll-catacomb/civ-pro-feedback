@@ -1,6 +1,6 @@
 # Student App Launch Checklist
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
@@ -44,10 +44,12 @@ Longer-term vendor requests and institutional follow-up are recorded in
       idempotency key and refund any reservation whose response remains ambiguous.
 - [x] Treat progress reporting as best-effort so an Apps Script display-update
       failure cannot abort or refund an otherwise healthy feedback workflow.
+- [x] Bound HUIT calls to five minutes and fall back from Opus to Sonnet on the
+      single controlled retry, keeping evaluation inside Vercel's step lifetime.
 
-Automated verification completed on 2026-09-28:
+Automated verification completed through 2026-09-29:
 
-- `npm run check`: clean lint and typecheck; 186 tests passing.
+- `npm run check`: clean lint and typecheck; 187 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
@@ -80,6 +82,10 @@ Automated verification completed on 2026-09-28:
   Apps Script progress update returned a transient non-JSON 404. The progress
   write incorrectly aborted the workflow; the run was refunded automatically.
   Progress updates are now non-fatal, and transient Apps Script 404s are retried.
+- A later full-exam retry reached independent evaluation, but three Vercel step
+  executions were each terminated while waiting on the evaluator; the run was
+  refunded. Provider calls are now capped at five minutes, retry only once, and
+  use Sonnet as the fallback for Opus-backed evaluation and final review.
 
 ## Google test environment (set up 2026-09-25)
 

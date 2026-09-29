@@ -52,7 +52,7 @@ HUIT_BEDROCK_WORK_MODEL=us.anthropic.claude-sonnet-5
 HUIT_BEDROCK_EVALUATOR_MODEL=us.anthropic.claude-opus-5-5
 HUIT_BEDROCK_JUDGE_MODEL=us.anthropic.claude-opus-5-5
 HUIT_BEDROCK_STRUCTURED_OUTPUT=false
-# HUIT_BEDROCK_TIMEOUT_MS=600000
+# HUIT_BEDROCK_TIMEOUT_MS=300000
 ```
 
 After the key is approved:
