@@ -219,7 +219,8 @@ describe("prompt-chain invariants", () => {
     expect(coachDeveloperPrompt).toContain("Organize by question, not by priority");
     expect(coachDeveloperPrompt).toContain("Emit strengths and improvements in exam order");
     expect(coachDeveloperPrompt).toContain("Set questionRef on every strength and every improvement");
-    expect(judgeDeveloperPrompt).toContain("the cards run in exam order, not priority order");
+    expect(coachDeveloperPrompt).toContain("Within each question, order improvements high, then medium, then low");
+    expect(judgeDeveloperPrompt).toContain("question groups run in exam order, not global priority order");
     // A pre-v4.8.0 run has no questionRef, so the field must stay optional.
     const legacy = FeedbackSchema.shape.improvements.element.shape.questionRef;
     expect(legacy.safeParse(undefined).success).toBe(true);
@@ -385,9 +386,20 @@ describe("prompt-chain invariants", () => {
 
   it("places the example revision beside the question it rewrites", () => {
     expect(coachDeveloperPrompt).toContain("Set exampleRevisionRef to the questionRef");
+    expect(coachDeveloperPrompt).toContain("Set exampleRevisionTarget to the exact label");
+    expect(judgeDeveloperPrompt).toContain("exampleRevisionRef and exampleRevisionTarget");
     const ref = FeedbackSchema.shape.exampleRevisionRef;
+    const target = FeedbackSchema.shape.exampleRevisionTarget;
     expect(ref.safeParse(undefined).success).toBe(true);
     expect(ref.safeParse("Question 1").success).toBe(true);
+    expect(target.safeParse(undefined).success).toBe(true);
+    expect(target.safeParse("Personal jurisdiction analysis").success).toBe(true);
+  });
+
+  it("keeps internal bands and scores out of student-facing feedback", () => {
+    expect(coachDeveloperPrompt).toContain("Never expose them in student-facing feedback");
+    expect(coachDeveloperPrompt).toContain('"P rather than H"');
+    expect(judgeDeveloperPrompt).toContain("Internal calibration bands and scores are never student-facing");
   });
 
   it("never uses a disfavored term in its own voice", () => {

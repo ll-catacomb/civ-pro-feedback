@@ -13,7 +13,7 @@ export default function PracticePage() {
       <main className="practice-page">
         <header className="practice-intro">
           <h1>Practice feedback</h1>
-          <p>Pick one of the past Civil Procedure finals, paste your answer, and get course-grounded feedback with an estimated grade band. Formative only — it is not an official grade.</p>
+          <p>Pick a past Civil Procedure assessment, paste your response, and receive course-grounded feedback on what is working and what to revise.</p>
         </header>
         <PracticeWorkspace exams={exams} />
       </main>

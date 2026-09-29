@@ -221,6 +221,9 @@ export const FeedbackSchema = z.object({
   // it beside that question instead of stranding it at the end where it reads as
   // a summary. Optional: pre-v4.11.0 runs have no ref and fall back to the tail.
   exampleRevisionRef: z.string().optional(),
+  // The exact improvement label the example demonstrates. Optional for stored
+  // runs created before the UI attached examples to individual cards.
+  exampleRevisionTarget: z.string().optional(),
   closing: z.string(),
 });
 export type Feedback = z.infer<typeof FeedbackSchema>;

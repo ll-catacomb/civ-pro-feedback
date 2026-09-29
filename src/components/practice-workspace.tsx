@@ -3,20 +3,17 @@
 import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, ArrowRight, ChevronDown, CircleCheck, FileText,
-  LoaderCircle, RotateCcw, ShieldCheck, Sparkles,
+  LoaderCircle, RotateCcw, Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import { STUDENT_PROGRESS_STEPS } from "@/lib/feedback-progress";
 import {
   getAssessmentOutcome,
-  getBandEstimateExplanation,
   getFinalFeedback,
-  getFormativeBandEstimate,
-  bandSuppressionReason,
   isUnreviewedDraft,
 } from "@/lib/outcomes";
-import type { Exam, Feedback, FeedbackRun, SubmissionMode, SubmissionScope } from "@/lib/types";
+import type { Exam, FeedbackRun, SubmissionMode, SubmissionScope } from "@/lib/types";
 
 function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
   if (!ids.length) return null;
@@ -27,25 +24,6 @@ function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
         return <span key={id} title={source?.title ?? id}>{source?.title ?? id}</span>;
       })}
     </div>
-  );
-}
-
-function ChainReport({ title, feedback }: { title: string; feedback: Feedback }) {
-  return (
-    <details className="rail-details">
-      <summary>{title} <ChevronDown size={16} /></summary>
-      <div className="chain-report">
-        <strong>{feedback.headline}</strong>
-        <p>{feedback.overview}</p>
-        {feedback.strengths.length > 0 && (
-          <ul>{feedback.strengths.map((strength, index) => <li key={index}><b>{strength.label}.</b> {strength.detail}</li>)}</ul>
-        )}
-        {feedback.improvements.length > 0 && (
-          <ul>{feedback.improvements.map((improvement, index) => <li key={index}><b>{improvement.label}.</b> {improvement.howToImprove}</li>)}</ul>
-        )}
-        <p>{feedback.closing}</p>
-      </div>
-    </details>
   );
 }
 
@@ -89,17 +67,10 @@ function groupByQuestion<T extends QuestionScoped>(items: T[]): { heading: strin
   ];
 }
 
-/** "hybrid" only appears on runs persisted before v4.2.0's embedding removal. */
-function retrievalMethodLabel(run: FeedbackRun): string {
-  const methods = new Set(run.sources.map((source) => source.retrievalMethod));
-  if (methods.has("expanded_lexical")) return "Doctrine-vocabulary course search.";
-  if (methods.has("hybrid")) return "Hybrid semantic + lexical retrieval.";
-  return "Issue-map keyword search (query expansion unavailable).";
-}
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
 
 export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => void }) {
   const outcome = getAssessmentOutcome(run);
-  const retrievalLabel = retrievalMethodLabel(run);
   if (outcome.creditStatus === "zero_nonresponsive") {
     return <ZeroCreditResult run={run} onReset={onReset} />;
   }
@@ -113,17 +84,24 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
     );
   }
   const judge = run.judge;
-  const dualDecision = run.dualDecision;
-  const improvementGroups = groupByQuestion(feedback.improvements);
-  // Only treat the example as placed if its ref actually matches a rendered
-  // group; otherwise a stray ref would drop the example from the page entirely.
-  const exampleIsInline = improvementGroups.some(
-    (group) => group.heading === feedback.exampleRevisionRef,
-  );
+  const improvementGroups = groupByQuestion(feedback.improvements).map((group) => ({
+    ...group,
+    items: [...group.items].sort((left, right) => PRIORITY_ORDER[left.priority] - PRIORITY_ORDER[right.priority]),
+  }));
+  // New runs name the exact card. Older assignment runs often named neither a
+  // question nor a card; where there is only one group, the first high-priority
+  // card is a safer home than the bottom of the whole report.
+  const exampleGroup = improvementGroups.find((group) => group.heading === feedback.exampleRevisionRef)
+    ?? (improvementGroups.length === 1 ? improvementGroups[0] : undefined);
+  const requestedExampleIndex = feedback.exampleRevisionTarget
+    ? exampleGroup?.items.findIndex((improvement) => improvement.label === feedback.exampleRevisionTarget)
+    : 0;
+  const examplePlacement = exampleGroup
+    ? { heading: exampleGroup.heading, index: requestedExampleIndex !== undefined && requestedExampleIndex >= 0 ? requestedExampleIndex : 0 }
+    : undefined;
+  const exampleIsInline = Boolean(examplePlacement);
   const unreviewed = isUnreviewedDraft(run);
-  const manualReviewMessage = dualDecision && !dualDecision.bandsAgreed
-    ? "The two cross-model judges selected different bands. Treat this feedback as provisional pending instructor review."
-    : "The exam-responsiveness checks disagreed. Treat this feedback as provisional pending instructor review.";
+  const manualReviewMessage = "The automated quality checks disagreed about part of this response. Treat the feedback as provisional and confirm uncertain points against the course materials.";
   return (
     <section className="result-shell" aria-live="polite">
       {outcome.creditStatus === "manual_review" && (
@@ -145,10 +123,9 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
           <h2>{feedback.headline}</h2>
           <p>{feedback.overview}</p>
         </div>
-        <div className={`quality-seal ${dualDecision?.bandsAgreed || (!dualDecision && judge.approved) ? "is-approved" : "is-revised"}`}>
-          <ShieldCheck size={22} />
-          <span><strong>{dualDecision ? "Cross-model audited" : "Audited"}</strong></span>
-          <small>{unreviewed ? "Unreviewed draft" : dualDecision ? (dualDecision.bandsAgreed ? "Judges agreed" : "Review required") : judge.approved ? "Feedback approved" : "Feedback revised"}</small>
+        <div className={`quality-seal ${judge.approved ? "is-approved" : "is-revised"}`}>
+          <span><strong>{unreviewed ? "Review advised" : "Feedback checked"}</strong></span>
+          <small>Automated quality check</small>
         </div>
       </div>
 
@@ -179,27 +156,33 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
               <div className="question-group" key={group.heading}>
                 <h4 className="question-heading">{group.heading}</h4>
                 <div className="feedback-stack">
-                  {group.items.map((improvement, index) => (
-                    <article className="feedback-card improvement-card" key={`${improvement.label}-${index}`}>
-                      <div className="card-title-row">
-                        <span className={`priority priority--${improvement.priority}`}>{improvement.priority}</span>
-                        <h3>{improvement.label}</h3>
+                  {group.items.map((improvement, index) => {
+                    const showExample = examplePlacement?.heading === group.heading
+                      && examplePlacement.index === index;
+                    return (
+                      <div className="improvement-with-example" key={`${improvement.label}-${index}`}>
+                        <article className="feedback-card improvement-card">
+                          <div className="card-title-row">
+                            <span className={`priority priority--${improvement.priority}`}>{improvement.priority}</span>
+                            <h3>{improvement.label}</h3>
+                          </div>
+                          <dl className="coaching-grid">
+                            <div><dt>What happened</dt><dd>{improvement.whatHappened}</dd></div>
+                            <div><dt>Why it matters</dt><dd>{improvement.whyItMatters}</dd></div>
+                            <div><dt>Try this next</dt><dd>{improvement.howToImprove}</dd></div>
+                          </dl>
+                          <SourceBadges ids={improvement.sourceIds} run={run} />
+                        </article>
+                        {showExample && (
+                          <div className="example-revision inline-example">
+                            <strong>Example of a stronger move</strong>
+                            <p>{feedback.exampleRevision}</p>
+                          </div>
+                        )}
                       </div>
-                      <dl className="coaching-grid">
-                        <div><dt>What happened</dt><dd>{improvement.whatHappened}</dd></div>
-                        <div><dt>Why it matters</dt><dd>{improvement.whyItMatters}</dd></div>
-                        <div><dt>Try this next</dt><dd>{improvement.howToImprove}</dd></div>
-                      </dl>
-                      <SourceBadges ids={improvement.sourceIds} run={run} />
-                    </article>
-                  ))}
+                    );
+                  })}
                 </div>
-                {feedback.exampleRevisionRef === group.heading && (
-                  <div className="example-revision inline-example">
-                    <strong>Example of a stronger move</strong>
-                    <p>{feedback.exampleRevision}</p>
-                  </div>
-                )}
               </div>
             ))}
           </section>
@@ -218,64 +201,11 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
           </section>
         </div>
 
-        <aside className="evidence-rail">
-          {bandSuppressionReason(run) && (
-            <div className="rail-card">
-              <span className="eyebrow">No band for this submission</span>
-              <p>{bandSuppressionReason(run)} The feedback below is unaffected.</p>
-            </div>
-          )}
-          {getFormativeBandEstimate(run) && (
-            <div className="rail-card">
-              <span className="eyebrow">Estimated band</span>
-              <strong>{getFormativeBandEstimate(run)}{dualDecision?.bandScore !== undefined && ` · ${dualDecision.bandScore}/4`}</strong>
-              <p>
-                {getBandEstimateExplanation(run) ?? "The blind evaluation compared this answer against instructor-graded reference answers."}
-                {" "}This is a formative estimate, not an official grade.
-              </p>
-            </div>
-          )}
-          <div className="rail-card">
-            <span className="eyebrow">Grounding record</span>
-            <strong>{run.sources.length} course excerpts</strong>
-            <p><b>{retrievalLabel}</b> Selected from non-exam course materials; the chosen exam and model answer are supplied separately.</p>
-          </div>
-          <details className="rail-details">
-            <summary>View cited sources <ChevronDown size={16} /></summary>
-            <div className="source-list">
-              {run.sources.map((source) => (
-                <article key={source.id}>
-                  <strong>{source.title}</strong>
-                  <small>{source.path.replace("content/course/", "")}</small>
-                  <p>{source.excerpt.slice(0, 320)}{source.excerpt.length > 320 ? "…" : ""}</p>
-                  {source.rerankReason && <p><b>Why selected:</b> {source.rerankReason}</p>}
-                </article>
-              ))}
-            </div>
-          </details>
-          {dualDecision && run.claudeChain && (
-            <>
-              <ChainReport title="OpenAI model report" feedback={judge.feedback} />
-              <ChainReport title="Claude model report" feedback={run.claudeChain.judge.feedback} />
-            </>
-          )}
-          <details className="rail-details">
-            <summary>Judge audit <ChevronDown size={16} /></summary>
-            <div className="audit-list">
-              {Object.entries(judge.checks).map(([label, score]) => (
-                <div key={label}><span>{label.replace(/([A-Z])/g, " $1")}</span><strong>{score}/4</strong></div>
-              ))}
-            </div>
-            {judge.findings.length > 0 && (
-              <ul className="judge-findings">
-                {judge.findings.map((finding, index) => <li key={index}><strong>{finding.severity}</strong> {finding.problem}</li>)}
-              </ul>
-            )}
-          </details>
+        <aside className="evidence-rail student-feedback-actions">
           <button className="secondary-button full-width" onClick={onReset} type="button">
             <RotateCcw size={16} /> Start another response
           </button>
-          <p className="formative-note">Formative feedback only. It is not an official grade or legal advice.</p>
+          <p className="formative-note">This is AI-generated practice feedback, not an official assessment or legal advice. Confirm uncertain points against the course materials.</p>
         </aside>
       </div>
     </section>
@@ -288,9 +218,8 @@ function ZeroCreditResult({ run, onReset }: { run: FeedbackRun; onReset: () => v
   const gateStopped = Boolean(gate && !run.judge);
   return (
     <section className="result-shell zero-result" aria-live="polite">
-      <div className="zero-result__score"><span>Assessment score</span><strong>0</strong><small>No credit</small></div>
       <div className="zero-result__content">
-        <span className="eyebrow">Nonresponsive submission</span>
+        <span className="eyebrow">Submission mismatch</span>
         <h2>This response does not answer the selected examination.</h2>
         <p>{gate?.rationale ?? outcome.rationale}</p>
         {gate?.controllingEvidence.length ? (
@@ -300,7 +229,7 @@ function ZeroCreditResult({ run, onReset }: { run: FeedbackRun; onReset: () => v
           </div>
         ) : null}
         {gate?.likelyOtherExam && <p className="likely-exam"><strong>Possible matching exam:</strong> {gate.likelyOtherExam}</p>}
-        <p className="zero-policy">A response directed to different questions receives zero credit regardless of the quality of its legal analysis. {gateStopped ? "Substantive grading stopped at intake." : "This legacy run continued before the gate existed; disregard its substantive feedback."}</p>
+        <p className="zero-policy">The feedback process stops when a response appears to address different questions. {gateStopped ? "No substantive feedback was generated." : "This legacy run continued before the intake check existed; disregard its substantive feedback."}</p>
         <button className="secondary-button" onClick={onReset} type="button"><RotateCcw size={16} /> Submit the correct response</button>
       </div>
     </section>
@@ -316,7 +245,7 @@ export function WaitingView({ examLabel, progress, durable }: { examLabel: strin
       <div className="waiting-head">
         <LoaderCircle className="spin" size={20} />
         <div>
-          <strong>{progress?.label ?? `Grading your ${examLabel} practice answer…`}</strong>
+          <strong>{progress?.label ?? `Building feedback for your ${examLabel} practice answer…`}</strong>
           <span>{progress?.detail ?? "Your response has been received and is waiting to begin."}</span>
         </div>
       </div>
@@ -579,8 +508,8 @@ export function PracticeWorkspace({
 
         {mode === "bullet_points" && (
           <p className="mode-note">
-            Outlines are graded on issue-spotting, structure, and whether the reasoning is
-            there — not on prose. You will not be marked down for writing in fragments.
+            Feedback on outlines focuses on issue-spotting, structure, and whether the
+            reasoning is there — not on prose. Writing in fragments is fine.
           </p>
         )}
 
@@ -599,7 +528,7 @@ export function PracticeWorkspace({
         {error && <div className="error-banner"><AlertTriangle size={18} /><span>{error}</span></div>}
         <div className="practice-submit">
           <button className="primary-button" type="submit" disabled={tooShort || needsQuestion || studentContext?.attemptsRemaining === 0}>Get feedback <ArrowRight size={18} /></button>
-          <span className="submit-note">Takes about 10–15 minutes. Formative feedback and an estimated band — not an official grade.</span>
+          <span className="submit-note">Takes about 10–15 minutes. You can close this page and return when your feedback is ready.</span>
         </div>
       </form>
     </section>

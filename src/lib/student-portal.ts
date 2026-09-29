@@ -11,7 +11,6 @@ export type StudentHistoryItem = {
   formLabel: string;
   submittedAt: string;
   status: "complete" | "in_progress" | "failed";
-  band?: string;
 };
 
 export type StudentPortalModel = {
@@ -32,14 +31,13 @@ export function getSyntheticPortalModel(requestedIndex = 1): StudentPortalModel 
   const demoIndex = Math.min(roster.length, Math.max(1, Math.trunc(requestedIndex) || 1));
   const student = roster[demoIndex - 1];
   const dates = ["2026-09-12T18:22:00.000Z", "2026-09-08T15:40:00.000Z", "2026-09-03T20:05:00.000Z"];
-  const exams = ["2019 final", "2015 final · Question 2", "2023 graded assignment"];
+  const exams = ["2019 final", "2015 final · Question 2", "2023 practice assignment"];
   const history: StudentHistoryItem[] = Array.from({ length: Math.min(student.attemptsConsumed, 3) }, (_, index) => ({
     id: `synthetic-${demoIndex}-${index + 1}`,
     examLabel: exams[index],
     formLabel: index === 1 ? "Bullet-point outline" : "Written draft",
     submittedAt: dates[index],
     status: "complete",
-    band: index === 0 ? "H" : index === 1 ? undefined : "P",
   }));
   if (student.activeSubmissionId) {
     history.unshift({

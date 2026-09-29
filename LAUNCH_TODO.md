@@ -37,10 +37,13 @@ Longer-term vendor requests and institutional follow-up are recorded in
       punctuation while preserving the original UTF-8 answer payload.
 - [x] Reject obvious accidental prompt pastes, incomplete fragments, and
       repeated placeholders before reserving an attempt or starting a workflow.
+- [x] Keep internal bands, grounding diagnostics, and judge audits out of the
+      student view; order improvements by priority within each question and
+      attach the example revision to the improvement it demonstrates.
 
 Automated verification completed on 2026-09-28:
 
-- `npm run check`: clean lint and typecheck; 181 tests passing.
+- `npm run check`: clean lint and typecheck; 182 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.

@@ -36,7 +36,7 @@ export const STUDENT_PROGRESS_STEPS = [
   {
     position: 5,
     label: "Draft actionable feedback",
-    detail: "The evaluation is translated into specific priorities, explanations, and a concrete revision plan rather than a score alone.",
+    detail: "The evaluation is translated into specific priorities, explanations, and a concrete revision plan.",
   },
   {
     position: 6,

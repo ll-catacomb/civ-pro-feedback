@@ -111,7 +111,6 @@ function StudentHistoryContents({ item }: { item: import("@/lib/student-portal")
         <p>{item.formLabel} · {formatDate(item.submittedAt)}</p>
       </div>
       <div className="student-history-status">
-        {item.band && <span>Estimated band: {item.band}</span>}
         <strong>{item.status === "complete" ? "Feedback ready" : item.status === "in_progress" ? "In progress" : "Needs attention"}</strong>
       </div>
     </>
