@@ -35,7 +35,7 @@ export function getSyntheticPortalModel(requestedIndex = 1): StudentPortalModel 
   const history: StudentHistoryItem[] = Array.from({ length: Math.min(student.attemptsConsumed, 3) }, (_, index) => ({
     id: `synthetic-${demoIndex}-${index + 1}`,
     examLabel: exams[index],
-    formLabel: index === 1 ? "Bullet-point outline" : "Written draft",
+    formLabel: index === 1 ? "Bullet-point version" : "Written draft",
     submittedAt: dates[index],
     status: "complete",
   }));
@@ -75,7 +75,7 @@ export async function getSheetsPortalModel(
       examLabel: submission.questionRef
         ? `${submission.examId} · ${submission.questionRef}`
         : submission.examId,
-      formLabel: submission.mode === "bullet_points" ? "Bullet-point outline" : "Written draft",
+      formLabel: submission.mode === "bullet_points" ? "Bullet-point version" : "Written draft",
       submittedAt: submission.createdAt,
       status: submission.status === "completed"
         ? "complete"

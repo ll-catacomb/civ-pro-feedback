@@ -34,7 +34,7 @@ export default async function StudentPractice({
         <header className="student-practice-heading">
           <p>New practice response</p>
           <h1>Request feedback</h1>
-          <span>Choose the material you practiced and submit either a written draft or an outline.</span>
+          <span>Choose the material you practiced and submit either a written draft or a bullet-point version.</span>
         </header>
         <PracticeWorkspace
           exams={getExams()}

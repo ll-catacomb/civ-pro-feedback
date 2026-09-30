@@ -129,7 +129,7 @@ describe("prompt-chain invariants", () => {
     expect(BRAIN_OFF_TOPICS).toContain("Specific personal jurisdiction");
     expect(BRAIN_OFF_TOPICS).toContain("Interlocutory appeals checklist");
     // The one topic that is explicitly NOT fully brain off must survive verbatim.
-    expect(BRAIN_OFF_TOPICS).toContain("second step is a vague standard");
+    expect(BRAIN_OFF_TOPICS).toContain("substantiality and the discretionary factors require judgment");
     expect(coachDeveloperPrompt).toContain(BRAIN_OFF_TOPICS);
     expect(coachDeveloperPrompt).toContain("turn their brain off");
     // The judge must not strip brain-off coaching, but does not carry the list.
@@ -172,7 +172,7 @@ describe("prompt-chain invariants", () => {
     expect(BRAIN_OFF_TOPICS).not.toMatch(/^\* Erie$/m);
     expect(coachDeveloperPrompt).toContain("Match the size of the fix to the weight of the question");
     // Round 2 qualified this: space for a weighted framework is still owed, but
-    // it is paid for by naming a cut, never by asking for a longer answer.
+    // the feedback must name a cut rather than ask for a longer answer.
     expect(coachDeveloperPrompt).toContain("never by asking for a longer answer overall");
   });
 
@@ -229,7 +229,20 @@ describe("prompt-chain invariants", () => {
   it("keeps additions inside the exam's word budget", () => {
     expect(coachDeveloperPrompt).toContain("Pair every addition with a cut");
     expect(coachDeveloperPrompt).toContain("Never recommend added exposition on its own");
-    expect(judgeDeveloperPrompt).toContain("names the passage whose words pay for it");
+    expect(judgeDeveloperPrompt).toContain("names the passage that can be shortened to make room for it");
+    expect(coachDeveloperPrompt).not.toMatch(/pay for/i);
+    expect(judgeDeveloperPrompt).not.toMatch(/pay for/i);
+  });
+
+  it("keeps the Smith-Grable power and discretion inquiries separate", () => {
+    expect(COURSE_CLARIFICATIONS).toContain("Well-pleaded federal cause of action (Mottley)");
+    expect(COURSE_CLARIFICATIONS).toContain("Does the state-law claim contain an embedded federal issue?");
+    expect(COURSE_CLARIFICATIONS).toContain("Is that issue substantial to this case");
+    expect(COURSE_CLARIFICATIONS).toContain("Is the federal issue disputed or likely to be disputed?");
+    expect(COURSE_CLARIFICATIONS).toContain("separately ask whether the federal court should exercise that power");
+    expect(COURSE_CLARIFICATIONS).toContain("Merrell Dow; Moore");
+    expect(COURSE_CLARIFICATIONS).toContain("predominantly law or fact");
+    expect(COURSE_CLARIFICATIONS).toContain("Congress's failure to create a federal cause of action");
   });
 
   it("refuses to spend an improvement slot on disfavored vocabulary", () => {
@@ -491,9 +504,10 @@ describe("prompt-chain invariants", () => {
       expect(brief).not.toMatch(/ONLY/);
     });
 
-    it("protects an outline from being graded on prose", () => {
+    it("protects a bullet-point version from being graded on prose", () => {
       const brief = submissionContext({ scope: "full_exam", mode: "bullet_points" });
-      expect(brief).toContain("Do not mark it down for being in note form");
+      expect(brief).toContain("submitted in note form on purpose");
+      expect(brief).toContain("Do not mark it down for fragments");
       expect(brief).toContain("Prose quality is not assessable here");
       // But an outline still has to reason.
       expect(brief).toContain("exactly as conclusory as a sentence that does the same");

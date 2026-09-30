@@ -1,6 +1,6 @@
 # Student App Launch Checklist
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
@@ -46,10 +46,16 @@ Longer-term vendor requests and institutional follow-up are recorded in
       failure cannot abort or refund an otherwise healthy feedback workflow.
 - [x] Bound HUIT calls to five minutes and fall back from Opus to Sonnet on the
       single controlled retry, keeping evaluation inside Vercel's step lifetime.
+- [x] Use student-facing "bullet-point version" language, replace "pay for" with
+      "make room for," and add copy plus print/PDF feedback actions.
+- [ ] Add the 2024 final after receiving its instructor model answer; the exam
+      text is already present, but evaluation needs a coverage benchmark.
+- [ ] Add the 2025 three-hour final after receiving both the final text and the
+      instructor model answer.
 
-Automated verification completed through 2026-09-29:
+Automated verification completed through 2026-09-30:
 
-- `npm run check`: clean lint and typecheck; 187 tests passing.
+- `npm run check`: clean lint and typecheck; 190 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.

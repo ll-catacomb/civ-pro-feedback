@@ -2,8 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle, ArrowRight, ChevronDown, CircleCheck, FileText,
-  LoaderCircle, RotateCcw, Sparkles,
+  AlertTriangle, ArrowRight, Check, ChevronDown, CircleCheck, Copy, FileText,
+  LoaderCircle, Printer, RotateCcw, Sparkles,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -13,6 +13,7 @@ import {
   getFinalFeedback,
   isUnreviewedDraft,
 } from "@/lib/outcomes";
+import { formatFeedbackForCopy } from "@/lib/student-feedback-export";
 import type { Exam, FeedbackRun, SubmissionMode, SubmissionScope } from "@/lib/types";
 
 function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
@@ -70,6 +71,7 @@ function groupByQuestion<T extends QuestionScoped>(items: T[]): { heading: strin
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
 
 export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: () => void }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const outcome = getAssessmentOutcome(run);
   if (outcome.creditStatus === "zero_nonresponsive") {
     return <ZeroCreditResult run={run} onReset={onReset} />;
@@ -83,6 +85,7 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
       </section>
     );
   }
+  const copyableFeedback = feedback;
   const judge = run.judge;
   const improvementGroups = groupByQuestion(feedback.improvements).map((group) => ({
     ...group,
@@ -101,6 +104,14 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
     : undefined;
   const exampleIsInline = Boolean(examplePlacement);
   const unreviewed = isUnreviewedDraft(run);
+  async function copyFeedback() {
+    try {
+      await navigator.clipboard.writeText(formatFeedbackForCopy(copyableFeedback));
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+  }
   const manualReviewMessage = "The automated quality checks disagreed about part of this response. Treat the feedback as provisional and confirm uncertain points against the course materials.";
   return (
     <section className="result-shell" aria-live="polite">
@@ -202,6 +213,14 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
         </div>
 
         <aside className="evidence-rail student-feedback-actions">
+          <button className="secondary-button full-width" onClick={() => window.print()} type="button">
+            <Printer size={16} /> Print or save as PDF
+          </button>
+          <button className="secondary-button full-width" onClick={copyFeedback} type="button">
+            {copyState === "copied" ? <Check size={16} /> : <Copy size={16} />}
+            {copyState === "copied" ? "Copied for Google Docs" : "Copy feedback"}
+          </button>
+          {copyState === "failed" && <p className="copy-feedback-status" role="alert">Copying was blocked by the browser. Select and copy the feedback from this page instead.</p>}
           <button className="secondary-button full-width" onClick={onReset} type="button">
             <RotateCcw size={16} /> Start another response
           </button>
@@ -501,14 +520,14 @@ export function PracticeWorkspace({
               onChange={(event) => setMode(event.target.value as SubmissionMode)}
             >
               <option value="full_draft">A written-out draft</option>
-              <option value="bullet_points">Bullet points or an outline</option>
+              <option value="bullet_points">A bullet-point version</option>
             </select>
           </div>
         </div>
 
         {mode === "bullet_points" && (
           <p className="mode-note">
-            Feedback on outlines focuses on issue-spotting, structure, and whether the
+            Feedback on bullet-point versions focuses on issue-spotting, structure, and whether the
             reasoning is there — not on prose. Writing in fragments is fine.
           </p>
         )}

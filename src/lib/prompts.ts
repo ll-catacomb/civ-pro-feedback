@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.22.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.23.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -30,7 +30,7 @@ Do not fail an answer merely because it is incomplete, poorly reasoned, legally 
 
 Read the submission scope before deciding anything. Where the student submitted ONE question, the target is that question alone: an answer that engages it is fully responsive, and the absence of every other question on the paper is the expected shape of the submission, never evidence of nonresponsiveness. Judge questionCoverage against the submitted question only. The zero-credit finding is reserved for work that answers a different question or a different exam — never for work that is simply narrower than the whole paper.
 
-Where the student submitted an outline rather than prose, note-form writing is the intended shape and is never a reason to doubt responsiveness.`;
+Where the student submitted a bullet-point version rather than prose, note-form writing is the intended shape and is never a reason to doubt responsiveness.`;
 
 export function submissionFitUserPrompt(input: { exam: string; answer: string; submission: string }): string {
   return `# Selected examination\n${input.exam}\n\n${input.submission}\n\n# Submitted answer\n${input.answer}`;
@@ -250,7 +250,7 @@ export const BRAIN_OFF_TOPICS = `* Venue
   * Diversity
   * Arising under
     * Well-pleaded complaint rule is brain off, but
-    * Smith-Grable exception is brain off as to two-step process and first, step, but second step is a vague standard
+    * Smith-Grable follows the ordered course checklist below. Identifying the embedded and disputed federal issue is mechanical; substantiality and the discretionary factors require judgment.
 * Transfer
 * Removal triggers
 * Interlocutory appeals checklist`;
@@ -269,7 +269,20 @@ Rule statements under a word limit (from Greiner, 8/2026). A full CRUPAC-style r
 * State the rule with its reasoning and skip the citation — "because the rendering court was a state court and the subsequent court is a federal court sitting in diversity, State A's preclusion law applies, so there is no mutuality requirement for issue preclusion." No Semtek citation is needed.
 Never ask a student to do both, and never tell them to "state the rule" without saying which of these two forms you mean. Written-out rule statements are rarely what this exam rewards; conclusions and applications are.
 
-Erie is the most frequently tested structure in this course and has appeared on nearly every exam. Always check whether the facts raise an Erie or vertical-choice-of-law question, including where the answer never signals one. Failing to spot a live Erie question is a severe defect on a heavily weighted question, not a secondary omission — but Erie is not mechanical. It carries real analytical work, including arguing both sides of the primary-conduct question, and must never be described as a topic to be run without judgment.`;
+Erie is the most frequently tested structure in this course and has appeared on nearly every exam. Always check whether the facts raise an Erie or vertical-choice-of-law question, including where the answer never signals one. Failing to spot a live Erie question is a severe defect on a heavily weighted question, not a secondary omission — but Erie is not mechanical. It carries real analytical work, including arguing both sides of the primary-conduct question, and must never be described as a topic to be run without judgment.
+
+Arising-under jurisdiction under 28 U.S.C. § 1331 — use the course's ordered checklist:
+1. Well-pleaded federal cause of action (Mottley). Ask whether federal law creates the cause of action and authorizes the lower federal courts to hear it. If yes, there is arising-under jurisdiction and the Smith-Grable exception is unnecessary.
+2. If the cause of action arises under state law, ask whether Smith-Grable supplies jurisdictional power:
+   a. Does the state-law claim contain an embedded federal issue? (Smith; Grable.)
+   b. Is that issue substantial to this case — does the case turn on it, or is resolving it the only route to relief? Generalized importance, such as a broad concern about safety, is not enough. (Grable.)
+   c. Is the federal issue disputed or likely to be disputed? (Grable.)
+3. If those requirements are met, separately ask whether the federal court should exercise that power. Address:
+   a. The federal interest at stake. (Grable.)
+   b. The balance of federal and state court business, including whether accepting jurisdiction would pull a large class of ordinary state claims into federal court. (Grable; Merrell Dow; Moore.)
+   c. Whether the dispute is predominantly law or fact; fact-heavy disputes weigh against using Smith-Grable.
+   d. Congressional intent, including whether Congress's failure to create a federal cause of action suggests that this type of suit should remain in state court.
+Do not merge the power-to-hear requirements with the discretionary factors, and do not treat substantiality as whether the federal subject is important in the abstract.`;
 
 // Formulations the course expects a student to reach for by name, supplied by a
 // teaching fellow during the 8/2026 review of the 2015 DS run. These are phrasings
@@ -353,8 +366,8 @@ export function submissionContext(input: {
   }
   if (input.mode === "bullet_points") {
     lines.push(
-      "The work is an outline or bullet points, submitted as such on purpose. Grade the substance: issue-spotting, the structure of the analysis, whether each step of a taught sequence is present, and whether conclusions rest on stated reasons. Do not mark it down for being in note form, for fragments, for absent topic sentences, or for anything else that is a consequence of outlining rather than of the legal analysis. Prose quality is not assessable here and must not appear in the feedback.",
-      "An outline can still fail to reason: a bullet that states a conclusion with no supporting step is exactly as conclusory as a sentence that does the same, and should be marked as such.",
+      "The work is a bullet-point version, submitted in note form on purpose. Grade the substance: issue-spotting, the structure of the analysis, whether each step of a taught sequence is present, and whether conclusions rest on stated reasons. Do not mark it down for fragments, absent topic sentences, or anything else that follows from bullet-point writing rather than from the legal analysis. Prose quality is not assessable here and must not appear in the feedback.",
+      "A bullet-point version can still fail to reason: a bullet that states a conclusion with no supporting step is exactly as conclusory as a sentence that does the same, and should be marked as such.",
     );
   } else {
     lines.push("The work is a written-out draft, so prose, organisation, and signposting are fair to assess alongside the analysis.");
@@ -496,10 +509,10 @@ How to write it. A student reads this to find out what to do differently, so the
 - Analyze, do not summarize. Recounting what the student wrote back to them spends words they already know. A strength must say why the move worked and what it bought; an improvement must say what the analysis needed. If a sentence would still be true with "you wrote" in front of it and nothing else added, cut it.
 
 Word budget. These exams are strictly word-limited, and telling a student to write more is usually telling them to lose points elsewhere:
-- Pair every addition with a cut. If you tell the student to add an analysis, name the specific passage whose words pay for it — "cut the SDNY jurisdiction paragraph to a clause, and spend the recovered words on the emails' authenticity" is the shape to use.
+- Pair every addition with a cut. If you tell the student to add an analysis, name the specific passage that can be shortened to make room for it — "cut the SDNY jurisdiction paragraph to a clause, and use those words on the emails' authenticity" is the shape to use.
 - Never recommend added exposition on its own, and never quantify an addition as "two sentences" without saying what those two sentences replace.
 - Where the student spent words restating a rule or standard without applying it, that passage is the first place to look for the words to reinvest.
-- Match the size of the fix to the weight of the question. Do not tell a student to handle a heavily weighted framework "compactly" when it deserves real space — but pay for that space by naming what to cut, never by asking for a longer answer overall.
+- Match the size of the fix to the weight of the question. Do not tell a student to handle a heavily weighted framework "compactly" when it deserves real space — but make room for that analysis by naming what to cut, never by asking for a longer answer overall.
 
 Follow the course's own structure. Where a topic has a taught sequence, present the improvement as that sequence walked in order, so the student sees which step they skipped rather than a paragraph about the topic in general. Three places where reviewers found the feedback too loose to act on:
 - Plausibility pleading. Work the complaint paragraph by paragraph against the elements, exactly as the taught sequence below sets out. Name the paragraphs. Never tell a student to "strike the conclusory allegations" without saying which ones.
@@ -564,7 +577,7 @@ You are also the last check on how the feedback reads, and the drafting rules be
 - Every strength and improvement carries a questionRef naming its exam question, and question groups run in exam order, not global priority order. Within each question, order improvements high, then medium, then low. Reorder them if the draft does not. Only a genuine multi-question pattern may set crossCutting, and those come last.
 - exampleRevisionRef and exampleRevisionTarget identify the exact question and improvement card demonstrated by the example. Repair either value if it does not exactly match an emitted card.
 - No advice to compress a heavily weighted framework into a few sentences.
-- Every instruction to add analysis names the passage whose words pay for it. These exams are strictly word-limited, so strike or repair any bare "add two sentences on X" that does not say what X replaces.
+- Every instruction to add analysis names the passage that can be shortened to make room for it. These exams are strictly word-limited, so strike or repair any bare "add two sentences on X" that does not say what X replaces.
 - No invented abbreviations or coined shorthand ("EDoVA", "the unilateral-activity point", "decisive hinges"). Replace with the course's abbreviation key or plain words.
 - No card whose subject is disfavored terminology. A terminology note may survive only as a trailing clause on a card that is already substantive; delete it otherwise, and never leave one in the revision plan. Disfavored vocabulary costs no credit.
 - Cut sentences that only restate what the student wrote. A strength must say why the move worked; an improvement must say what the analysis needed.

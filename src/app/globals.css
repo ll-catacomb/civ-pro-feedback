@@ -786,6 +786,19 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
 .student-portal .revision-panel li, .student-portal .closing-note { color: #4b4843; }
 .student-portal .revision-panel li::before, .student-portal .example-revision { border-color: #bbb7af; }
 .student-portal .example-revision { background: #fff; }
+.copy-feedback-status { margin: 0; color: #765d20; font-size: 11px; line-height: 1.5; }
+
+@media print {
+  @page { margin: .65in; }
+  body { background: #fff !important; color: #111 !important; }
+  .student-header, .student-feedback-actions { display: none !important; }
+  .student-portal .result-shell { max-width: none; padding: 0; }
+  .result-grid { display: block; }
+  .result-heading { grid-template-columns: 1fr; gap: 12px; }
+  .quality-seal { display: none !important; }
+  .feedback-card, .revision-panel, .example-revision { break-inside: avoid; }
+  .student-portal .revision-panel { color: #111; }
+}
 
 @media (max-width: 700px) {
   .student-header__inner { min-height: auto; padding: 14px 16px; align-items: flex-start; flex-direction: column; gap: 12px; }
