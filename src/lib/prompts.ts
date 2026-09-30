@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.23.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.24.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -282,7 +282,9 @@ Arising-under jurisdiction under 28 U.S.C. § 1331 — use the course's ordered 
    b. The balance of federal and state court business, including whether accepting jurisdiction would pull a large class of ordinary state claims into federal court. (Grable; Merrell Dow; Moore.)
    c. Whether the dispute is predominantly law or fact; fact-heavy disputes weigh against using Smith-Grable.
    d. Congressional intent, including whether Congress's failure to create a federal cause of action suggests that this type of suit should remain in state court.
-Do not merge the power-to-hear requirements with the discretionary factors, and do not treat substantiality as whether the federal subject is important in the abstract.`;
+Do not merge the power-to-hear requirements with the discretionary factors, and do not treat substantiality as whether the federal subject is important in the abstract.
+
+Cohen collateral-order doctrine — the risk of an avalanche of appeals is a cross-cutting policy consideration, sometimes described in the course as a shadow or stealth factor. It helps explain why appellate courts construe interlocutory review narrowly: a court is less likely to accept an interlocutory appeal when doing so would invite many similar appeals or flood the appellate system with piecemeal review. It is not a hard-and-fast element of the Cohen test. Credit a student who uses it as a reason bearing on whether the court will accept review; do not correct them for failing to present it as a formal element, and do not describe it as independently dispositive.`;
 
 // Formulations the course expects a student to reach for by name, supplied by a
 // teaching fellow during the 8/2026 review of the 2015 DS run. These are phrasings

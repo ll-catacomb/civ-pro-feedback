@@ -177,7 +177,17 @@ a { color: inherit; text-decoration: none; }
 /* pre-line so a step-per-line instruction renders as steps, not one paragraph. */
 .coaching-grid dd { margin: 0; color: #45504c; font-size: 12px; line-height: 1.6; white-space: pre-line; }
 .source-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px; }
-.source-badges span { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 7px; border: 1px solid #c6d7d1; background: #f2f7f5; color: var(--crimson); font-size: 8px; }
+.source-badges span, .source-badges a { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 7px; border: 1px solid #c6d7d1; background: #f2f7f5; color: var(--crimson); font-size: 9px; }
+.source-badges a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--crimson) 35%, transparent); text-underline-offset: 2px; }
+.source-badges a:hover { border-color: var(--crimson); text-decoration-color: currentColor; }
+.course-sources > h3 { margin: 0; font-size: 21px; }
+.course-sources > p { margin: 8px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.course-source-list { display: grid; gap: 8px; }
+.course-source-list details { scroll-margin-top: 90px; border: 1px solid var(--line); background: #fff; }
+.course-source-list details:target { border-color: var(--crimson); box-shadow: 0 0 0 2px var(--crimson-soft); }
+.course-source-list summary { padding: 12px 14px; cursor: pointer; color: var(--crimson); font-size: 12px; font-weight: 700; }
+.course-source-excerpt { max-height: 360px; overflow: auto; padding: 2px 16px 16px; border-top: 1px solid var(--line); color: #414945; font: 12px/1.6 Georgia, serif; }
+.course-source-excerpt > :last-child { margin-bottom: 0; }
 .revision-panel { margin-top: 42px; padding: 30px; background: var(--crimson); color: white; }
 .revision-panel .eyebrow { color: #e9c59f; }
 .revision-panel ol { counter-reset: plan; padding: 0; margin: 20px 0; display: grid; gap: 12px; }
@@ -797,6 +807,7 @@ footer span { font-family: var(--font-cormorant), serif; font-size: 20px; color:
   .result-heading { grid-template-columns: 1fr; gap: 12px; }
   .quality-seal { display: none !important; }
   .feedback-card, .revision-panel, .example-revision { break-inside: avoid; }
+  .course-sources { display: none !important; }
   .student-portal .revision-panel { color: #111; }
 }
 

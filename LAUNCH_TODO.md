@@ -48,14 +48,20 @@ Longer-term vendor requests and institutional follow-up are recorded in
       single controlled retry, keeping evaluation inside Vercel's step lifetime.
 - [x] Use student-facing "bullet-point version" language, replace "pay for" with
       "make room for," and add copy plus print/PDF feedback actions.
+- [x] Turn student-facing course citations into links to the exact retrieved
+      excerpt and label opaque casebook titles such as "Day 9" by material type.
+- [x] Extend transient Apps Script retries through the Google OAuth callback so
+      a cold or propagating gate is less likely to require manual page reloads.
 - [ ] Add the 2024 final after receiving its instructor model answer; the exam
       text is already present, but evaluation needs a coverage benchmark.
-- [ ] Add the 2025 three-hour final after receiving both the final text and the
-      instructor model answer.
+- [ ] Add both 2025 finals after receiving four Markdown files: the administered
+      exam and model answer, plus the 3.5-hour shortened exam and model answer.
+- [ ] Decide the public name. Professor Greiner proposed “Madeleine”; keep the
+      current neutral “Civil Procedure Practice” label until Madeleine approves.
 
 Automated verification completed through 2026-09-30:
 
-- `npm run check`: clean lint and typecheck; 190 tests passing.
+- `npm run check`: clean lint and typecheck; 194 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.
@@ -187,19 +193,19 @@ to the test resources above.
 
 ## Live acceptance test
 
-- [ ] A rostered Harvard Google account signs in and receives its expected
-      pseudonym; an unlisted account is rejected without revealing roster state.
+- [x] A rostered Harvard Google account signs in and receives its expected pseudonym.
+- [ ] An unlisted Harvard Google account is rejected without revealing roster state.
 - [ ] Double-clicking submit creates only one reservation and one workflow.
-- [ ] A student can close the tab, return through history, and see live progress.
-- [ ] Completed feedback reopens from history after a new login.
-- [ ] A failed workflow is refunded and shows a support reference.
+- [x] A student can close the tab, return through history, and see live progress.
+- [x] Completed feedback reopens from history after a new login.
+- [x] A failed workflow is refunded and shows a support reference.
 - [ ] The fifth attempt succeeds and a sixth is rejected.
 - [x] The identity workbook contains keyed lookup hashes and account state but
       no names, student emails, plaintext codes, or student answers.
 - [ ] The feedback workbook contains pseudonyms, answers, status, and feedback
       but no student emails.
 - [ ] Legacy production endpoints cannot trigger model calls.
-- [ ] Vercel shows the split workflow steps and a complete production run.
+- [x] Vercel shows the split workflow steps and a complete production run.
 - [ ] The first structured-output run completes within the configured Vercel
       step duration, including Bedrock's cold schema-compilation time.
 - [ ] The Sonnet 5 / Opus 5.5 evaluator smoke sweep and full calibration

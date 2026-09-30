@@ -245,6 +245,13 @@ describe("prompt-chain invariants", () => {
     expect(COURSE_CLARIFICATIONS).toContain("Congress's failure to create a federal cause of action");
   });
 
+  it("treats an avalanche of appeals as Cohen policy rather than a formal element", () => {
+    expect(COURSE_CLARIFICATIONS).toContain("sometimes described in the course as a shadow or stealth factor");
+    expect(COURSE_CLARIFICATIONS).toContain("not a hard-and-fast element of the Cohen test");
+    expect(COURSE_CLARIFICATIONS).toContain("less likely to accept an interlocutory appeal");
+    expect(COURSE_CLARIFICATIONS).toContain("flood the appellate system with piecemeal review");
+  });
+
   it("refuses to spend an improvement slot on disfavored vocabulary", () => {
     expect(coachDeveloperPrompt).toContain("Never give one its own improvement card");
     expect(coachDeveloperPrompt).toContain("A disfavored term costs no credit");

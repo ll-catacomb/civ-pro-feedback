@@ -8,6 +8,7 @@ import {
 import ReactMarkdown from "react-markdown";
 
 import { STUDENT_PROGRESS_STEPS } from "@/lib/feedback-progress";
+import { courseSourceAnchor, courseSourceLabel } from "@/lib/course-source-label";
 import {
   getAssessmentOutcome,
   getFinalFeedback,
@@ -22,9 +23,41 @@ function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
     <div className="source-badges">
       {ids.map((id) => {
         const source = run.sources.find((candidate) => candidate.id === id);
-        return <span key={id} title={source?.title ?? id}>{source?.title ?? id}</span>;
+        const anchor = source ? courseSourceAnchor(source.id) : "";
+        return source
+          ? <a
+              href={`#${anchor}`}
+              key={id}
+              onClick={() => {
+                const target = document.getElementById(anchor);
+                if (target instanceof HTMLDetailsElement) target.open = true;
+              }}
+              title={`Open the cited excerpt from ${courseSourceLabel(source)}`}
+            >{courseSourceLabel(source)}</a>
+          : <span key={id} title={id}>{id}</span>;
       })}
     </div>
+  );
+}
+
+function ReferencedSources({ run, sourceIds }: { run: FeedbackRun; sourceIds: string[] }) {
+  const wanted = new Set(sourceIds);
+  const sources = run.sources.filter((source) => wanted.has(source.id));
+  if (!sources.length) return null;
+  return (
+    <section className="feedback-section course-sources" aria-labelledby="course-sources-heading">
+      <div className="section-kicker"><FileText size={18} /> Course sources referenced</div>
+      <h3 id="course-sources-heading">Check the material behind the feedback</h3>
+      <p>Each citation above links to the exact course-material excerpt used for that point.</p>
+      <div className="course-source-list">
+        {sources.map((source) => (
+          <details id={courseSourceAnchor(source.id)} key={source.id}>
+            <summary>{courseSourceLabel(source)}</summary>
+            <div className="course-source-excerpt"><ReactMarkdown>{source.excerpt}</ReactMarkdown></div>
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -113,6 +146,10 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
     }
   }
   const manualReviewMessage = "The automated quality checks disagreed about part of this response. Treat the feedback as provisional and confirm uncertain points against the course materials.";
+  const referencedSourceIds = [...new Set([
+    ...feedback.strengths.flatMap((item) => item.sourceIds),
+    ...feedback.improvements.flatMap((item) => item.sourceIds),
+  ])];
   return (
     <section className="result-shell" aria-live="polite">
       {outcome.creditStatus === "manual_review" && (
@@ -210,6 +247,7 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
             )}
             <p className="closing-note">{feedback.closing}</p>
           </section>
+          <ReferencedSources run={run} sourceIds={referencedSourceIds} />
         </div>
 
         <aside className="evidence-rail student-feedback-actions">

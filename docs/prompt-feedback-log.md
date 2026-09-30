@@ -1004,3 +1004,23 @@ eleven more years have real same-exam DS references.
 Do not reintroduce a DS-scarcity heuristic on the strength of a low DS count against
 this benchmark. Check inversions first. A conservative cut-point on a stratified fixture
 set is cheap; a ranking inversion is not.
+
+---
+
+## TA pilot corrections — v4.23.0–v4.24.0 (9/2026)
+
+The live TA pilot produced two narrow substantive corrections and several presentation
+changes. These are direct course-team instructions rather than inferences from model
+behavior.
+
+- **Smith–Grable:** the prompt now preserves the full ordered course checklist. It
+  separates the prerequisites giving the court power to hear the state-law claim from
+  the discretionary factors governing whether the federal forum should entertain it.
+  Substantiality means importance to the particular case, not generalized importance.
+- **Cohen and an avalanche of appeals:** Professor Greiner confirmed the student's
+  formulation as a legitimate cross-cutting policy or “shadow” consideration. It helps
+  explain why interlocutory review is construed narrowly; it is not a hard-and-fast
+  Cohen element and is not independently dispositive.
+- Student-facing bands and internal judge artifacts remain suppressed. Course citations
+  now identify the material type and link to the exact retrieved excerpt used by the
+  feedback, rather than presenting opaque titles such as “Day 9.”

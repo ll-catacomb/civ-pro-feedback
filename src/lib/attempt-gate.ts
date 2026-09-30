@@ -124,7 +124,10 @@ export function verifyGateEnvelope(envelope: GateEnvelope, secret: string): bool
 }
 
 type FetchLike = typeof fetch;
-const DEFAULT_RETRY_DELAYS_MS = [0, 250, 750] as const;
+// Apps Script occasionally returns a transient HTML response while its web-app
+// deployment wakes or propagates. Keep retrying long enough for an OAuth
+// callback to recover without asking the student to reload and sign in again.
+const DEFAULT_RETRY_DELAYS_MS = [0, 500, 1_500, 3_000] as const;
 const TRANSIENT_HTTP_STATUSES = new Set([404, 408, 425, 429]);
 
 function delay(milliseconds: number): Promise<void> {
