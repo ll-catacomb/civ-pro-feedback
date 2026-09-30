@@ -17,7 +17,7 @@ not require Postgres.
 - durable Vercel Workflow execution, split so no request remains open for the
   full feedback chain
 - a student progress view that explains each stage and can be reopened later
-- 451 cleaned course-context files, official practice exams, model answers, and
+- 456 cleaned course-context files, official practice exams, model answers, and
   anonymized calibration responses
 
 See [Architecture](docs/ARCHITECTURE.md), [HUIT Bedrock integration](docs/HUIT_BEDROCK.md),

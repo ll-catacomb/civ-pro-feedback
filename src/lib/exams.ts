@@ -21,50 +21,72 @@ const EXAM_DIRECTORY = path.join(process.cwd(), "content", "course", "exams");
 const CLEANED_EXAM = /^(\d{4})-final\.md$/;
 const RAW_EXAM = /^(\d{4})-greiner-civpro[^-]*-final(-alt)?\.md$/;
 const MODEL_ANSWER = /^(\d{4})-greiner-civpro[^-]*-model-answer\.md$/;
+// A year can also offer a genuinely different practice version, rather than a
+// second extraction of the same paper. Variant files pair by their shared slug:
+// `2025-shortened-final.md` + `2025-shortened-model-answer.md`.
+const VARIANT_EXAM = /^(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)-final\.md$/;
+const VARIANT_MODEL_ANSWER = /^(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)-model-answer\.md$/;
 
 /**
  * An exam needs its own text AND an instructor model answer to be practiced:
  * the model answer drives the issue map and is the coverage benchmark the
- * evaluation grades against. 2024 has a final but no model answer, so it is
- * discovered and then withheld with a stated reason rather than silently
- * dropped — `listIncompleteExams` surfaces it for anyone wondering why.
+ * evaluation grades against. Any unpaired file is discovered and then withheld
+ * with a stated reason rather than silently dropped — `listIncompleteExams`
+ * surfaces it for anyone wondering why.
  */
-export type IncompleteExam = { year: number; reason: string };
+export type IncompleteExam = { year: number; variant?: string; reason: string };
 
 type Discovered = {
   year: number;
+  variant?: string;
   promptFile?: string;
   rawPromptFile?: string;
   modelAnswerFile?: string;
 };
 
-function readMarkdown(fileName: string, directory: string = EXAM_DIRECTORY): { title: string; content: string } {
+function readMarkdown(fileName: string, directory: string = EXAM_DIRECTORY): {
+  title: string;
+  shortDescription: string;
+  content: string;
+} {
   const parsed = matter(fs.readFileSync(path.join(directory, fileName), "utf8"));
   return {
     title: typeof parsed.data.title === "string" ? parsed.data.title : "",
+    shortDescription: typeof parsed.data.short_description === "string" ? parsed.data.short_description : "",
     content: parsed.content.trim(),
   };
 }
 
-function discover(): Map<number, Discovered> {
-  const byYear = new Map<number, Discovered>();
-  const upsert = (year: number, patch: Partial<Discovered>) => {
-    byYear.set(year, { year, ...byYear.get(year), ...patch });
+function discover(): Map<string, Discovered> {
+  const discovered = new Map<string, Discovered>();
+  const upsert = (year: number, variant: string | undefined, patch: Partial<Discovered>) => {
+    const key = `${year}:${variant ?? "standard"}`;
+    discovered.set(key, { year, variant, ...discovered.get(key), ...patch });
   };
   for (const fileName of fs.readdirSync(EXAM_DIRECTORY).sort()) {
     const cleaned = CLEANED_EXAM.exec(fileName);
-    if (cleaned) { upsert(Number(cleaned[1]), { promptFile: fileName }); continue; }
+    if (cleaned) { upsert(Number(cleaned[1]), undefined, { promptFile: fileName }); continue; }
     const raw = RAW_EXAM.exec(fileName);
     // `-alt` is a second extraction of the same paper, never a different exam;
     // keep whichever raw file sorts first and only as a fallback.
-    if (raw && !byYear.get(Number(raw[1]))?.rawPromptFile) {
-      upsert(Number(raw[1]), { rawPromptFile: fileName });
+    const standardKey = raw ? `${Number(raw[1])}:standard` : "";
+    if (raw && !discovered.get(standardKey)?.rawPromptFile) {
+      upsert(Number(raw[1]), undefined, { rawPromptFile: fileName });
       continue;
     }
     const model = MODEL_ANSWER.exec(fileName);
-    if (model) upsert(Number(model[1]), { modelAnswerFile: fileName });
+    if (model) { upsert(Number(model[1]), undefined, { modelAnswerFile: fileName }); continue; }
+    const variantExam = VARIANT_EXAM.exec(fileName);
+    if (variantExam) {
+      upsert(Number(variantExam[1]), variantExam[2], { promptFile: fileName });
+      continue;
+    }
+    const variantModel = VARIANT_MODEL_ANSWER.exec(fileName);
+    if (variantModel) {
+      upsert(Number(variantModel[1]), variantModel[2], { modelAnswerFile: fileName });
+    }
   }
-  return byYear;
+  return discovered;
 }
 
 /**
@@ -169,12 +191,16 @@ function buildExam(entry: Discovered): Exam | null {
   const modelAnswer = readMarkdown(entry.modelAnswerFile);
   const questionCount = countQuestions(prompt.content);
   return {
-    id: `${entry.year}-final`,
+    id: `${entry.year}${entry.variant ? `-${entry.variant}` : ""}-final`,
     kind: "final",
     modelAnswerKind: "instructor_key",
     year: entry.year,
     title: prompt.title || `Civil Procedure 2 — ${entry.year} Final`,
-    shortDescription: `${questionCount} question${questionCount === 1 ? "" : "s"} · ${entry.year} final`,
+    shortDescription: prompt.shortDescription || (
+      entry.variant
+        ? `${entry.year} final · ${entry.variant.replaceAll("-", " ")} · ${questionCount} questions`
+        : `${questionCount} question${questionCount === 1 ? "" : "s"} · ${entry.year} final`
+    ),
     questionCount,
     prompt: prompt.content,
     modelAnswer: modelAnswer.content,
@@ -205,6 +231,7 @@ export function listIncompleteExams(): IncompleteExam[] {
     .filter((entry) => !(entry.promptFile ?? entry.rawPromptFile) || !entry.modelAnswerFile)
     .map((entry) => ({
       year: entry.year,
+      ...(entry.variant ? { variant: entry.variant } : {}),
       reason: !entry.modelAnswerFile
         ? "No instructor model answer in the corpus, so there is no coverage benchmark to grade against."
         : "No exam text in the corpus.",

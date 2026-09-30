@@ -27,9 +27,9 @@ describe("calibration fixture discovery", () => {
   it("only holds fixtures whose exam is actually practicable", () => {
     // A fixture pointing at an exam the registry withholds cannot be run as a
     // benchmark: the calibration route resolves getExam(fixture.examId) and
-    // would throw. 2008 and 2025 have no exam in the corpus; 2024's final has
-    // no model answer, so it is withheld. Graded answers exist for all three
-    // and are deliberately not installed.
+    // would throw. 2008 has no exam in the corpus. The 2024 and 2025 exams are
+    // now practicable, but their graded student answers are deliberately not
+    // installed as calibration fixtures.
     const years = new Set(CALIBRATION_FIXTURES.map((fixture) => fixture.id.slice(0, 4)));
     expect(years.has("2008")).toBe(false);
     expect(years.has("2024")).toBe(false);

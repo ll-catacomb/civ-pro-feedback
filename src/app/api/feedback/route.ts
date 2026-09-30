@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     // examId is a plain string in the schema because the practicable set is
     // discovered from the corpus at runtime; the registry is the validator.
     if (!isKnownExamId(input.examId)) {
-      // Summarise rather than list: there are 16 finals and 58 assignments, and
+      // Summarise rather than list: there are many finals and assignments, and
       // enumerating every id (or every year, with duplicates) helps nobody.
       const items = getExams();
       const finalYears = items.filter((item) => item.kind === "final").map((item) => item.year);

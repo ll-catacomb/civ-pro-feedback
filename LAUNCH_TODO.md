@@ -52,16 +52,15 @@ Longer-term vendor requests and institutional follow-up are recorded in
       excerpt and label opaque casebook titles such as "Day 9" by material type.
 - [x] Extend transient Apps Script retries through the Google OAuth callback so
       a cold or propagating gate is less likely to require manual page reloads.
-- [ ] Add the 2024 final after receiving its instructor model answer; the exam
-      text is already present, but evaluation needs a coverage benchmark.
-- [ ] Add both 2025 finals after receiving four Markdown files: the administered
-      exam and model answer, plus the 3.5-hour shortened exam and model answer.
+- [x] Add the 2024 final and its instructor model answer as a practicable exam.
+- [x] Add both 2025 finals as separate choices, pairing the administered 8-hour
+      exam and the shortened 3.5-hour exam with their corresponding model answers.
 - [ ] Decide the public name. Professor Greiner proposed “Madeleine”; keep the
       current neutral “Civil Procedure Practice” label until Madeleine approves.
 
 Automated verification completed through 2026-09-30:
 
-- `npm run check`: clean lint and typecheck; 194 tests passing.
+- `npm run check`: clean lint and typecheck; 195 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.

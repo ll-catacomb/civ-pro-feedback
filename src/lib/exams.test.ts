@@ -5,13 +5,14 @@ import { countQuestions, getExam, getExams, isKnownExamId, listIncompleteExams }
 describe("exam registry", () => {
   it("discovers every year that has both an exam and a model answer", () => {
     const years = getExams().filter((item) => item.kind === "final").map((item) => item.year);
-    // 2007 and 2009-2023. 2008 was never imported; 2024's final has no model
-    // answer, though its assignments are practicable and appear separately.
+    // 2007 and 2009-2025. 2008 was never imported. Two genuinely different
+    // 2025 practice versions appear separately and pair with their own keys.
     expect(years).toContain(2007);
     expect(years).toContain(2015);
     expect(years).toContain(2023);
-    expect(years).not.toContain(2024);
-    expect(years.length).toBeGreaterThanOrEqual(16);
+    expect(years).toContain(2024);
+    expect(years.filter((year) => year === 2025)).toHaveLength(2);
+    expect(years.length).toBeGreaterThanOrEqual(19);
     // Newest first, so the dropdown opens on the most recent paper.
     expect(years).toEqual([...years].sort((left, right) => right - left));
   });
@@ -42,12 +43,30 @@ describe("exam registry", () => {
     }
   });
 
-  it("withholds an exam with no model answer and says why", () => {
-    const withheld = listIncompleteExams();
-    const year2024 = withheld.find((entry) => entry.year === 2024);
-    expect(year2024).toBeDefined();
-    expect(year2024?.reason).toMatch(/model answer/i);
-    expect(isKnownExamId("2024-final")).toBe(false);
+  it("makes the newly completed 2024 final practicable", () => {
+    expect(listIncompleteExams().some((entry) => entry.year === 2024)).toBe(false);
+    expect(isKnownExamId("2024-final")).toBe(true);
+    const exam = getExam("2024-final");
+    expect(exam.questionCount).toBe(9);
+    expect(exam.modelAnswerPath).toContain("2024-greiner-civpro2-model-answer.md");
+    expect(exam.modelAnswer).toMatch(/supplied instructor model-answer PDF ends after Question 8/i);
+  });
+
+  it("keeps the administered and shortened 2025 finals distinct", () => {
+    const administered = getExam("2025-final");
+    const shortened = getExam("2025-shortened-final");
+
+    expect(administered.questionCount).toBe(8);
+    expect(shortened.questionCount).toBe(6);
+    expect(administered.shortDescription).toMatch(/Administered 8-hour/);
+    expect(shortened.shortDescription).toMatch(/Shortened 3\.5-hour/);
+    expect(administered.promptPath).not.toBe(shortened.promptPath);
+    expect(administered.modelAnswerPath).not.toBe(shortened.modelAnswerPath);
+    expect(administered.modelAnswer).toContain("Darth can challenge IPJ");
+    expect(shortened.modelAnswer).not.toContain("Darth can challenge IPJ");
+    // The source PDF's footnote marker must not merge into the question number.
+    expect(administered.prompt).toContain("Question 2[^3]");
+    expect(administered.prompt).not.toContain("Question 23");
   });
 
   it("prefers the cleaned extraction where a year has two files", () => {
@@ -87,6 +106,9 @@ describe("exam registry", () => {
     expect(getExam("2015-final").questionCount).toBe(4);
     expect(getExam("2019-final").questionCount).toBe(6);
     expect(getExam("2021-final").questionCount).toBe(6);
+    expect(getExam("2024-final").questionCount).toBe(9);
+    expect(getExam("2025-final").questionCount).toBe(8);
+    expect(getExam("2025-shortened-final").questionCount).toBe(6);
   });
 
   it("rejects an unknown exam id", () => {
