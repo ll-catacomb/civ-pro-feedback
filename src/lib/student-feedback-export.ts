@@ -19,6 +19,7 @@ export function formatFeedbackForCopy(feedback: Feedback): string {
       "",
       questionLabel(improvement.questionRef, improvement.crossCutting),
       `${improvement.priority.toUpperCase()}: ${improvement.label}`,
+      ...(improvement.answerExcerpt ? [`From your answer: “${improvement.answerExcerpt}”`] : []),
       `What happened: ${improvement.whatHappened}`,
       `Why it matters: ${improvement.whyItMatters}`,
       `Try this next: ${improvement.howToImprove}`,

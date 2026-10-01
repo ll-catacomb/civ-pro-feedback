@@ -70,6 +70,21 @@ describe("course retrieval", () => {
     expect(sources.length).toBeLessThanOrEqual(10);
     expect(sources.every((source) => source.path.startsWith("content/course/"))).toBe(true);
     expect(sources.some((source) => source.path.includes("/exams/"))).toBe(false);
+    expect(sources.some((source) => source.path.includes("model-answer"))).toBe(false);
+  });
+
+  it("never presents student model answers as authoritative course sources", async () => {
+    const sources = await retrieveCourseContext(
+      {
+        issueMap: personalJurisdictionIssueMap,
+        answer: "Personal jurisdiction minimum contacts purposeful availment fair and reasonable venue subject matter jurisdiction.",
+        expansionTerms: ["personal jurisdiction", "minimum contacts", "venue", "subject matter jurisdiction", "claim preclusion"],
+      },
+      1_000,
+    );
+
+    expect(sources.length).toBeGreaterThan(24);
+    expect(sources.every((source) => !source.path.includes("model-answer"))).toBe(true);
   });
 
   it("caps each document at two excerpts so one long outline cannot crowd out other issues", async () => {

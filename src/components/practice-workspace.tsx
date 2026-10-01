@@ -44,20 +44,38 @@ function ReferencedSources({ run, sourceIds }: { run: FeedbackRun; sourceIds: st
   const wanted = new Set(sourceIds);
   const sources = run.sources.filter((source) => wanted.has(source.id));
   if (!sources.length) return null;
+  const studentExemplars = sources.filter((source) =>
+    source.path.includes("/assignments/") && source.path.includes("model-answer"));
+  const courseSources = sources.filter((source) => !studentExemplars.includes(source));
+  const sourceList = (items: typeof sources) => (
+    <div className="course-source-list">
+      {items.map((source) => (
+        <details id={courseSourceAnchor(source.id)} key={source.id}>
+          <summary>{courseSourceLabel(source)}</summary>
+          <div className="course-source-excerpt"><ReactMarkdown>{source.excerpt}</ReactMarkdown></div>
+        </details>
+      ))}
+    </div>
+  );
   return (
-    <section className="feedback-section course-sources" aria-labelledby="course-sources-heading">
-      <div className="section-kicker"><FileText size={18} /> Course sources referenced</div>
-      <h3 id="course-sources-heading">Check the material behind the feedback</h3>
-      <p>Each citation above links to the exact course-material excerpt used for that point.</p>
-      <div className="course-source-list">
-        {sources.map((source) => (
-          <details id={courseSourceAnchor(source.id)} key={source.id}>
-            <summary>{courseSourceLabel(source)}</summary>
-            <div className="course-source-excerpt"><ReactMarkdown>{source.excerpt}</ReactMarkdown></div>
-          </details>
-        ))}
-      </div>
-    </section>
+    <>
+      {courseSources.length > 0 && (
+        <section className="feedback-section course-sources" aria-labelledby="course-sources-heading">
+          <div className="section-kicker"><FileText size={18} /> Course sources referenced</div>
+          <h3 id="course-sources-heading">Check the material behind the feedback</h3>
+          <p>Each citation above links to the exact course-material excerpt used for that point.</p>
+          {sourceList(courseSources)}
+        </section>
+      )}
+      {studentExemplars.length > 0 && (
+        <section className="feedback-section course-sources student-exemplars" aria-labelledby="student-exemplars-heading">
+          <div className="section-kicker"><FileText size={18} /> Examples from past student work</div>
+          <h3 id="student-exemplars-heading">Writing examples, not course authority</h3>
+          <p>These excerpts can illustrate an effective move, but they are student work and may contain imperfections.</p>
+          {sourceList(studentExemplars)}
+        </section>
+      )}
+    </>
   );
 }
 
@@ -215,6 +233,12 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
                             <h3>{improvement.label}</h3>
                           </div>
                           <dl className="coaching-grid">
+                            {improvement.answerExcerpt && (
+                              <div className="coaching-excerpt">
+                                <dt>From your answer</dt>
+                                <dd>“{improvement.answerExcerpt}”</dd>
+                              </div>
+                            )}
                             <div><dt>What happened</dt><dd>{improvement.whatHappened}</dd></div>
                             <div><dt>Why it matters</dt><dd>{improvement.whyItMatters}</dd></div>
                             <div><dt>Try this next</dt><dd>{improvement.howToImprove}</dd></div>
@@ -251,6 +275,11 @@ export function FeedbackResult({ run, onReset }: { run: FeedbackRun; onReset: ()
         </div>
 
         <aside className="evidence-rail student-feedback-actions">
+          <details className="submitted-answer-panel" open>
+            <summary>Your submitted response</summary>
+            <p>Scroll here while reading the feedback.</p>
+            <div className="submitted-answer-text">{run.answer}</div>
+          </details>
           <button className="secondary-button full-width" onClick={() => window.print()} type="button">
             <Printer size={16} /> Print or save as PDF
           </button>
@@ -380,7 +409,6 @@ export function PracticeWorkspace({
   const requestKeyRef = useRef<string | null>(null);
   const selectedExam = useMemo(() => exams.find((exam) => exam.id === selectedId) ?? exams[0], [exams, selectedId]);
   const questionOptions = useMemo(() => listQuestionLabels(selectedExam.prompt), [selectedExam]);
-  const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
   // A question chosen on one exam rarely exists on another, so reset rather
   // than submit a stale label the new paper does not have.
   const chooseExam = (id: string) => {
@@ -502,7 +530,7 @@ export function PracticeWorkspace({
             <optgroup label="Final exams">
               {exams.filter((exam) => exam.kind === "final").map((exam) => (
                 <option key={exam.id} value={exam.id}>
-                  {exam.year} final — {exam.questionCount} question{exam.questionCount === 1 ? "" : "s"}
+                  {exam.shortDescription}
                 </option>
               ))}
             </optgroup>
@@ -571,12 +599,9 @@ export function PracticeWorkspace({
         )}
 
         <div className="practice-field">
-          <div className="answer-heading">
-            <label className="field-label" htmlFor="answer">
-              {scope === "single_question" && questionRef ? `Paste your answer to ${questionRef}` : "Paste your answer"}
-            </label>
-            <span className="word-count">{wordCount.toLocaleString()} words</span>
-          </div>
+          <label className="field-label" htmlFor="answer">
+            {scope === "single_question" && questionRef ? `Paste your answer to ${questionRef}` : "Paste your answer"}
+          </label>
           <textarea id="answer" className="answer-textarea" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder={scope === "single_question"
             ? `Paste your answer to ${questionRef || "the question"} here…`
             : "Paste your full exam answer here…"} minLength={120} required />

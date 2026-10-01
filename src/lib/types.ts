@@ -209,6 +209,10 @@ export const FeedbackSchema = z.object({
     z.object({
       priority: z.enum(["high", "medium", "low"]),
       label: z.string(),
+      // Optional so persisted runs from before v4.25.0 remain readable. Current
+      // prompts request a short exact quote to make each critique easy to find
+      // in the full submitted response shown alongside the feedback.
+      answerExcerpt: z.string().optional(),
       whatHappened: z.string(),
       whyItMatters: z.string(),
       howToImprove: z.string(),

@@ -16,6 +16,7 @@ const feedback: Feedback = {
   improvements: [{
     priority: "high",
     label: "Finish the checklist",
+    answerExcerpt: "The court should dismiss.",
     whatHappened: "One step was missing.",
     whyItMatters: "The conclusion depends on it.",
     howToImprove: "Add that step and shorten the repeated rule.",
@@ -34,6 +35,7 @@ describe("student feedback export", () => {
     const exported = formatFeedbackForCopy(feedback);
     expect(exported).toContain("WHAT IS WORKING\n\nQuestion 1\nA sound move");
     expect(exported).toContain("HIGH: Finish the checklist");
+    expect(exported).toContain("From your answer: “The court should dismiss.”");
     expect(exported).toContain("Example of a stronger move: A stronger analytical move.");
     expect(exported).toContain("REVISION PLAN\n1. Revise Question 2.");
     expect(exported).not.toContain("undefined");

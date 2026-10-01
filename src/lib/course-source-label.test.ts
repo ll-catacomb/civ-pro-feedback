@@ -21,6 +21,13 @@ describe("course source labels", () => {
     })).toBe("Course slides · Appellate Jurisdiction");
   });
 
+  it("distinguishes a past student answer from authoritative course material", () => {
+    expect(courseSourceLabel({
+      title: "Assignment 3 model answer",
+      path: "content/course/assignments/2018-assignment-03-ravinsky-model-answer.md",
+    })).toBe("Past student exemplar · Assignment 3 model answer");
+  });
+
   it("creates safe stable in-page anchors", () => {
     expect(courseSourceAnchor("C-content/course:day 9#2")).toBe("course-source-C-content-course-day-9-2");
   });

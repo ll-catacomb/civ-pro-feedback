@@ -1,6 +1,6 @@
 # Student App Launch Checklist
 
-Last updated: 2026-09-30
+Last updated: 2026-10-01
 
 This file is the production handoff for the Civil Procedure feedback app. The
 student application uses Google Sheets for permanent records and Vercel
@@ -55,12 +55,18 @@ Longer-term vendor requests and institutional follow-up are recorded in
 - [x] Add the 2024 final and its instructor model answer as a practicable exam.
 - [x] Add both 2025 finals as separate choices, pairing the administered 8-hour
       exam and the shortened 3.5-hour exam with their corresponding model answers.
+- [x] Show the student's full submitted response beside completed feedback and
+      anchor new improvement cards with a short exact excerpt from that response.
+- [x] Keep past student model answers out of course-source retrieval; identify
+      any exemplars embedded in older saved runs as writing examples, not authority.
+- [x] Hide the practice-form word counter because Exam4 uses a different counting
+      method; internal intake and submission validation remain unchanged.
 - [ ] Decide the public name. Professor Greiner proposed “Madeleine”; keep the
       current neutral “Civil Procedure Practice” label until Madeleine approves.
 
-Automated verification completed through 2026-09-30:
+Automated verification completed through 2026-10-01:
 
-- `npm run check`: clean lint and typecheck; 195 tests passing.
+- `npm run check`: clean lint and typecheck; 197 tests passing.
 - `npm run build`: successful Next.js 16.3.6 production build; Workflow reports
   16 durable steps and one workflow.
 - `npm audit`: zero known dependency vulnerabilities, including development tooling.

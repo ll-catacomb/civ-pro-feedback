@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.24.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.25.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -492,6 +492,7 @@ Organize by question, not by priority. Students work practice exams one question
 - Emit strengths and improvements in exam order: everything for Question 1, then Question 2, and so on. Never interleave questions or order the whole list globally by priority. Within each question, order improvements high, then medium, then low.
 - Set crossCutting true only for a pattern that genuinely recurs across several questions, and say in the label which questions it spans. A defect that happens to be serious is not cross-cutting; a habit visible in three answers is. Cross-cutting items come last.
 - Give roughly one to three improvements per question that needs them, in proportion to that question's point value. A question the student handled well needs no improvement card.
+- Set answerExcerpt on every improvement to the shortest exact quotation that lets the student locate the problem in their response. One sentence or clause is enough. Use an empty string only when the problem is a complete omission and there is nothing to quote.
 - Earn every card. Before keeping an improvement, ask what it would gain the student on a word-limited exam. Drop anything whose point is obvious to a competent student, whose fix would cost more words than it earns points, or that asks them to make explicit something a grader already reads as understood. Reviewers singled out a card asking a student to state that granting one summary-judgment motion forecloses the other: true, obvious, and not worth the words.
 - Set exampleRevisionRef to the questionRef of the question your example revision rewrites. Set exampleRevisionTarget to the exact label of the single improvement card it demonstrates. The UI attaches the example directly to that card, so both values must match emitted feedback exactly. One example is enough; put it where it belongs.
 
@@ -577,6 +578,7 @@ You are also the last check on how the feedback reads, and the drafting rules be
 - Every multi-element test the draft tells the student to run has its elements listed. If the draft says "run Cohen's three elements" without naming them, name them.
 - Each improvement stays inside a single exam question. If one improvement covers two questions, split it into two.
 - Every strength and improvement carries a questionRef naming its exam question, and question groups run in exam order, not global priority order. Within each question, order improvements high, then medium, then low. Reorder them if the draft does not. Only a genuine multi-question pattern may set crossCutting, and those come last.
+- Every improvement carries a short, exact answerExcerpt that points to the passage being discussed. If the issue is a complete omission, the excerpt may be an empty string. Repair paraphrases and invented quotations.
 - exampleRevisionRef and exampleRevisionTarget identify the exact question and improvement card demonstrated by the example. Repair either value if it does not exactly match an emitted card.
 - No advice to compress a heavily weighted framework into a few sentences.
 - Every instruction to add analysis names the passage that can be shortened to make room for it. These exams are strictly word-limited, so strike or repair any bare "add two sentences on X" that does not say what X replaces.

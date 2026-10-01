@@ -100,6 +100,11 @@ function loadCorpus(): Corpus {
     // Historical exams are excluded: the selected exam and its model answer are
     // supplied directly, and an unrelated exam can contaminate the feedback.
     .filter((filePath) => !filePath.includes(`${path.sep}exams${path.sep}`))
+    // Instructor-selected student answers help calibrate the evaluator in the
+    // dedicated reference-answer stage, but they are not doctrinal authority.
+    // Keeping them out of retrieval prevents a student exemplar from appearing
+    // beside the casebook, rules, and class materials as a "course source."
+    .filter((filePath) => !path.basename(filePath).includes("model-answer"))
     .flatMap((filePath) => {
       const relativePath = path.relative(process.cwd(), filePath);
       const fallbackTitle = path.basename(filePath, ".md").replaceAll("-", " ");
