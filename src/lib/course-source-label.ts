@@ -11,15 +11,16 @@ const SOURCE_GROUPS: Array<[prefix: string, label: string]> = [
 ];
 
 export function courseSourceLabel(source: Pick<RetrievedSource, "path" | "title">): string {
-  // Persisted pilot runs can still contain these even though current retrieval
-  // excludes them. Label them honestly instead of grouping them with course
-  // authority such as the casebook or rules.
-  if (source.path.includes("/assignments/") && source.path.includes("model-answer")) {
+  if (isStudentExemplarSource(source)) {
     return `Past student exemplar · ${source.title}`;
   }
   const group = SOURCE_GROUPS.find(([prefix]) => source.path.startsWith(prefix))?.[1]
     ?? "Course material";
   return `${group} · ${source.title}`;
+}
+
+export function isStudentExemplarSource(source: Pick<RetrievedSource, "path">): boolean {
+  return source.path.includes("/assignments/") && source.path.includes("model-answer");
 }
 
 export function courseSourceAnchor(sourceId: string): string {

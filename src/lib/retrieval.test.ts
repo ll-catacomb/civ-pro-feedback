@@ -70,10 +70,9 @@ describe("course retrieval", () => {
     expect(sources.length).toBeLessThanOrEqual(10);
     expect(sources.every((source) => source.path.startsWith("content/course/"))).toBe(true);
     expect(sources.some((source) => source.path.includes("/exams/"))).toBe(false);
-    expect(sources.some((source) => source.path.includes("model-answer"))).toBe(false);
   });
 
-  it("never presents student model answers as authoritative course sources", async () => {
+  it("retrieves student exemplars for invisible writing guidance", async () => {
     const sources = await retrieveCourseContext(
       {
         issueMap: personalJurisdictionIssueMap,
@@ -84,7 +83,7 @@ describe("course retrieval", () => {
     );
 
     expect(sources.length).toBeGreaterThan(24);
-    expect(sources.every((source) => !source.path.includes("model-answer"))).toBe(true);
+    expect(sources.some((source) => source.path.includes("model-answer"))).toBe(true);
   });
 
   it("caps each document at two excerpts so one long outline cannot crowd out other issues", async () => {

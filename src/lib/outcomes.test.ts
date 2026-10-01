@@ -56,6 +56,40 @@ describe("final feedback selection", () => {
     } as unknown as FeedbackRun;
     expect(getFinalFeedback(run)?.headline).toBe("Single-chain final");
   });
+
+  it("keeps exemplar influence invisible by stripping its student-facing citation", () => {
+    const feedback = {
+      headline: "Specific feedback",
+      overview: "Overview",
+      strengths: [{
+        label: "Strong organization",
+        detail: "The analysis was easy to follow.",
+        answerExcerpt: "First, the court...",
+        sourceIds: ["course-source", "student-exemplar"],
+      }],
+      improvements: [{
+        priority: "medium" as const,
+        label: "Compress the rule",
+        whatHappened: "The rule was repeated.",
+        whyItMatters: "Those words can be used elsewhere.",
+        howToImprove: "State it once.",
+        sourceIds: ["student-exemplar"],
+      }],
+      revisionPlan: ["Compress the rule."],
+      exampleRevision: "A shorter move.",
+      closing: "",
+    };
+    const run = {
+      judge: { feedback },
+      sources: [
+        { id: "course-source", path: "content/course/casebook/day-09.md" },
+        { id: "student-exemplar", path: "content/course/assignments/2018-assignment-03-ravinsky-model-answer.md" },
+      ],
+    } as unknown as FeedbackRun;
+
+    expect(getFinalFeedback(run)?.strengths[0].sourceIds).toEqual(["course-source"]);
+    expect(getFinalFeedback(run)?.improvements[0].sourceIds).toEqual([]);
+  });
 });
 
 describe("band estimate explanation", () => {

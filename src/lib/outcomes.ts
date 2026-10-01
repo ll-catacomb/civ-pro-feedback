@@ -1,4 +1,5 @@
 import type { AssessmentOutcome, Feedback, FeedbackRun, GradeBand } from "@/lib/types";
+import { isStudentExemplarSource } from "@/lib/course-source-label";
 
 const NONRESPONSIVE_PATTERN = /different exam|different examination|unrelated parties|nonresponsive submission|answers? a different/i;
 
@@ -30,6 +31,23 @@ function hasContent(feedback: Feedback | undefined): boolean {
 }
 
 /**
+ * Exemplars can shape the model's coaching, but their provenance is deliberately
+ * invisible to students. This also cleans persisted pilot runs that cited one
+ * before the boundary was enforced in the prompts.
+ */
+function withoutStudentExemplarCitations(run: FeedbackRun, feedback: Feedback | undefined): Feedback | undefined {
+  if (!feedback) return undefined;
+  const hiddenIds = new Set((run.sources ?? []).filter(isStudentExemplarSource).map((source) => source.id));
+  if (hiddenIds.size === 0) return feedback;
+  const visibleIds = (sourceIds: string[]) => sourceIds.filter((id) => !hiddenIds.has(id));
+  return {
+    ...feedback,
+    strengths: feedback.strengths.map((item) => ({ ...item, sourceIds: visibleIds(item.sourceIds) })),
+    improvements: feedback.improvements.map((item) => ({ ...item, sourceIds: visibleIds(item.sourceIds) })),
+  };
+}
+
+/**
  * The feedback the student sees.
  *
  * Normally the judge's corrected object. But the judge can return a structurally
@@ -46,9 +64,9 @@ function hasContent(feedback: Feedback | undefined): boolean {
  */
 export function getFinalFeedback(run: FeedbackRun): Feedback | undefined {
   const judged = run.dualDecision?.finalFeedback ?? run.judge?.feedback;
-  if (hasContent(judged)) return judged;
-  if (hasContent(run.draftFeedback)) return run.draftFeedback;
-  return judged;
+  if (hasContent(judged)) return withoutStudentExemplarCitations(run, judged);
+  if (hasContent(run.draftFeedback)) return withoutStudentExemplarCitations(run, run.draftFeedback);
+  return withoutStudentExemplarCitations(run, judged);
 }
 
 /**

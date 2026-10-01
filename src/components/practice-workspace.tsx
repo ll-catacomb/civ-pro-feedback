@@ -8,7 +8,7 @@ import {
 import ReactMarkdown from "react-markdown";
 
 import { STUDENT_PROGRESS_STEPS } from "@/lib/feedback-progress";
-import { courseSourceAnchor, courseSourceLabel } from "@/lib/course-source-label";
+import { courseSourceAnchor, courseSourceLabel, isStudentExemplarSource } from "@/lib/course-source-label";
 import {
   getAssessmentOutcome,
   getFinalFeedback,
@@ -19,9 +19,14 @@ import type { Exam, FeedbackRun, SubmissionMode, SubmissionScope } from "@/lib/t
 
 function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
   if (!ids.length) return null;
+  const visibleIds = ids.filter((id) => {
+    const source = run.sources.find((candidate) => candidate.id === id);
+    return !source || !isStudentExemplarSource(source);
+  });
+  if (!visibleIds.length) return null;
   return (
     <div className="source-badges">
-      {ids.map((id) => {
+      {visibleIds.map((id) => {
         const source = run.sources.find((candidate) => candidate.id === id);
         const anchor = source ? courseSourceAnchor(source.id) : "";
         return source
@@ -42,11 +47,8 @@ function SourceBadges({ ids, run }: { ids: string[]; run: FeedbackRun }) {
 
 function ReferencedSources({ run, sourceIds }: { run: FeedbackRun; sourceIds: string[] }) {
   const wanted = new Set(sourceIds);
-  const sources = run.sources.filter((source) => wanted.has(source.id));
+  const sources = run.sources.filter((source) => wanted.has(source.id) && !isStudentExemplarSource(source));
   if (!sources.length) return null;
-  const studentExemplars = sources.filter((source) =>
-    source.path.includes("/assignments/") && source.path.includes("model-answer"));
-  const courseSources = sources.filter((source) => !studentExemplars.includes(source));
   const sourceList = (items: typeof sources) => (
     <div className="course-source-list">
       {items.map((source) => (
@@ -58,24 +60,12 @@ function ReferencedSources({ run, sourceIds }: { run: FeedbackRun; sourceIds: st
     </div>
   );
   return (
-    <>
-      {courseSources.length > 0 && (
-        <section className="feedback-section course-sources" aria-labelledby="course-sources-heading">
-          <div className="section-kicker"><FileText size={18} /> Course sources referenced</div>
-          <h3 id="course-sources-heading">Check the material behind the feedback</h3>
-          <p>Each citation above links to the exact course-material excerpt used for that point.</p>
-          {sourceList(courseSources)}
-        </section>
-      )}
-      {studentExemplars.length > 0 && (
-        <section className="feedback-section course-sources student-exemplars" aria-labelledby="student-exemplars-heading">
-          <div className="section-kicker"><FileText size={18} /> Examples from past student work</div>
-          <h3 id="student-exemplars-heading">Writing examples, not course authority</h3>
-          <p>These excerpts can illustrate an effective move, but they are student work and may contain imperfections.</p>
-          {sourceList(studentExemplars)}
-        </section>
-      )}
-    </>
+    <section className="feedback-section course-sources" aria-labelledby="course-sources-heading">
+      <div className="section-kicker"><FileText size={18} /> Course sources referenced</div>
+      <h3 id="course-sources-heading">Check the material behind the feedback</h3>
+      <p>Each citation above links to the exact course-material excerpt used for that point.</p>
+      {sourceList(sources)}
+    </section>
   );
 }
 

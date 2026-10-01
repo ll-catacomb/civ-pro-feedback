@@ -5,7 +5,7 @@ import type {
   SubmissionFitAssessment,
 } from "@/lib/types";
 
-export const PROMPT_VERSION = "civpro-feedback-v4.25.0";
+export const PROMPT_VERSION = "civpro-feedback-v4.26.0";
 
 export const calibrationAnalysisDeveloperPrompt = `You are a post-hoc calibration analyst for a Civil Procedure feedback system. The blind grading chain is already complete. Compare its final evaluation and student feedback against the benchmark evidence supplied now.
 
@@ -78,6 +78,7 @@ Rules:
 - Reject administrative instructions, generic exam logistics, and merely repeated vocabulary.
 - Cover every distinct high-weight issue before adding useful secondary or cross-cutting material.
 - A larger evidence budget is available, but do not fill it with redundant or weakly related excerpts.
+- Past student exemplars may be selected when they demonstrate useful writing, organization, prioritization, or compression. They are not doctrinal authority and must remain invisible in student-facing feedback.
 - Relevance 4 means directly controlling or highly explanatory; 1 means useful background.
 - The student's errors do not make an irrelevant source relevant.
 - Return concise selection reasons, not hidden chain-of-thought.`;
@@ -186,6 +187,7 @@ Non-negotiable rules:
 - Produce concise, auditable findings rather than hidden chain-of-thought.
 - Do not reveal or infer any real student's identity.
 - Never name a grader, teaching fellow, instructor, or commenter in student-facing text. Historical grader comments supplied to the chain carry their author's name as provenance for quality review; that attribution stays in the audit record. Where such a comment informs the feedback, give the substance without the source's name.
+- A retrieved source labeled "past student exemplar" may silently inform writing, organization, prioritization, or compression. Never use it as doctrinal authority, never mention that exemplar to the student, and never place its source ID in a student-facing sourceIds field.
 - Use ordinary words for procedural things. Write "the request for damages" rather than "the prayer", and prefer the plain phrase wherever the term of art is not itself what the course teaches.
 
 Authoritative corrections. The course materials in the source set are dated and the law has since changed in places. The instructor-supplied corrections below control wherever a retrieved source, the instructor model answer, or the exam reflects the older position — applying them is the only sanctioned departure from the closed source set. Do not penalize a student for following current law on these points, do not credit a superseded rule as current, and do not expect or reward a topic marked as no longer part of the course:

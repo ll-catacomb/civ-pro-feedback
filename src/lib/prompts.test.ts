@@ -195,6 +195,14 @@ describe("prompt-chain invariants", () => {
     expect(judgeDeveloperPrompt).toContain("A prescription to cite outside authority is an unsupported assertion");
   });
 
+  it("uses student exemplars invisibly rather than citing them as authority", () => {
+    expect(sourceRerankDeveloperPrompt).toContain("Past student exemplars may be selected");
+    for (const prompt of [evaluationDeveloperPrompt, coachDeveloperPrompt, judgeDeveloperPrompt]) {
+      expect(prompt).toContain("may silently inform writing, organization, prioritization, or compression");
+      expect(prompt).toContain("never place its source ID in a student-facing sourceIds field");
+    }
+  });
+
   it("requires plain, single-idea, per-question student-facing prose", () => {
     expect(coachDeveloperPrompt).toContain("One idea per sentence");
     expect(coachDeveloperPrompt).toContain("Never coin a label for a doctrine");
