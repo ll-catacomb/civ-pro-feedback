@@ -19,8 +19,9 @@ export default async function StudentHome({
 }) {
   const query = await searchParams;
   const requested = Array.isArray(query.student) ? query.student[0] : query.student;
-  const synthetic = syntheticPortalEnabled();
-  const session = synthetic ? null : await auth();
+  const session = syntheticPortalEnabled() ? null : await auth();
+  // Staff sessions preview the synthetic roster and submit to the demo endpoint.
+  const synthetic = syntheticPortalEnabled() || session?.user.role === "staff";
   if (!synthetic && (!session?.user.studentId || !session.user.pseudonym)) {
     redirect("/student/sign-in");
   }

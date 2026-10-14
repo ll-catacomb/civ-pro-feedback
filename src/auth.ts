@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 
 import { attemptGateConfigured, createAttemptGateClient } from "@/lib/attempt-gate";
 import { verifyGoogleIdentityProof } from "@/lib/google-identity-proof";
+import { isStaffEmail } from "@/lib/staff-emails";
 import { hashStudentEmail } from "@/lib/student-email-lookup";
 import { hashEnrollmentCode } from "@/lib/student-records";
 import { isWorkspaceEmail, workspaceDomains } from "@/lib/workspace-domains";
@@ -77,6 +78,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (typeof profile.hd !== "string" || !profile.hd) return false;
         if (!isWorkspaceEmail(profile.email, allowedDomains)) return false;
       }
+      // Staff accounts bypass the roster lookup. They see the synthetic demo
+      // roster rather than a student record, so no attempts are consumed.
+      if (isStaffEmail(profile.email)) {
+        user.id = profile.sub;
+        user.email = null;
+        user.name = null;
+        user.image = null;
+        user.role = "staff";
+        user.googleSubject = profile.sub;
+        return true;
+      }
       const lookupSecret = process.env.STUDENT_EMAIL_LOOKUP_SECRET;
       if (!attemptGateConfigured() || !lookupSecret) return false;
       try {
@@ -100,7 +112,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     jwt({ token, user, account }) {
       if (user) {
-        if (account?.provider === "google") {
+        if (account?.provider === "google" && user.role === "staff") {
+          token.role = "staff";
+          token.googleSubject = user.googleSubject ?? user.id;
+          token.studentId = undefined;
+          token.pseudonym = null;
+        } else if (account?.provider === "google") {
           token.role = "student";
           token.googleSubject = user.googleSubject ?? user.id;
           token.studentId = user.id;
@@ -124,7 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.googleSubject = typeof token.googleSubject === "string" ? token.googleSubject : "";
         session.user.studentId = typeof token.studentId === "string" ? token.studentId : "";
         session.user.pseudonym = typeof token.pseudonym === "string" ? token.pseudonym : "";
-        session.user.role = token.role === "student" ? "student" : "pending";
+        session.user.role = token.role === "student" || token.role === "staff" ? token.role : "pending";
         session.user.email = "";
         session.user.image = null;
         session.user.name = session.user.pseudonym;

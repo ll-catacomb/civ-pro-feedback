@@ -15,8 +15,9 @@ export default async function StudentPractice({
 }) {
   const query = await searchParams;
   const requested = Array.isArray(query.student) ? query.student[0] : query.student;
-  const enabled = syntheticPortalEnabled();
-  const session = enabled ? null : await auth();
+  const session = syntheticPortalEnabled() ? null : await auth();
+  // Staff sessions preview the synthetic roster and submit to the demo endpoint.
+  const enabled = syntheticPortalEnabled() || session?.user.role === "staff";
   if (!enabled && (!session?.user.studentId || !session.user.pseudonym)) {
     redirect("/student/sign-in");
   }

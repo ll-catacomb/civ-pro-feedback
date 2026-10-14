@@ -16,7 +16,7 @@ export default async function StudentSignIn({
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const googleFailed = Boolean(error);
   const session = await auth();
-  if (session?.user?.studentId) redirect("/student");
+  if (session?.user?.studentId || session?.user?.role === "staff") redirect("/student");
   const configured = attemptGateConfigured()
     && studentEmailLookupConfigured()
     && Boolean(process.env.AUTH_SECRET)
