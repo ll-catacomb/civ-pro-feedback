@@ -35,24 +35,9 @@ export default async function StudentHome({
       <StudentHeader
         pseudonym={model.student.pseudonym}
         demoIndex={model.synthetic ? model.demoIndex : undefined}
-        authenticated={!model.synthetic}
+        authenticated={Boolean(session)}
       />
       <main className="student-page">
-        {model.synthetic && (
-          <div className="student-demo-notice">
-            <span>Synthetic roster</span>
-            <form method="get">
-              <label htmlFor="student-demo-account">Preview account</label>
-              <select id="student-demo-account" name="student" defaultValue={model.demoIndex}>
-                {Array.from({ length: 30 }, (_, index) => (
-                  <option key={index + 1} value={index + 1}>Student {String(index + 1).padStart(3, "0")}</option>
-                ))}
-              </select>
-              <button type="submit">View</button>
-            </form>
-          </div>
-        )}
-
         <header className="student-page-heading">
           <p>Course identifier</p>
           <h1>{model.student.pseudonym}</h1>

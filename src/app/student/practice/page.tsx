@@ -29,7 +29,7 @@ export default async function StudentPractice({
       <StudentHeader
         pseudonym={model.student.pseudonym}
         demoIndex={enabled ? model.demoIndex : undefined}
-        authenticated={!enabled}
+        authenticated={Boolean(session)}
       />
       <main>
         <header className="student-practice-heading">
